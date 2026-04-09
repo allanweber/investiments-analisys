@@ -1,3 +1,5 @@
+import { messages as m } from '#/messages'
+
 export default function Footer() {
   const year = new Date().getFullYear()
 
@@ -5,9 +7,9 @@ export default function Footer() {
     <footer className="mt-20 border-t border-[var(--line)] px-4 pb-14 pt-10 text-[var(--sea-ink-soft)]">
       <div className="page-wrap flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
         <p className="m-0 text-sm">
-          &copy; {year} Your name here. All rights reserved.
+          {m.footer.copyright(year, m.footer.rightsHolder)}
         </p>
-        <p className="island-kicker m-0">Built with TanStack Start</p>
+        <p className="island-kicker m-0">{m.footer.builtWith}</p>
       </div>
       <div className="mt-4 flex justify-center gap-4">
         <a
@@ -16,7 +18,7 @@ export default function Footer() {
           rel="noreferrer"
           className="rounded-xl p-2 text-[var(--sea-ink-soft)] transition hover:bg-[var(--link-bg-hover)] hover:text-[var(--sea-ink)]"
         >
-          <span className="sr-only">Follow TanStack on X</span>
+          <span className="sr-only">{m.footer.followX}</span>
           <svg viewBox="0 0 16 16" aria-hidden="true" width="32" height="32">
             <path
               fill="currentColor"
@@ -30,7 +32,7 @@ export default function Footer() {
           rel="noreferrer"
           className="rounded-xl p-2 text-[var(--sea-ink-soft)] transition hover:bg-[var(--link-bg-hover)] hover:text-[var(--sea-ink)]"
         >
-          <span className="sr-only">Go to TanStack GitHub</span>
+          <span className="sr-only">{m.footer.github}</span>
           <svg viewBox="0 0 16 16" aria-hidden="true" width="32" height="32">
             <path
               fill="currentColor"

@@ -14,7 +14,7 @@ import { Switch } from '#/components/ui/switch'
 import { Textarea } from '#/components/ui/textarea'
 import { hasDefaultQuestionPackForTypeName } from '#/db/default-question-bank'
 import { authClient } from '#/lib/auth-client'
-import { messages } from '#/messages'
+import { messages as m } from '#/messages'
 import {
   createQuestionFn,
   deleteQuestionFn,
@@ -44,8 +44,15 @@ function PerguntasPage() {
 
   if (sessionPending) {
     return (
-      <main className="flex items-center justify-center px-4 py-24">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-outline-variant border-t-primary" />
+      <main
+        role="status"
+        className="flex flex-col items-center justify-center gap-2 px-4 py-24"
+      >
+        <span className="sr-only">{m.common.loading}</span>
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-2 border-outline-variant border-t-primary"
+          aria-hidden
+        />
       </main>
     )
   }
@@ -58,12 +65,12 @@ function PerguntasPage() {
   if (!type) {
     return (
       <main className="w-full max-w-6xl px-4 py-8 sm:p-8 lg:p-12">
-        <p className="font-body text-on-surface-variant">Tipo não encontrado.</p>
+        <p className="font-body text-on-surface-variant">{m.questions.notFound}</p>
         <Link
           to="/tipos"
           className="mt-4 inline-block font-body text-sm font-semibold text-primary underline"
         >
-          Voltar para os tipos
+          {m.questions.backToTypes}
         </Link>
       </main>
     )
@@ -111,23 +118,23 @@ function PerguntasPage() {
   }
 
   const onRestoreDefaults = async () => {
-    if (!confirm(messages.questions.restoreConfirm)) return
+    if (!confirm(m.questions.restoreConfirm)) return
     setRestoreMsg('')
     setBusy('restore')
     try {
       const res = await restoreDefaultQuestionsForTypeFn({ data: { typeId } })
       if (!res.ok) {
         if (res.code === 'NO_PACK') {
-          setRestoreMsg(messages.questions.restoreNoPack)
+          setRestoreMsg(m.questions.restoreNoPack)
         } else {
-          setRestoreMsg(messages.questions.restoreFailed)
+          setRestoreMsg(m.questions.restoreFailed)
         }
         return
       }
       setRestoreMsg(
         res.inserted === 0
-          ? 'Nada a restaurar: todas as perguntas padrão já existem.'
-          : `${res.inserted} pergunta(s) padrão adicionada(s).`,
+          ? m.questions.restoreNone
+          : m.questions.restoreAdded(res.inserted),
       )
       await refresh()
     } finally {
@@ -136,12 +143,12 @@ function PerguntasPage() {
   }
 
   const onDelete = async (id: string) => {
-    if (!confirm(messages.questions.deleteConfirm)) return
+    if (!confirm(m.questions.deleteConfirm)) return
     setBusy(id)
     try {
       const res = await deleteQuestionFn({ data: { id } })
       if (!res.ok && res.code === 'HAS_ANSWERS') {
-        alert(messages.questions.deleteBlocked)
+        alert(m.questions.deleteBlocked)
         return
       }
       await refresh()
@@ -155,23 +162,22 @@ function PerguntasPage() {
       <div className="mb-10">
         <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-body text-sm text-outline">
           <Link to="/dashboard" className="no-underline hover:text-on-surface">
-            Admin
+            {m.common.admin}
           </Link>
           <span className="text-surface-dim">/</span>
           <Link to="/tipos" className="no-underline hover:text-on-surface">
-            Tipos
+            {m.common.crumbTipos}
           </Link>
           <span className="text-surface-dim">/</span>
           <span className="text-on-surface">{type.name}</span>
           <span className="text-surface-dim">/</span>
-          <span className="text-on-surface">Perguntas</span>
+          <span className="text-on-surface">{m.common.crumbPerguntas}</span>
         </div>
         <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">
-          Perguntas — {type.name}
+          {m.questions.title(type.name)}
         </h1>
         <p className="mt-2 max-w-2xl text-on-surface-variant">
-          Perguntas inativas não entram na pontuação; respostas antigas podem
-          permanecer no banco de dados.
+          {m.questions.intro}
         </p>
         {hasDefaultQuestionPackForTypeName(type.name) && (
           <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -186,8 +192,8 @@ function PerguntasPage() {
                 restore_page
               </span>
               {busy === 'restore'
-                ? 'A restaurar…'
-                : 'Restaurar perguntas padrão'}
+                ? m.common.restoring
+                : m.questions.restoreDefaults}
             </Button>
           </div>
         )}
@@ -206,13 +212,13 @@ function PerguntasPage() {
           htmlFor="new-q"
           className="font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
         >
-          Nova pergunta
+          {m.common.labelNovaPergunta}
         </Label>
         <Textarea
           id="new-q"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Enunciado (sim/não)…"
+          placeholder={m.questions.promptPlaceholder}
           rows={3}
           className="border-outline-variant/30 bg-surface-container-highest"
         />
@@ -225,7 +231,7 @@ function PerguntasPage() {
             <span className="material-symbols-outlined mr-1 shrink-0 text-lg leading-none">
               add
             </span>
-            {busy === 'create' ? 'Salvando…' : 'Adicionar pergunta'}
+            {busy === 'create' ? m.common.saving : m.questions.addQuestion}
           </Button>
         </div>
       </form>
@@ -233,8 +239,7 @@ function PerguntasPage() {
       {questions.length === 0 && (
         <div className="rounded-2xl border border-dashed border-outline-variant/35 bg-surface-container-low/50 py-12 text-center md:hidden">
           <p className="px-4 font-body text-sm text-on-surface-variant">
-            Sem perguntas. As respostas aqui definem a pontuação dos
-            investimentos deste tipo.
+            {m.questions.emptyMobile}
           </p>
         </div>
       )}
@@ -246,7 +251,7 @@ function PerguntasPage() {
               <div className="space-y-4">
                 <div>
                   <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
-                    Texto
+                    {m.common.labelTexto}
                   </span>
                   <Textarea
                     value={editPrompt}
@@ -258,7 +263,7 @@ function PerguntasPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
-                      Ordem
+                      {m.common.labelOrdem}
                     </span>
                     <Input
                       type="number"
@@ -271,7 +276,7 @@ function PerguntasPage() {
                   </div>
                   <div className="flex flex-col justify-end">
                     <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
-                      Ativa
+                      {m.common.labelAtiva}
                     </span>
                     <div className="flex items-center gap-2">
                       <Switch
@@ -279,7 +284,7 @@ function PerguntasPage() {
                         onCheckedChange={(v) => setEditActive(!!v)}
                       />
                       <span className="font-label text-xs text-on-surface-variant">
-                        {editActive ? 'Sim' : 'Não'}
+                        {editActive ? m.common.yes : m.common.no}
                       </span>
                     </div>
                   </div>
@@ -291,7 +296,7 @@ function PerguntasPage() {
                     onClick={() => void onSaveEdit()}
                     disabled={busy === q.id}
                   >
-                    Salvar
+                    {m.common.save}
                   </Button>
                   <Button
                     type="button"
@@ -299,7 +304,7 @@ function PerguntasPage() {
                     className="flex-1 border-outline-variant/30"
                     onClick={() => setEditId(null)}
                   >
-                    Cancelar
+                    {m.common.cancel}
                   </Button>
                 </div>
               </div>
@@ -335,35 +340,35 @@ function PerguntasPage() {
                       : 'whitespace-nowrap font-label text-xs text-on-surface-variant'
                   }
                 >
-                  {q.active ? 'Ativa' : 'Inativa'}
+                  {q.active ? m.common.statusAtiva : m.common.statusInativa}
                 </span>
                 <span className="text-on-surface-variant text-xs">
-                  Ordem {String(q.sortOrder).padStart(2, '0')}
+                  {m.questions.mobileOrderLabel(String(q.sortOrder).padStart(2, '0'))}
                 </span>
               </div>
               <div className="mt-4 flex gap-2 border-t border-outline-variant/15 pt-4">
                 <button
                   type="button"
                   className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-outline-variant/30 px-3 py-2.5 font-body text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-high"
-                  title="Editar"
+                  title={m.common.edit}
                   onClick={() => startEdit(q)}
                 >
                   <span className="material-symbols-outlined text-xl leading-none">
                     edit
                   </span>
-                  Editar
+                  {m.common.edit}
                 </button>
                 <button
                   type="button"
                   className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2.5 font-body text-sm font-semibold text-error transition-colors hover:bg-error-container/25"
-                  title="Excluir"
+                  title={m.common.delete}
                   onClick={() => void onDelete(q.id)}
                   disabled={busy === q.id}
                 >
                   <span className="material-symbols-outlined text-xl leading-none">
                     delete
                   </span>
-                  Excluir
+                  {m.common.delete}
                 </button>
               </div>
             </FaDetailsCard>
@@ -376,10 +381,10 @@ function PerguntasPage() {
           <table className="fa-table">
             <thead>
               <tr className="fa-th">
-                <th className="min-w-[18rem] text-left">Texto</th>
-                <th className="text-left">Ordem</th>
-                <th className="text-left">Ativa</th>
-                <th className="text-right">Ações</th>
+                <th className="min-w-[18rem] text-left">{m.questions.thTexto}</th>
+                <th className="text-left">{m.types.thOrdem}</th>
+                <th className="text-left">{m.common.labelAtiva}</th>
+                <th className="text-right">{m.common.labelAcoes}</th>
               </tr>
             </thead>
             <tbody className="font-body text-sm">
@@ -389,8 +394,7 @@ function PerguntasPage() {
                     colSpan={4}
                     className="py-12 text-center text-on-surface-variant"
                   >
-                    Sem perguntas. As respostas aqui definem a pontuação dos
-                    investimentos deste tipo.
+                    {m.questions.emptyMobile}
                   </td>
                 </tr>
               )}
@@ -431,7 +435,7 @@ function PerguntasPage() {
                           className="shrink-0"
                         />
                         <span className="font-label shrink-0 text-xs text-on-surface-variant">
-                          {editActive ? 'Sim' : 'Não'}
+                          {editActive ? m.common.yes : m.common.no}
                         </span>
                       </div>
                     ) : (
@@ -442,7 +446,7 @@ function PerguntasPage() {
                             : 'whitespace-nowrap text-on-surface-variant'
                         }
                       >
-                        {q.active ? 'Ativa' : 'Inativa'}
+                        {q.active ? m.common.statusAtiva : m.common.statusInativa}
                       </span>
                     )}
                   </td>
@@ -456,7 +460,7 @@ function PerguntasPage() {
                           disabled={busy === q.id}
                           className="shrink-0 bg-primary-container text-on-primary"
                         >
-                          Salvar
+                          {m.common.save}
                         </Button>
                         <Button
                           type="button"
@@ -465,14 +469,14 @@ function PerguntasPage() {
                           className="shrink-0 border-outline-variant/30"
                           onClick={() => setEditId(null)}
                         >
-                          Cancelar
+                          {m.common.cancel}
                         </Button>
                       </div>
                     ) : (
                       <div className="flex flex-nowrap justify-end gap-1">
                         <button
                           type="button"
-                          title="Editar"
+                          title={m.common.edit}
                           className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
                           onClick={() => startEdit(q)}
                         >
@@ -482,7 +486,7 @@ function PerguntasPage() {
                         </button>
                         <button
                           type="button"
-                          title="Excluir"
+                          title={m.common.delete}
                           className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-error-container/30 hover:text-error"
                           onClick={() => void onDelete(q.id)}
                           disabled={busy === q.id}

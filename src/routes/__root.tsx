@@ -2,6 +2,7 @@ import { HeadContent, Link, Scripts, createRootRoute } from '@tanstack/react-rou
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import AppShell from '../components/AppShell'
+import { messages as m } from '#/messages'
 
 import appCss from '../styles.css?url'
 
@@ -11,26 +12,25 @@ function RootNotFound() {
   return (
     <main className="page-wrap px-4 py-12">
       <section className="island-shell rounded-2xl p-6 sm:p-8">
-        <p className="island-kicker mb-2">404</p>
+        <p className="island-kicker mb-2">{m.notFound.code}</p>
         <h1 className="font-headline mb-3 text-3xl font-extrabold tracking-tight text-on-surface sm:text-4xl">
-          Página não encontrada
+          {m.notFound.title}
         </h1>
         <p className="mb-6 max-w-xl font-body text-sm leading-7 text-on-surface-variant">
-          O endereço não corresponde a nenhuma rota. Volte ao painel ou à página
-          inicial.
+          {m.notFound.body}
         </p>
         <div className="flex flex-wrap gap-3">
           <Link
             to="/dashboard"
             className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary"
           >
-            Painel
+            {m.notFound.ctaDashboard}
           </Link>
           <Link
             to="/"
             className="inline-flex items-center rounded-lg border border-outline-variant px-4 py-2 text-sm font-medium text-on-surface"
           >
-            Início
+            {m.notFound.ctaHome}
           </Link>
         </div>
       </section>
@@ -50,7 +50,7 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'The Financial Architect',
+        title: m.shell.brand,
       },
     ],
     links: [
@@ -69,7 +69,7 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang={m.meta.htmlLang} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
@@ -82,7 +82,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           }}
           plugins={[
             {
-              name: 'Tanstack Router',
+              name: m.devtools.tanStackRouter,
               render: <TanStackRouterDevtoolsPanel />,
             },
           ]}

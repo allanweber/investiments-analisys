@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '#/components/ui/select'
 import { authClient } from '#/lib/auth-client'
-import { messages } from '#/messages'
+import { messages as m } from '#/messages'
 import {
   createInvestmentsBulkFn,
   deleteInvestmentFn,
@@ -100,8 +100,15 @@ function InvestimentosPage() {
 
   if (sessionPending) {
     return (
-      <main className="flex items-center justify-center px-4 py-24">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-outline-variant border-t-primary" />
+      <main
+        role="status"
+        className="flex flex-col items-center justify-center gap-2 px-4 py-24"
+      >
+        <span className="sr-only">{m.common.loading}</span>
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-2 border-outline-variant border-t-primary"
+          aria-hidden
+        />
       </main>
     )
   }
@@ -114,7 +121,7 @@ function InvestimentosPage() {
     e.preventDefault()
     if (!newTypeId) {
       if (types.length === 0) {
-        alert(messages.investments.createTypeFirst)
+        alert(m.investments.createTypeFirst)
       }
       return
     }
@@ -124,10 +131,10 @@ function InvestimentosPage() {
       .filter(Boolean)
     const names = lines.slice(0, 100)
     if (lines.length > 100) {
-      alert(messages.investments.bulkMaxLines)
+      alert(m.investments.bulkMaxLines)
     }
     if (names.length === 0) {
-      alert('Indique pelo menos um nome (um por linha).')
+      alert(m.investments.bulkNeedNames)
       return
     }
     setBusy('create')
@@ -138,8 +145,8 @@ function InvestimentosPage() {
       if (!res.ok) {
         alert(
           res.code === 'BAD_TYPE'
-            ? messages.investments.bulkInvalidType
-            : messages.investments.bulkNoValidNames,
+            ? m.investments.bulkInvalidType
+            : m.investments.bulkNoValidNames,
         )
         return
       }
@@ -169,9 +176,9 @@ function InvestimentosPage() {
       })
       if (!res.ok) {
         if (res.code === 'HAS_ANSWERS_TYPE_LOCKED') {
-          alert(messages.investments.typeChangeBlocked)
+          alert(m.investments.typeChangeBlocked)
         } else if (res.code === 'BAD_TYPE') {
-          alert(messages.investments.invalidType)
+          alert(m.investments.invalidType)
         }
         return
       }
@@ -184,7 +191,7 @@ function InvestimentosPage() {
 
   const onDelete = async (id: string) => {
     const row = rows.find((r) => r.id === id)
-    if (!confirm(messages.investments.deleteConfirm(row?.name ?? id))) return
+    if (!confirm(m.investments.deleteConfirm(row?.name ?? id))) return
     setBusy(id)
     try {
       await deleteInvestmentFn({ data: { id } })
@@ -202,28 +209,27 @@ function InvestimentosPage() {
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2 font-body text-sm text-outline">
             <Link to="/dashboard" className="no-underline hover:text-on-surface">
-              Admin
+              {m.common.admin}
             </Link>
             <span className="text-surface-dim">/</span>
-            <span className="text-on-surface">Investimentos</span>
+            <span className="text-on-surface">{m.common.crumbInvestimentos}</span>
           </div>
           <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">
-            Lista e ranking
+            {m.investments.pageTitle}
           </h1>
           <p className="mt-3 max-w-xl font-body leading-relaxed text-on-surface-variant">
-            Compare pontuações dentro de cada tipo. Filtre a lista abaixo ou
-            adicione vários nomes de uma vez no formulário.
+            {m.investments.pageSubtitle}
           </p>
         </div>
       </header>
 
       {types.length === 0 ? (
         <p className="rounded-xl bg-error-container/40 p-4 font-body text-sm text-on-error-container">
-          Ainda não há tipos.{' '}
+          {m.investments.noTypesBodyBeforeLink}{' '}
           <Link to="/tipos" className="font-semibold underline">
-            Crie tipos
+            {m.investments.noTypesLink}
           </Link>{' '}
-          antes de adicionar investimentos.
+          {m.investments.noTypesBodyAfterLink}
         </p>
       ) : (
         <section
@@ -249,10 +255,10 @@ function InvestimentosPage() {
                     id="add-investments-title"
                     className="font-headline block text-lg font-bold text-on-surface sm:text-xl"
                   >
-                    Adicionar investimentos
+                    {m.investments.addInvestmentsTitle}
                   </span>
                   <span className="mt-1 block max-w-lg font-body text-sm text-on-surface-variant">
-                    Um nome por linha no mesmo tipo. Máximo 100 linhas por envio.
+                    {m.investments.addInvestmentsHint}
                   </span>
                 </span>
               </span>
@@ -284,11 +290,11 @@ function InvestimentosPage() {
                     htmlFor="inv-names-bulk"
                     className="font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
                   >
-                    Nomes
+                    {m.common.labelNomes}
                   </Label>
                   {draftLineCount > 0 && (
                     <span className="rounded-full bg-surface-container-high px-2 py-0.5 font-label text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
-                      {draftLineCount} linha{draftLineCount === 1 ? '' : 's'}
+                      {m.common.linesBadge(draftLineCount)}
                     </span>
                   )}
                 </div>
@@ -296,9 +302,7 @@ function InvestimentosPage() {
                   id="inv-names-bulk"
                   value={bulkNames}
                   onChange={(e) => setBulkNames(e.target.value)}
-                  placeholder={
-                    'Ex.:\nFundos X\nTítulos Y\nUm nome por linha…'
-                  }
+                  placeholder={m.investments.bulkPlaceholder}
                   rows={6}
                   className="min-h-[140px] flex-1 resize-y rounded-xl border-outline-variant/30 bg-surface-container-high font-body text-sm leading-relaxed placeholder:text-outline"
                 />
@@ -309,14 +313,14 @@ function InvestimentosPage() {
                     htmlFor="inv-new-type"
                     className="font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
                   >
-                    Tipo de investimento
+                    {m.common.labelTipoInvestimento}
                   </Label>
                   <Select value={newTypeId} onValueChange={setNewTypeId}>
                     <SelectTrigger
                       id="inv-new-type"
                       className="h-11 w-full min-w-0 border-outline-variant/30 bg-surface-container-highest sm:min-w-[280px]"
                     >
-                      <SelectValue placeholder="Escolher tipo" />
+                      <SelectValue placeholder={m.investments.selectTypePlaceholder} />
                     </SelectTrigger>
                     <SelectContent>
                       {types.map((t) => (
@@ -335,7 +339,7 @@ function InvestimentosPage() {
                   <span className="material-symbols-outlined mr-1 shrink-0 text-lg leading-none">
                     add
                   </span>
-                  {busy === 'create' ? 'Salvando…' : 'Criar na lista'}
+                  {busy === 'create' ? m.common.saving : m.investments.createListSubmit}
                 </Button>
               </div>
             </form>
@@ -351,17 +355,17 @@ function InvestimentosPage() {
               htmlFor="filtro-tipo"
               className="mb-2 block font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
             >
-              Tipo de investimento
+              {m.common.labelTipoInvestimento}
             </Label>
             <Select value={filterTypeId} onValueChange={(v) => setFilterTypeId(v)}>
               <SelectTrigger
                 id="filtro-tipo"
                 className="h-11 w-full min-w-[280px] border-outline-variant/30 bg-surface-container-highest"
               >
-                <SelectValue placeholder="Todos ou um tipo" />
+                <SelectValue placeholder={m.investments.filterAllPlaceholder} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="all">{m.investments.filterAllTypes}</SelectItem>
                 {types.map((t) => (
                   <SelectItem key={t.id} value={t.id}>
                     {t.name}
@@ -373,8 +377,8 @@ function InvestimentosPage() {
           <p className="font-body text-xs text-on-surface-variant sm:pb-2.5">
             {visibleInvestmentCount}{' '}
             {visibleInvestmentCount === 1
-              ? 'investimento nesta lista'
-              : 'investimentos nesta lista'}
+              ? m.investments.listCountOne
+              : m.investments.listCountMany}
           </p>
         </div>
       )}
@@ -388,11 +392,10 @@ function InvestimentosPage() {
               </span>
             </div>
             <p className="font-headline text-lg font-semibold text-on-surface">
-              Ainda sem investimentos
+              {m.investments.emptyTitle}
             </p>
             <p className="mx-auto mt-2 max-w-sm font-body text-sm text-on-surface-variant">
-              Use o formulário acima para colar ou escrever os nomes e escolher
-              o tipo.
+              {m.investments.emptyBody}
             </p>
           </div>
         )}
@@ -405,7 +408,9 @@ function InvestimentosPage() {
               </h2>
               <span className="font-label text-xs font-semibold uppercase tracking-wider text-outline">
                 {group.items.length}{' '}
-                {group.items.length === 1 ? 'investimento' : 'investimentos'}
+                {group.items.length === 1
+                  ? m.investments.groupCountOne
+                  : m.investments.groupCountMany}
               </span>
             </div>
             <div className="space-y-3 md:hidden">
@@ -415,7 +420,7 @@ function InvestimentosPage() {
                     <div className="space-y-4">
                       <div>
                         <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
-                          Nome
+                          {m.common.labelNome}
                         </span>
                         <Input
                           value={editName}
@@ -426,7 +431,7 @@ function InvestimentosPage() {
                       <dl className="grid grid-cols-2 gap-3 text-sm">
                         <div>
                           <dt className="font-label text-[10px] font-bold uppercase tracking-wider text-outline">
-                            Pontos
+                            {m.common.labelPontos}
                           </dt>
                           <dd className="mt-0.5 font-semibold tabular-nums text-on-surface">
                             {row.score}
@@ -434,7 +439,7 @@ function InvestimentosPage() {
                         </div>
                         <div>
                           <dt className="font-label text-[10px] font-bold uppercase tracking-wider text-outline">
-                            Resp. / ativas
+                            {m.common.labelRespAtivasShort}
                           </dt>
                           <dd className="mt-0.5 font-semibold tabular-nums text-on-surface-variant">
                             {row.answeredActiveCount}/{row.activeQuestionCount}
@@ -442,14 +447,14 @@ function InvestimentosPage() {
                         </div>
                         <div className="col-span-2">
                           <dt className="font-label text-[10px] font-bold uppercase tracking-wider text-outline">
-                            Posição
+                            {m.common.labelPosicao}
                           </dt>
                           <dd className="mt-0.5 text-on-surface-variant">
                             {row.activeQuestionCount === 0 ? (
-                              <span className="text-outline">—</span>
+                              <span className="text-outline">{m.common.dash}</span>
                             ) : (
                               <span className="whitespace-nowrap font-medium tabular-nums">
-                                {row.position}º
+                                {row.position}{m.common.ordinalSuffix}
                               </span>
                             )}
                           </dd>
@@ -457,7 +462,7 @@ function InvestimentosPage() {
                       </dl>
                       <div>
                         <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
-                          Tipo
+                          {m.common.labelTipo}
                         </span>
                         <Select
                           value={editTypeId}
@@ -482,7 +487,7 @@ function InvestimentosPage() {
                           onClick={() => void onSaveEdit()}
                           disabled={busy === row.id}
                         >
-                          Salvar
+                          {m.common.save}
                         </Button>
                         <Button
                           type="button"
@@ -490,7 +495,7 @@ function InvestimentosPage() {
                           className="flex-1 border-outline-variant/30"
                           onClick={() => setEditId(null)}
                         >
-                          Cancelar
+                          {m.common.cancel}
                         </Button>
                       </div>
                     </div>
@@ -504,7 +509,7 @@ function InvestimentosPage() {
                           {row.name}
                         </span>
                         <span className="shrink-0 text-xs font-semibold tabular-nums text-on-surface-variant">
-                          {row.score} pts
+                          {m.common.scorePtsAbbrev(row.score)}
                         </span>
                         <span
                           className="material-symbols-outlined shrink-0 text-xl leading-none text-on-surface-variant transition-transform duration-200 group-open:rotate-180"
@@ -517,27 +522,27 @@ function InvestimentosPage() {
                   >
                     <dl className="space-y-2.5 text-sm">
                       <div className="flex justify-between gap-4">
-                        <dt className="text-on-surface-variant">Pontos</dt>
+                        <dt className="text-on-surface-variant">{m.common.labelPontos}</dt>
                         <dd className="font-semibold tabular-nums text-on-surface">
                           {row.score}
                         </dd>
                       </div>
                       <div className="flex justify-between gap-4">
                         <dt className="text-on-surface-variant">
-                          Respondidas / ativas
+                          {m.common.labelRespondidasAtivas}
                         </dt>
                         <dd className="font-medium tabular-nums text-on-surface-variant">
                           {row.answeredActiveCount}/{row.activeQuestionCount}
                         </dd>
                       </div>
                       <div className="flex justify-between gap-4">
-                        <dt className="text-on-surface-variant">Posição</dt>
+                        <dt className="text-on-surface-variant">{m.common.labelPosicao}</dt>
                         <dd className="text-on-surface-variant">
                           {row.activeQuestionCount === 0 ? (
-                            <span className="text-outline">—</span>
+                            <span className="text-outline">{m.common.dash}</span>
                           ) : (
                             <span className="whitespace-nowrap font-medium tabular-nums">
-                              {row.position}º
+                              {row.position}{m.common.ordinalSuffix}
                             </span>
                           )}
                         </dd>
@@ -552,30 +557,30 @@ function InvestimentosPage() {
                         <span className="material-symbols-outlined text-xl leading-none">
                           analytics
                         </span>
-                        Pontuar
+                        {m.common.pontuar}
                       </Link>
                       <button
                         type="button"
                         className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-outline-variant/30 px-3 py-2.5 font-body text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-high"
-                        title="Editar"
+                        title={m.common.edit}
                         onClick={() => startEdit(row)}
                       >
                         <span className="material-symbols-outlined text-xl leading-none">
                           edit
                         </span>
-                        Editar
+                        {m.common.edit}
                       </button>
                       <button
                         type="button"
                         className="inline-flex flex-1 min-w-[6rem] items-center justify-center gap-1 rounded-xl px-3 py-2.5 font-body text-sm font-semibold text-error transition-colors hover:bg-error-container/25"
-                        title="Excluir"
+                        title={m.common.delete}
                         onClick={() => void onDelete(row.id)}
                         disabled={busy === row.id}
                       >
                         <span className="material-symbols-outlined text-xl leading-none">
                           delete
                         </span>
-                        Excluir
+                        {m.common.delete}
                       </button>
                     </div>
                   </FaDetailsCard>
@@ -587,11 +592,11 @@ function InvestimentosPage() {
                 <table className="fa-table">
                   <thead>
                     <tr className="fa-th">
-                      <th className="min-w-[11rem] text-left">Nome</th>
-                      <th className="text-left">Pontos</th>
-                      <th className="text-left">Respondidas / ativas</th>
-                      <th className="text-left">Posição</th>
-                      <th className="text-right">Ações</th>
+                      <th className="min-w-[11rem] text-left">{m.investments.thNome}</th>
+                      <th className="text-left">{m.investments.thPontos}</th>
+                      <th className="text-left">{m.common.labelRespondidasAtivas}</th>
+                      <th className="text-left">{m.common.labelPosicao}</th>
+                      <th className="text-right">{m.investments.thAcoes}</th>
                     </tr>
                   </thead>
                   <tbody className="font-body text-sm">
@@ -616,10 +621,10 @@ function InvestimentosPage() {
                         </td>
                         <td className="whitespace-nowrap text-on-surface-variant">
                           {row.activeQuestionCount === 0 ? (
-                            <span className="text-outline">—</span>
+                            <span className="text-outline">{m.common.dash}</span>
                           ) : (
                             <span className="inline-block whitespace-nowrap">
-                              {row.position}º
+                              {row.position}{m.common.ordinalSuffix}
                             </span>
                           )}
                         </td>
@@ -648,7 +653,7 @@ function InvestimentosPage() {
                                 disabled={busy === row.id}
                                 className="bg-primary-container text-on-primary"
                               >
-                                Salvar
+                                {m.common.save}
                               </Button>
                               <Button
                                 type="button"
@@ -657,7 +662,7 @@ function InvestimentosPage() {
                                 className="border-outline-variant/30"
                                 onClick={() => setEditId(null)}
                               >
-                                Cancelar
+                                {m.common.cancel}
                               </Button>
                             </div>
                           ) : (
@@ -666,17 +671,17 @@ function InvestimentosPage() {
                                 to="/investimentos/$id/pontuacao"
                                 params={{ id: row.id }}
                                 className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-2 py-2 font-body text-xs font-semibold text-on-surface-variant no-underline transition-colors hover:bg-surface-container-high hover:text-primary"
-                                title="Pontuar"
+                                title={m.investments.titlePontuar}
                               >
                                 <span className="material-symbols-outlined text-xl leading-none">
                                   analytics
                                 </span>
-                                Pontuar
+                                {m.common.pontuar}
                               </Link>
                               <button
                                 type="button"
                                 className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
-                                title="Editar"
+                                title={m.common.edit}
                                 onClick={() => startEdit(row)}
                               >
                                 <span className="material-symbols-outlined text-xl leading-none">
@@ -686,7 +691,7 @@ function InvestimentosPage() {
                               <button
                                 type="button"
                                 className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-error-container/30 hover:text-error"
-                                title="Excluir"
+                                title={m.common.delete}
                                 onClick={() => void onDelete(row.id)}
                                 disabled={busy === row.id}
                               >

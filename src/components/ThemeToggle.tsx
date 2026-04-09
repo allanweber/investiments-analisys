@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { messages as m } from '#/messages'
+
 type ThemeMode = 'light' | 'dark' | 'auto'
 
 function getInitialMode(): ThemeMode {
@@ -64,8 +66,15 @@ export default function ThemeToggle() {
 
   const label =
     mode === 'auto'
-      ? 'Theme mode: auto (system). Click to switch to light mode.'
-      : `Theme mode: ${mode}. Click to switch mode.`
+      ? m.theme.ariaAuto
+      : m.theme.ariaResolved(mode === 'dark' ? 'dark' : 'light')
+
+  const buttonLabel =
+    mode === 'auto'
+      ? m.theme.buttonAuto
+      : mode === 'dark'
+        ? m.theme.buttonDark
+        : m.theme.buttonLight
 
   return (
     <button
@@ -75,7 +84,7 @@ export default function ThemeToggle() {
       title={label}
       className="rounded-full border border-outline-variant/25 bg-surface-container-lowest/90 px-3 py-1.5 font-body text-xs font-semibold text-on-surface shadow-[0px_12px_32px_-4px_rgba(25,28,30,0.06)] transition hover:bg-surface-container-high"
     >
-      {mode === 'auto' ? 'Auto' : mode === 'dark' ? 'Dark' : 'Light'}
+      {buttonLabel}
     </button>
   )
 }

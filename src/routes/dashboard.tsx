@@ -6,6 +6,7 @@ import {
   getDashboardHighlightsFn,
   getDashboardSummaryFn,
 } from '#/lib/investment-server'
+import { messages as m } from '#/messages'
 
 export const Route = createFileRoute('/dashboard')({
   component: DashboardPage,
@@ -49,7 +50,11 @@ function DashboardPage() {
 
   if (isPending) {
     return (
-      <main className="flex min-h-[50vh] items-center justify-center px-4">
+      <main
+        role="status"
+        className="flex min-h-[50vh] flex-col items-center justify-center gap-2 px-4"
+      >
+        <span className="sr-only">{m.common.loading}</span>
         <div
           className="h-9 w-9 animate-spin rounded-full border-2 border-outline-variant border-t-primary"
           aria-hidden
@@ -66,6 +71,7 @@ function DashboardPage() {
   const ic = stats?.investmentCount ?? 0
   const ac = stats?.answerCount ?? 0
   const fmt = (n: number) => n.toString().padStart(2, '0')
+  const displayName = session.user.name || session.user.email
 
   return (
     <main className="w-full max-w-7xl px-4 py-8 sm:p-8 lg:p-12">
@@ -73,20 +79,19 @@ function DashboardPage() {
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <span className="mb-2 block font-label text-xs font-semibold uppercase tracking-[0.2em] text-outline">
-              Visão geral
+              {m.dashboard.kickerOverview}
             </span>
             <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
-              Seu patrimônio, arquitetado.
+              {m.dashboard.title}
             </h1>
             <p className="mt-4 max-w-xl leading-relaxed text-on-surface-variant">
-              Olá, {session.user.name || session.user.email}. Centro de comando
-              para tipos, perguntas e pontuação dos investimentos.
+              {m.dashboard.greeting(displayName)}
             </p>
           </div>
           <div className="flex items-center gap-2 font-body text-sm text-outline">
-            <span>Dashboard</span>
+            <span>{m.dashboard.crumbDashboard}</span>
             <span className="text-surface-dim">/</span>
-            <span className="font-semibold text-on-surface">Início</span>
+            <span className="font-semibold text-on-surface">{m.dashboard.crumbInicio}</span>
           </div>
         </div>
       </section>
@@ -94,14 +99,13 @@ function DashboardPage() {
       {highlights && highlights.groups.length > 0 && (
         <section className="mb-12">
           <span className="mb-3 block font-label text-xs font-semibold uppercase tracking-[0.2em] text-outline">
-            Destaques
+            {m.dashboard.kickerHighlights}
           </span>
           <h2 className="font-headline text-2xl font-extrabold tracking-tight text-on-surface md:text-3xl">
-            Melhor pontuação por tipo
+            {m.dashboard.highlightsTitle}
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-on-surface-variant">
-            Até três investimentos com maior pontuação em cada tipo (só
-            comparável dentro do mesmo tipo).
+            {m.dashboard.highlightsSubtitle}
           </p>
           <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
             {highlights.groups.map((g) => (
@@ -114,7 +118,7 @@ function DashboardPage() {
                 </h3>
                 {g.top.length === 0 ? (
                   <p className="mt-4 font-body text-sm text-on-surface-variant">
-                    Sem investimentos neste tipo.
+                    {m.dashboard.emptyTypeGroup}
                   </p>
                 ) : (
                   <ol className="mt-4 space-y-3 font-body text-sm">
@@ -155,12 +159,12 @@ function DashboardPage() {
               </span>
             </div>
             <span className="rounded px-2 py-1 font-label text-[10px] font-bold uppercase tracking-wider text-on-tertiary-fixed-variant bg-tertiary-fixed-dim">
-              Tipos
+              {m.dashboard.cardTypes}
             </span>
           </div>
           <div>
             <p className="mb-1 font-label text-xs font-bold uppercase tracking-widest text-outline">
-              Total de tipos
+              {m.dashboard.totalTypes}
             </p>
             <h3 className="font-headline text-4xl font-extrabold text-on-surface">
               {fmt(tc)}
@@ -176,12 +180,12 @@ function DashboardPage() {
               </span>
             </div>
             <span className="rounded px-2 py-1 font-label text-[10px] font-bold uppercase tracking-wider text-on-tertiary-fixed-variant bg-tertiary-fixed-dim">
-              Carteira
+              {m.dashboard.cardPortfolio}
             </span>
           </div>
           <div>
             <p className="mb-1 font-label text-xs font-bold uppercase tracking-widest text-outline">
-              Investimentos
+              {m.dashboard.totalInvestments}
             </p>
             <h3 className="font-headline text-4xl font-extrabold text-on-surface">
               {fmt(ic)}
@@ -197,12 +201,12 @@ function DashboardPage() {
               </span>
             </div>
             <span className="rounded px-2 py-1 font-label text-[10px] font-bold uppercase tracking-wider text-on-tertiary-fixed-variant bg-tertiary-fixed-dim">
-              Respostas
+              {m.dashboard.cardAnswers}
             </span>
           </div>
           <div>
             <p className="mb-1 font-label text-xs font-bold uppercase tracking-widest text-outline">
-              Respostas salvas
+              {m.dashboard.savedAnswers}
             </p>
             <h3 className="font-headline text-4xl font-extrabold text-on-surface">
               {ac >= 100 ? String(ac) : fmt(ac)}
@@ -218,13 +222,13 @@ function DashboardPage() {
         >
           <div className="relative z-10 flex flex-1 flex-col">
             <h4 className="mb-2 font-headline text-xl font-bold text-on-surface">
-              Ver investimentos e ranking
+              {m.dashboard.ctaListTitle}
             </h4>
             <p className="mb-6 flex-1 text-sm leading-relaxed text-on-surface-variant">
-              Compare a pontuação por tipo na sua carteira.
+              {m.dashboard.ctaListBody}
             </p>
             <span className="inline-flex items-center text-sm font-bold text-primary transition-transform group-hover:translate-x-2">
-              Ver lista
+              {m.dashboard.ctaListLink}
               <span className="material-symbols-outlined ml-2 shrink-0 text-xl leading-none">
                 trending_up
               </span>
@@ -238,13 +242,13 @@ function DashboardPage() {
         >
           <div className="relative z-10 flex flex-1 flex-col">
             <h4 className="mb-2 font-headline text-xl font-bold">
-              Gerenciar tipos e perguntas
+              {m.dashboard.ctaTypesTitle}
             </h4>
             <p className="mb-6 flex-1 text-sm leading-relaxed text-on-primary-container">
-              Refine os critérios de avaliação e crie categorias de ativos.
+              {m.dashboard.ctaTypesBody}
             </p>
             <span className="inline-flex items-center text-sm font-bold text-on-primary transition-transform group-hover:translate-x-2">
-              Acessar módulo
+              {m.dashboard.ctaTypesLink}
               <span className="material-symbols-outlined ml-2 shrink-0 text-xl leading-none">
                 arrow_forward
               </span>
@@ -261,13 +265,13 @@ function DashboardPage() {
         </div>
         <h4 className="mb-3 font-headline text-2xl font-bold text-on-surface">
           {tc === 0 && ic === 0
-            ? 'Comece pelo primeiro tipo'
-            : 'Fluxo principal'}
+            ? m.dashboard.flowEmptyTitle
+            : m.dashboard.flowMainTitle}
         </h4>
         <p className="mb-8 max-w-sm text-on-surface-variant">
           {tc === 0 && ic === 0
-            ? 'Defina tipos de investimento e perguntas antes de pontuar ativos.'
-            : 'Use o menu superior ou os cartões acima para continuar trabalhando.'}
+            ? m.dashboard.flowEmptyBody
+            : m.dashboard.flowMainBody}
         </p>
         <Link
           to="/tipos"
@@ -276,25 +280,24 @@ function DashboardPage() {
           <span className="material-symbols-outlined shrink-0 text-xl leading-none">
             add_circle
           </span>
-          Ir para os tipos de investimento
+          {m.dashboard.ctaGoTypes}
         </Link>
       </div>
 
       <footer className="mt-16 w-full border-t border-outline-variant/15 py-8">
         <div className="flex flex-col items-center justify-between gap-4 px-2 md:flex-row md:px-8">
           <p className="font-label text-[10px] uppercase tracking-widest text-outline">
-            © {new Date().getFullYear()} The Financial Architect — High-Fidelity
-            Ledger
+            {m.dashboard.footerCopyright(new Date().getFullYear())}
           </p>
           <div className="flex gap-6">
             <span className="font-label text-[10px] uppercase tracking-widest text-outline">
-              Privacidade
+              {m.dashboard.footerPrivacy}
             </span>
             <span className="font-label text-[10px] uppercase tracking-widest text-outline">
-              Termos
+              {m.dashboard.footerTerms}
             </span>
             <span className="font-label text-[10px] uppercase tracking-widest text-outline">
-              Suporte
+              {m.dashboard.footerSupport}
             </span>
           </div>
         </div>

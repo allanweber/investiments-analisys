@@ -1,4 +1,5 @@
 import { authClient } from '#/lib/auth-client'
+import { messages as m } from '#/messages'
 import { Link } from '@tanstack/react-router'
 
 type Props = { variant?: 'topbar' | 'default' }
@@ -8,7 +9,12 @@ export default function BetterAuthHeader({ variant = 'default' }: Props) {
 
   if (isPending) {
     return (
-      <div className="h-8 w-8 animate-pulse rounded-full bg-surface-container-highest" />
+      <div
+        className="h-8 w-8 animate-pulse rounded-full bg-surface-container-highest"
+        role="status"
+        aria-busy="true"
+        aria-label={m.common.loading}
+      />
     )
   }
 
@@ -19,12 +25,17 @@ export default function BetterAuthHeader({ variant = 'default' }: Props) {
           {session.user.image ? (
             <img
               src={session.user.image}
-              alt=""
+              alt={
+                session.user.name
+                  ? m.headerUser.userAvatarAlt(session.user.name)
+                  : m.headerUser.userAvatarAltAnonymous
+              }
               className="h-8 w-8 rounded-full object-cover"
             />
           ) : (
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-high font-body text-xs font-semibold text-on-surface">
-              {session.user.name?.charAt(0).toUpperCase() || 'U'}
+              {session.user.name?.charAt(0).toUpperCase() ||
+                m.headerUser.avatarFallbackInitial}
             </div>
           )}
           <button
@@ -34,7 +45,7 @@ export default function BetterAuthHeader({ variant = 'default' }: Props) {
             }}
             className="hidden text-xs font-medium uppercase tracking-wider text-outline transition-colors hover:text-on-surface sm:inline"
           >
-            Sair
+            {m.headerUser.signOut}
           </button>
         </div>
       )
@@ -43,11 +54,20 @@ export default function BetterAuthHeader({ variant = 'default' }: Props) {
     return (
       <div className="flex items-center gap-2">
         {session.user.image ? (
-          <img src={session.user.image} alt="" className="h-8 w-8 rounded-full" />
+          <img
+            src={session.user.image}
+            alt={
+              session.user.name
+                ? m.headerUser.userAvatarAlt(session.user.name)
+                : m.headerUser.userAvatarAltAnonymous
+            }
+            className="h-8 w-8 rounded-full"
+          />
         ) : (
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-high">
             <span className="font-body text-xs font-medium text-on-surface-variant">
-              {session.user.name?.charAt(0).toUpperCase() || 'U'}
+              {session.user.name?.charAt(0).toUpperCase() ||
+                m.headerUser.avatarFallbackInitial}
             </span>
           </div>
         )}
@@ -58,7 +78,7 @@ export default function BetterAuthHeader({ variant = 'default' }: Props) {
           }}
           className="h-9 flex-1 rounded-lg border border-outline-variant/40 bg-surface-container-lowest px-4 font-body text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high"
         >
-          Sair
+          {m.headerUser.signOut}
         </button>
       </div>
     )
@@ -69,7 +89,7 @@ export default function BetterAuthHeader({ variant = 'default' }: Props) {
       to="/login"
       className="inline-flex h-9 items-center rounded-lg border border-outline-variant/40 bg-surface-container-lowest px-4 font-body text-sm font-medium text-on-surface no-underline transition-colors hover:bg-surface-container-high"
     >
-      Entrar
+      {m.headerUser.signIn}
     </Link>
   )
 }

@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react'
 import { Button } from '#/components/ui/button'
 import { Label } from '#/components/ui/label'
 import { authClient } from '#/lib/auth-client'
-import { messages } from '#/messages'
 import {
   loadInvestmentScoringFn,
   saveInvestmentScoringFn,
 } from '#/lib/investment-server'
+import { messages as m } from '#/messages'
 import { cn } from '#/lib/utils'
 
 type AnswerChoice = 'unanswered' | 'no' | 'yes'
@@ -26,7 +26,6 @@ function AnswerSegmented({
   value: AnswerChoice
   onChange: (v: AnswerChoice) => void
 }) {
-  /** Same “pill” for any choice so Sim / Não / Não respondida look identical when active. */
   const selectedSegment =
     'bg-secondary-container text-on-secondary-container shadow-sm ring-1 ring-inset ring-secondary-token/45'
 
@@ -60,11 +59,11 @@ function AnswerSegmented({
     <div
       className="flex w-full min-w-0 gap-1 rounded-xl bg-surface-container-highest p-1"
       role="group"
-      aria-label="Resposta sim ou não"
+      aria-label={m.investments.segmentedAria}
     >
-      {seg('unanswered', 'Não respondida', '0')}
-      {seg('no', 'Não', '−1')}
-      {seg('yes', 'Sim', '+1')}
+      {seg('unanswered', m.investments.unanswered, m.investments.subZero)}
+      {seg('no', m.investments.answerNo, m.investments.subNegOne)}
+      {seg('yes', m.investments.answerYes, m.investments.subPlusOne)}
     </div>
   )
 }
@@ -91,8 +90,15 @@ function PontuacaoPage() {
 
   if (sessionPending) {
     return (
-      <main className="flex items-center justify-center px-4 py-24">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-outline-variant border-t-primary" />
+      <main
+        role="status"
+        className="flex flex-col items-center justify-center gap-2 px-4 py-24"
+      >
+        <span className="sr-only">{m.common.loading}</span>
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-2 border-outline-variant border-t-primary"
+          aria-hidden
+        />
       </main>
     )
   }
@@ -103,13 +109,13 @@ function PontuacaoPage() {
     return (
       <main className="w-full max-w-6xl px-4 py-8 sm:p-8 lg:p-12">
         <p className="font-body text-on-surface-variant">
-          Investimento não encontrado.
+          {m.investments.notFound}
         </p>
         <Link
           to="/investimentos"
           className="mt-4 inline-block font-body text-sm font-semibold text-primary underline"
         >
-          Voltar para a lista
+          {m.investments.backToList}
         </Link>
       </main>
     )
@@ -140,8 +146,8 @@ function PontuacaoPage() {
       if (!res.ok) {
         setMsg(
           res.code === 'INVALID_QUESTIONS'
-            ? 'Dados inválidos. Recarregue a página.'
-            : 'Erro ao salvar.',
+            ? m.investments.saveErrorInvalid
+            : m.investments.saveErrorGeneric,
         )
         return
       }
@@ -156,18 +162,18 @@ function PontuacaoPage() {
     <main className="w-full max-w-6xl px-4 py-8 sm:p-8 lg:p-12">
       <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-body text-sm text-outline">
         <Link to="/dashboard" className="no-underline hover:text-on-surface">
-          Admin
+          {m.common.admin}
         </Link>
         <span className="text-surface-dim">/</span>
         <Link to="/investimentos" className="no-underline hover:text-on-surface">
-          Investimentos
+          {m.common.crumbInvestimentos}
         </Link>
         <span className="text-surface-dim">/</span>
-        <span className="text-on-surface">Pontuação</span>
+        <span className="text-on-surface">{m.common.crumbPontuacao}</span>
       </div>
 
       <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">
-        Pontuação
+        {m.common.crumbPontuacao}
       </h1>
       <p className="mt-2 font-body text-on-surface-variant">
         <span className="font-semibold text-on-surface">{investment.name}</span>{' '}
@@ -176,29 +182,29 @@ function PontuacaoPage() {
 
       <div className="mt-6 rounded-xl bg-surface-container-low p-4">
         <p className="font-body text-sm text-on-surface-variant">
-          Total (apenas perguntas respondidas):{' '}
+          {m.investments.totalAnsweredOnly}{' '}
           <span className="font-headline text-xl font-bold tabular-nums text-on-surface">
             {liveTotal}
           </span>{' '}
-          pontos
+          {m.investments.pointsWord}
         </p>
         <p className="mt-1 font-body text-xs text-outline">
-          {messages.scoring.legend}
+          {m.scoring.legend}
         </p>
         <p className="mt-2 font-body text-xs text-outline">
-          Perguntas ativas: {questions.length}
+          {m.investments.activeQuestionsCount(questions.length)}
         </p>
       </div>
 
       {questions.length === 0 ? (
         <p className="mt-8 font-body text-on-surface-variant">
-          Este tipo não tem perguntas ativas.{' '}
+          {m.investments.noActiveQuestions}{' '}
           <Link
             to="/tipos/$typeId/perguntas"
             params={{ typeId: investment.investmentTypeId }}
             className="font-semibold text-primary underline"
           >
-            Gerenciar perguntas
+            {m.investments.linkManageQuestions}
           </Link>
         </p>
       ) : (
@@ -232,7 +238,7 @@ function PontuacaoPage() {
 
       <div className="mt-8 flex w-full flex-wrap items-center justify-between gap-3">
         <Button type="button" variant="outline" asChild className="border-outline-variant/30">
-          <Link to="/investimentos">Voltar para a lista</Link>
+          <Link to="/investimentos">{m.investments.backToList}</Link>
         </Button>
         <Button
           type="button"
@@ -240,7 +246,7 @@ function PontuacaoPage() {
           disabled={busy || questions.length === 0}
           className="rounded-xl bg-primary-container font-headline font-semibold text-on-primary"
         >
-          {busy ? 'Salvando…' : 'Salvar'}
+          {busy ? m.common.saving : m.common.save}
         </Button>
       </div>
     </main>

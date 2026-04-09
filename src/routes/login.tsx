@@ -8,6 +8,7 @@ import { useState } from 'react'
 
 import ThemeToggle from '#/components/ThemeToggle'
 import { authClient } from '#/lib/auth-client'
+import { messages as m } from '#/messages'
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
@@ -26,10 +27,13 @@ function LoginPage() {
   if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-surface">
-        <div
-          className="h-8 w-8 animate-spin rounded-full border-2 border-outline-variant border-t-primary"
-          aria-hidden
-        />
+        <div role="status" className="flex flex-col items-center gap-2">
+          <span className="sr-only">{m.common.loading}</span>
+          <div
+            className="h-8 w-8 animate-spin rounded-full border-2 border-outline-variant border-t-primary"
+            aria-hidden
+          />
+        </div>
       </div>
     )
   }
@@ -46,20 +50,20 @@ function LoginPage() {
       if (isSignUp) {
         const result = await authClient.signUp.email({ email, password, name })
         if (result.error) {
-          setError(result.error.message || 'Falha no cadastro')
+          setError(m.auth.errorSignUp)
         } else {
           await router.navigate({ to: '/dashboard' })
         }
       } else {
         const result = await authClient.signIn.email({ email, password })
         if (result.error) {
-          setError(result.error.message || 'Falha no login')
+          setError(m.auth.errorSignIn)
         } else {
           await router.navigate({ to: '/dashboard' })
         }
       }
     } catch {
-      setError('Ocorreu um erro inesperado.')
+      setError(m.auth.errorUnexpected)
     } finally {
       setLoading(false)
     }
@@ -77,7 +81,7 @@ function LoginPage() {
       <header className="fa-glass sticky top-0 z-50 border-b border-outline-variant/15">
         <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
           <span className="font-headline text-lg font-bold tracking-tight text-on-surface">
-            The Financial Architect
+            {m.shell.brand}
           </span>
           <div className="flex items-center gap-4">
             <div className="hidden items-center gap-6 font-headline text-sm font-semibold md:flex">
@@ -85,19 +89,19 @@ function LoginPage() {
                 to="/dashboard"
                 className="text-outline no-underline transition-colors hover:text-on-surface"
               >
-                Início
+                {m.auth.navInicio}
               </Link>
               <Link
                 to="/investimentos"
                 className="text-outline no-underline transition-colors hover:text-on-surface"
               >
-                Investimentos
+                {m.auth.navInvestimentos}
               </Link>
               <Link
                 to="/tipos"
                 className="text-outline no-underline transition-colors hover:text-on-surface"
               >
-                Tipos
+                {m.auth.navTipos}
               </Link>
             </div>
             <ThemeToggle />
@@ -119,10 +123,10 @@ function LoginPage() {
               </span>
             </div>
             <h1 className="font-headline text-3xl font-extrabold tracking-tight text-on-surface">
-              {isSignUp ? 'Criar conta' : 'Entrar no Financial Architect'}
+              {isSignUp ? m.auth.titleSignUp : m.auth.titleSignIn(m.shell.brand)}
             </h1>
             <p className="mt-2 font-body text-sm text-on-surface-variant">
-              Acesse sua conta para gerenciar seu patrimônio com precisão editorial.
+              {m.auth.subtitle}
             </p>
           </div>
 
@@ -151,14 +155,14 @@ function LoginPage() {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                Google
+                {m.auth.google}
               </button>
             </div>
 
             <div className="relative mb-8 flex items-center py-2">
               <div className="flex-grow border-t border-outline-variant/20" />
               <span className="font-label mx-4 flex-shrink text-xs uppercase tracking-widest text-outline">
-                Ou use seu e-mail
+                {m.auth.dividerEmail}
               </span>
               <div className="flex-grow border-t border-outline-variant/20" />
             </div>
@@ -170,7 +174,7 @@ function LoginPage() {
                     htmlFor="name"
                     className="font-label block text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
                   >
-                    Nome
+                    {m.auth.labelName}
                   </label>
                   <input
                     id="name"
@@ -188,7 +192,7 @@ function LoginPage() {
                   htmlFor="email"
                   className="font-label block text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
                 >
-                  E-mail
+                  {m.auth.labelEmail}
                 </label>
                 <div className="relative">
                   <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-outline">
@@ -200,7 +204,7 @@ function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full rounded-md border-none bg-surface-container-highest py-3.5 pl-12 pr-4 font-body text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="nome@exemplo.com"
+                    placeholder={m.auth.placeholderEmail}
                     required
                   />
                 </div>
@@ -211,7 +215,7 @@ function LoginPage() {
                   htmlFor="password"
                   className="font-label block text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
                 >
-                  Senha
+                  {m.auth.labelPassword}
                 </label>
                 <div className="relative">
                   <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-outline">
@@ -221,9 +225,19 @@ function LoginPage() {
                     id="password"
                     type="password"
                     value={password}
+                    title={m.auth.passwordMinLengthTitle}
                     onChange={(e) => setPassword(e.target.value)}
+                    onInput={(e) => e.currentTarget.setCustomValidity('')}
+                    onInvalid={(e) => {
+                      const el = e.currentTarget
+                      if (el.validity.tooShort) {
+                        el.setCustomValidity(m.auth.passwordTooShort)
+                      } else {
+                        el.setCustomValidity('')
+                      }
+                    }}
                     className="w-full rounded-md border-none bg-surface-container-highest py-3.5 pl-12 pr-4 font-body text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="••••••••"
+                    placeholder={m.auth.placeholderPassword}
                     required
                     minLength={8}
                   />
@@ -231,9 +245,17 @@ function LoginPage() {
               </div>
 
               {error && (
-                <div className="flex items-start gap-3 rounded-lg bg-error-container/50 p-3.5 font-body text-xs text-on-error-container">
-                  <span className="material-symbols-outlined text-lg">error</span>
-                  <p>{error}</p>
+                <div
+                  role="alert"
+                  className="flex items-start gap-3 rounded-lg bg-error-container/50 p-3.5 font-body text-xs text-on-error-container"
+                >
+                  <span
+                    className="material-symbols-outlined text-lg"
+                    aria-hidden
+                  >
+                    error
+                  </span>
+                  <p className="m-0">{error}</p>
                 </div>
               )}
 
@@ -244,15 +266,18 @@ function LoginPage() {
               >
                 {loading ? (
                   <>
-                    <span className="material-symbols-outlined animate-spin">
+                    <span
+                      className="material-symbols-outlined animate-spin"
+                      aria-hidden
+                    >
                       progress_activity
                     </span>
-                    Aguarde
+                    {m.common.wait}
                   </>
                 ) : isSignUp ? (
-                  'Criar conta'
+                  m.auth.submitSignUp
                 ) : (
-                  'Entrar'
+                  m.auth.submitSignIn
                 )}
               </button>
             </form>
@@ -260,7 +285,7 @@ function LoginPage() {
             <div className="mt-8 text-center">
               {isSignUp ? (
                 <p className="font-body text-sm text-on-surface-variant">
-                  Já tem conta?{' '}
+                  {m.auth.hasAccount}{' '}
                   <button
                     type="button"
                     onClick={() => {
@@ -269,12 +294,12 @@ function LoginPage() {
                     }}
                     className="font-semibold text-primary underline decoration-surface-tint underline-offset-4"
                   >
-                    Entrar
+                    {m.auth.linkSignIn}
                   </button>
                 </p>
               ) : (
                 <p className="font-body text-sm text-on-surface-variant">
-                  Novo por aqui?{' '}
+                  {m.auth.newHere}{' '}
                   <button
                     type="button"
                     onClick={() => {
@@ -283,7 +308,7 @@ function LoginPage() {
                     }}
                     className="font-semibold text-primary underline decoration-surface-tint underline-offset-4"
                   >
-                    Criar conta
+                    {m.auth.linkSignUp}
                   </button>
                 </p>
               )}
@@ -292,13 +317,13 @@ function LoginPage() {
 
           <div className="mt-12 flex justify-center gap-8">
             <span className="font-label text-[10px] uppercase tracking-widest text-outline">
-              Privacidade
+              {m.auth.legalPrivacy}
             </span>
             <span className="font-label text-[10px] uppercase tracking-widest text-outline">
-              Termos
+              {m.auth.legalTerms}
             </span>
             <span className="font-label text-[10px] uppercase tracking-widest text-outline">
-              Suporte
+              {m.auth.legalSupport}
             </span>
           </div>
         </div>

@@ -13,7 +13,7 @@ import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { authClient } from '#/lib/auth-client'
-import { messages } from '#/messages'
+import { messages as m } from '#/messages'
 import {
   createInvestmentTypeFn,
   deleteInvestmentTypeFn,
@@ -44,8 +44,15 @@ function TiposPage() {
 
   if (sessionPending) {
     return (
-      <main className="flex items-center justify-center px-4 py-24">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-outline-variant border-t-primary" />
+      <main
+        role="status"
+        className="flex flex-col items-center justify-center gap-2 px-4 py-24"
+      >
+        <span className="sr-only">{m.common.loading}</span>
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-2 border-outline-variant border-t-primary"
+          aria-hidden
+        />
       </main>
     )
   }
@@ -92,15 +99,15 @@ function TiposPage() {
   const onDelete = async (id: string) => {
     const row = types.find((t) => t.id === id)
     const label = row?.name ?? id
-    if (!confirm(messages.types.deleteConfirm(label))) return
+    if (!confirm(m.types.deleteConfirm(label))) return
     setBusy(id)
     try {
       const res = await deleteInvestmentTypeFn({ data: { id } })
       if (!res.ok) {
         if (res.code === 'HAS_QUESTIONS') {
-          alert(messages.types.deleteBlockedQuestions)
+          alert(m.types.deleteBlockedQuestions)
         } else if (res.code === 'HAS_INVESTMENTS') {
-          alert(messages.types.deleteBlockedInvestments)
+          alert(m.types.deleteBlockedInvestments)
         }
         return
       }
@@ -121,17 +128,16 @@ function TiposPage() {
               to="/dashboard"
               className="no-underline hover:text-on-surface"
             >
-              Admin
+              {m.common.admin}
             </Link>
             <span className="text-surface-dim">/</span>
-            <span className="text-on-surface">Tipos</span>
+            <span className="text-on-surface">{m.common.crumbTipos}</span>
           </div>
           <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">
-            Tipos de investimento
+            {m.types.pageTitle}
           </h1>
           <p className="mt-2 max-w-lg text-on-surface-variant">
-            Gerencie as categorias de ativos do seu portfólio. Defina a ordem de
-            exibição e configure os questionários de avaliação.
+            {m.types.pageSubtitle}
           </p>
         </div>
       </div>
@@ -145,13 +151,13 @@ function TiposPage() {
             htmlFor="new-type-name"
             className="font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
           >
-            Novo tipo
+            {m.types.labelNovoTipo}
           </Label>
           <Input
             id="new-type-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Ex.: Renda fixa"
+            placeholder={m.types.newTypePlaceholder}
             className="border-none bg-surface-container-highest"
           />
         </div>
@@ -163,15 +169,14 @@ function TiposPage() {
           <span className="material-symbols-outlined mr-1 shrink-0 text-lg leading-none">
             add
           </span>
-          {busy === 'create' ? 'Salvando…' : 'Adicionar'}
+          {busy === 'create' ? m.common.saving : m.types.addButton}
         </Button>
       </form>
 
       {types.length === 0 && (
         <div className="rounded-2xl border border-dashed border-outline-variant/35 bg-surface-container-low/50 py-12 text-center md:hidden">
           <p className="px-4 font-body text-sm text-on-surface-variant">
-            Ainda sem tipos. Adicione acima ou cadastre-se para receber tipos
-            sugeridos.
+            {m.types.emptyMobile}
           </p>
         </div>
       )}
@@ -183,7 +188,7 @@ function TiposPage() {
               <div className="space-y-4">
                 <div>
                   <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
-                    Nome
+                    {m.common.labelNome}
                   </span>
                   <Input
                     value={editName}
@@ -193,7 +198,7 @@ function TiposPage() {
                 </div>
                 <div>
                   <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
-                    Ordem
+                    {m.common.labelOrdem}
                   </span>
                   <Input
                     type="number"
@@ -211,7 +216,7 @@ function TiposPage() {
                     onClick={() => void onSaveEdit()}
                     disabled={busy === row.id}
                   >
-                    Salvar
+                    {m.common.save}
                   </Button>
                   <Button
                     type="button"
@@ -219,7 +224,7 @@ function TiposPage() {
                     className="flex-1 border-outline-variant/30"
                     onClick={cancelEdit}
                   >
-                    Cancelar
+                    {m.common.cancel}
                   </Button>
                 </div>
               </div>
@@ -253,7 +258,7 @@ function TiposPage() {
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <span className="inline-flex items-center whitespace-nowrap rounded-full bg-tertiary-fixed-dim px-2.5 py-0.5 font-label text-xs font-bold text-on-tertiary-fixed-variant">
-                  {row.questionCount} perguntas
+                  {m.types.questionCount(row.questionCount)}
                 </span>
               </div>
               <div className="mt-4 flex flex-wrap gap-2 border-t border-outline-variant/15 pt-4">
@@ -265,30 +270,30 @@ function TiposPage() {
                   <span className="material-symbols-outlined text-xl leading-none">
                     quiz
                   </span>
-                  Perguntas
+                  {m.types.mobilePerguntas}
                 </Link>
                 <button
                   type="button"
                   className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-outline-variant/30 px-3 py-2.5 font-body text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-high"
-                  title="Editar"
+                  title={m.common.edit}
                   onClick={() => startEdit(row)}
                 >
                   <span className="material-symbols-outlined text-xl leading-none">
                     edit
                   </span>
-                  Editar
+                  {m.common.edit}
                 </button>
                 <button
                   type="button"
                   className="inline-flex flex-1 min-w-[6rem] items-center justify-center gap-1 rounded-xl px-3 py-2.5 font-body text-sm font-semibold text-error transition-colors hover:bg-error-container/25"
-                  title="Excluir"
+                  title={m.common.delete}
                   onClick={() => void onDelete(row.id)}
                   disabled={busy === row.id}
                 >
                   <span className="material-symbols-outlined text-xl leading-none">
                     delete
                   </span>
-                  Excluir
+                  {m.common.delete}
                 </button>
               </div>
             </FaDetailsCard>
@@ -301,10 +306,10 @@ function TiposPage() {
           <table className="fa-table">
             <thead>
               <tr className="fa-th">
-                <th className="min-w-[12rem] text-left">Nome</th>
-                <th className="text-left">Ordem</th>
-                <th className="text-left">Nº de perguntas</th>
-                <th className="text-right">Ações</th>
+                <th className="min-w-[12rem] text-left">{m.types.thNome}</th>
+                <th className="text-left">{m.types.thOrdem}</th>
+                <th className="text-left">{m.types.thNumPerguntas}</th>
+                <th className="text-right">{m.common.labelAcoes}</th>
               </tr>
             </thead>
             <tbody className="font-body text-sm">
@@ -314,8 +319,7 @@ function TiposPage() {
                     colSpan={4}
                     className="py-12 text-center text-on-surface-variant"
                   >
-                    Ainda sem tipos. Adicione acima ou cadastre-se para receber
-                    tipos sugeridos.
+                    {m.types.emptyMobile}
                   </td>
                 </tr>
               )}
@@ -355,7 +359,7 @@ function TiposPage() {
                   </td>
                   <td className="whitespace-nowrap">
                     <span className="inline-flex items-center whitespace-nowrap rounded-full bg-tertiary-fixed-dim px-2.5 py-0.5 font-label text-xs font-bold text-on-tertiary-fixed-variant">
-                      {row.questionCount} perguntas
+                      {m.types.questionCount(row.questionCount)}
                     </span>
                   </td>
                   <td className="text-right">
@@ -369,7 +373,7 @@ function TiposPage() {
                             disabled={busy === row.id}
                             className="rounded-lg bg-primary-container text-on-primary"
                           >
-                            Salvar
+                            {m.common.save}
                           </Button>
                           <Button
                             type="button"
@@ -378,7 +382,7 @@ function TiposPage() {
                             onClick={cancelEdit}
                             className="border-outline-variant/30"
                           >
-                            Cancelar
+                            {m.common.cancel}
                           </Button>
                         </>
                       ) : (
@@ -387,7 +391,7 @@ function TiposPage() {
                             to="/tipos/$typeId/perguntas"
                             params={{ typeId: row.id }}
                             className="rounded-lg p-2 text-on-surface-variant no-underline transition-colors hover:bg-surface-container-high hover:text-primary"
-                            title="Gerenciar perguntas"
+                            title={m.types.titleManageQuestions}
                           >
                             <span className="material-symbols-outlined text-xl leading-none">
                               quiz
@@ -395,7 +399,7 @@ function TiposPage() {
                           </Link>
                           <button
                             type="button"
-                            title="Editar"
+                            title={m.common.edit}
                             className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
                             onClick={() => startEdit(row)}
                           >
@@ -405,7 +409,7 @@ function TiposPage() {
                           </button>
                           <button
                             type="button"
-                            title="Excluir"
+                            title={m.common.delete}
                             className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-error-container/30 hover:text-error"
                             onClick={() => void onDelete(row.id)}
                             disabled={busy === row.id}

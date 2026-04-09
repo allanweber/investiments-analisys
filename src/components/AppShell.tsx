@@ -1,22 +1,49 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 
 import BetterAuthHeader from '#/integrations/better-auth/header-user'
+import { messages as m } from '#/messages'
 import ThemeToggle from './ThemeToggle'
 
-const NAV = [
-  { to: '/dashboard', label: 'Início', shortLabel: 'Início', icon: 'dashboard' as const },
-  { to: '/investimentos', label: 'Investimentos', shortLabel: 'Invest', icon: 'payments' as const },
+const NAV_CONFIG = [
   {
-    to: '/tipos',
-    label: 'Tipos de Investimento',
-    shortLabel: 'Tipos',
-    icon: 'account_balance_wallet' as const,
+    to: '/dashboard' as const,
+    icon: 'dashboard' as const,
+    labelKey: 'inicio' as const,
+    shortKey: 'inicio' as const,
   },
-] as const
+  {
+    to: '/investimentos' as const,
+    icon: 'payments' as const,
+    labelKey: 'invest' as const,
+    shortKey: 'investShort' as const,
+  },
+  {
+    to: '/tipos' as const,
+    icon: 'account_balance_wallet' as const,
+    labelKey: 'tipos' as const,
+    shortKey: 'tiposShort' as const,
+  },
+]
+
+function navLabels() {
+  return {
+    inicio: m.shell.navInicio,
+    invest: m.shell.navInvestimentos,
+    investShort: m.shell.navInvestimentosShort,
+    tipos: m.shell.navTiposLong,
+    tiposShort: m.shell.navTiposShort,
+  }
+}
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const isLogin = pathname === '/login'
+  const L = navLabels()
+  const NAV = NAV_CONFIG.map((c) => ({
+    ...c,
+    label: L[c.labelKey],
+    shortLabel: L[c.shortKey],
+  }))
 
   if (isLogin) {
     return <>{children}</>
@@ -31,7 +58,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               to="/dashboard"
               className="font-headline text-lg font-bold tracking-tight text-on-surface no-underline"
             >
-              The Financial Architect
+              {m.shell.brand}
             </Link>
             <nav className="hidden items-center gap-6 font-headline text-sm font-semibold tracking-tight md:flex">
               {NAV.map(({ to, label, icon }) => {
@@ -66,7 +93,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <span className="material-symbols-outlined shrink-0 text-lg leading-none">
                 add_circle
               </span>
-              Novo investimento
+              {m.shell.newInvestment}
             </Link>
             <ThemeToggle />
             <BetterAuthHeader variant="topbar" />

@@ -30,7 +30,7 @@ async function requireUserId(): Promise<string> {
   const auth = await getAuth()
   const session = await auth.api.getSession({ headers: request.headers })
   const id = session?.user?.id
-  if (!id) throw new Error('Não autorizado')
+  if (!id) throw new Error('UNAUTHORIZED')
   return id
 }
 

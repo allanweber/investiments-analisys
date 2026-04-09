@@ -4,34 +4,34 @@ overview: "Move every user-visible string in the React app into the messages mod
 todos:
   - id: i18n-conventions
     content: "Document & implement key structure, naming rules, and optional `useMessages()`/`t()` helper; split `pt-BR` by domain file if `pt-BR.ts` exceeds ~400 lines"
-    status: pending
+    status: completed
   - id: i18n-shell
     content: "AppShell (nav labels, brand, mobile bar), ThemeToggle, Footer, header-user (sign out, greetings)"
-    status: pending
+    status: completed
   - id: i18n-auth
     content: "login.tsx — titles, form labels, placeholders, buttons, errors, links, support copy"
-    status: pending
+    status: completed
   - id: i18n-dashboard-about
     content: "dashboard.tsx, about.tsx — headings, body, empty states, CTAs, stats labels"
-    status: pending
+    status: completed
   - id: i18n-tipos
     content: "tipos.tsx — remaining UI (forms, table headers, mobile cards, aria, toasts if any); already partial messages"
-    status: pending
+    status: completed
   - id: i18n-perguntas
     content: "tipos/$typeId/perguntas.tsx — remaining UI; already partial messages"
-    status: pending
+    status: completed
   - id: i18n-investimentos
     content: "investimentos.tsx — remaining UI (bulk panel, filters, table/card, actions); already partial messages"
-    status: pending
+    status: completed
   - id: i18n-pontuacao
     content: "investimentos/$id/pontuacao.tsx — row labels, buttons, summaries; already partial scoring legend"
-    status: pending
+    status: completed
   - id: i18n-shared-components
     content: "fa/details-card if any hardcoded aria; demo.FormComponents only if shipped in prod (or exclude)"
-    status: pending
+    status: completed
   - id: i18n-verify
     content: "Manual pass + optional script — grep for common Portuguese articles/prepositions in TSX strings; fix stragglers; run `pnpm test` + `pnpm exec tsc`"
-    status: pending
+    status: completed
 isProject: false
 ---
 
@@ -114,6 +114,6 @@ Domínios principais: `shell`, `auth`, `dashboard`, `about`, `tipos`, `perguntas
 
 ## Referência
 
-- Estado actual: `src/messages/pt-BR.ts` + uso parcial em `investimentos.tsx`, `tipos.tsx`, `perguntas.tsx`, `pontuacao.tsx`.
+- Estado actual: `src/messages/pt-BR/index.ts` + `import { messages as m } from '#/messages'` nas rotas e shell; 404 em `__root.tsx` usa `m.notFound`.
 
 Quem implementar deve marcar os `todos` deste ficheiro como `completed` à medida que cada bloco ficar migrado e validado.
