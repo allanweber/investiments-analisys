@@ -35,7 +35,7 @@ Após o **registo**, o sistema faz **auto-seed** dos tipos sugeridos (alinhados 
 
 ## Navegação principal (MVP)
 
-- `**/`** redireciona para `**/dashboard**` (início com atalhos).
+- `**/`** redireciona para `**/dashboard`** (início com atalhos).
 - **Tipos**, **Perguntas** (por tipo), **Investimentos**, **Pontuação** (por investimento) — detalhe de rotas e telas no documento técnico abaixo.
 
 ## Stack técnica (MVP)

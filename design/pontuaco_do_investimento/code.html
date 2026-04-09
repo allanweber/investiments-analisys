@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Investment Scoring - The Financial Architect</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "inverse-surface": "#2d3133",
+              "secondary": "#505f76",
+              "surface-variant": "#e0e3e5",
+              "surface-container-low": "#f2f4f6",
+              "on-surface-variant": "#45464d",
+              "outline-variant": "#c6c6cd",
+              "on-surface": "#191c1e",
+              "on-secondary-container": "#54647a",
+              "tertiary": "#000000",
+              "on-primary-fixed": "#111c2d",
+              "tertiary-fixed-dim": "#4edea3",
+              "inverse-on-surface": "#eff1f3",
+              "secondary-fixed": "#d3e4fe",
+              "on-secondary-fixed": "#0b1c30",
+              "secondary-fixed-dim": "#b7c8e1",
+              "on-primary-fixed-variant": "#3c475a",
+              "surface-container-high": "#e6e8ea",
+              "secondary-container": "#d0e1fb",
+              "on-background": "#191c1e",
+              "surface-container-lowest": "#ffffff",
+              "primary-container": "#111c2d",
+              "on-secondary-fixed-variant": "#38485d",
+              "outline": "#76777d",
+              "on-primary-container": "#79849a",
+              "on-tertiary-fixed-variant": "#005236",
+              "on-error-container": "#93000a",
+              "on-tertiary": "#ffffff",
+              "surface-container-highest": "#e0e3e5",
+              "on-primary": "#ffffff",
+              "on-tertiary-container": "#009668",
+              "primary-fixed-dim": "#bcc7de",
+              "background": "#f7f9fb",
+              "surface-container": "#eceef0",
+              "error": "#ba1a1a",
+              "on-tertiary-fixed": "#002113",
+              "error-container": "#ffdad6",
+              "on-error": "#ffffff",
+              "primary-fixed": "#d8e3fb",
+              "primary": "#000000",
+              "surface-bright": "#f7f9fb",
+              "inverse-primary": "#bcc7de",
+              "surface-dim": "#d8dadc",
+              "tertiary-container": "#002113",
+              "surface": "#f7f9fb",
+              "surface-tint": "#545f73",
+              "tertiary-fixed": "#6ffbbe",
+              "on-secondary": "#ffffff"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex">
+<!-- Sidebar Navigation -->
+<aside class="hidden lg:flex flex-col p-4 space-y-2 h-screen w-64 border-r border-slate-200/20 bg-slate-50">
+<div class="px-4 py-6 mb-4">
+<h2 class="font-headline font-extrabold text-slate-900 text-xl tracking-tight">Financial Architect</h2>
+<p class="text-xs font-medium text-slate-500 uppercase tracking-widest mt-1">Premium Ledger</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-200 rounded-xl transition-transform duration-200 hover:translate-x-1 group" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-medium text-sm">Início</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-200 rounded-xl transition-transform duration-200 hover:translate-x-1 group" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-medium text-sm">Tipos de Investimento</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-slate-900 text-white rounded-xl shadow-lg transition-transform duration-200 hover:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-medium text-sm">Investimentos</span>
+</a>
+</nav>
+<div class="pt-4 mt-4 border-t border-slate-200/50 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-200 rounded-xl transition-transform duration-200 hover:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-medium text-sm">Configurações</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-200 rounded-xl transition-transform duration-200 hover:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-medium text-sm">Sair</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-h-screen relative">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl shadow-sm lg:pr-64">
+<div class="flex items-center justify-between px-6 h-16 w-full max-w-7xl mx-auto">
+<div class="flex items-center gap-4">
+<button class="lg:hidden p-2 hover:bg-slate-100 rounded-lg">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<div class="flex items-baseline gap-2">
+<span class="text-slate-900 font-headline font-bold text-xl">Scoring</span>
+<span class="text-slate-400 font-body text-sm font-medium">/ New Assessment</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-900 p-2 hover:bg-slate-100 rounded-lg cursor-pointer" data-icon="notifications">notifications</span>
+<div class="h-8 w-8 rounded-full bg-primary-container flex items-center justify-center text-[10px] text-white font-bold overflow-hidden">
+<img alt="User" data-alt="close-up portrait of a professional man in a grey suit with soft studio lighting and blurred background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBF31dREFZEev_2M9JmkC2deG9zT-8A5k6jOvMdlLtBqN5xKLifjSnhjZ-sYLqi7CBg0wrhoRYI4h-maCco_Vlx3z9pVX4MsfFQj63Db83tytBO5WsSv4rurKnLeUTZb7W5Jyb2-3TmqsUs6kcvgA3CVJfSVGIWEkBpuckLL-hMYDp8ERHW7D0vBmmlpIb3od2uuJDkWTBaj1xMXOVKZtS8MnqlVctWyl2x8CLkFqnVYKYQsu006gOudzbfVwKEH_zavdpNr0w5N0"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="mt-16 p-6 lg:p-10 max-w-5xl mx-auto w-full space-y-8">
+<!-- Breadcrumbs & Editorial Header -->
+<section class="space-y-4">
+<nav class="flex items-center gap-2 text-xs font-label uppercase tracking-widest text-outline">
+<span>Investimentos</span>
+<span class="text-surface-dim">/</span>
+<span>Assessments</span>
+<span class="text-surface-dim">/</span>
+<span class="text-primary font-semibold">Análise de Risco</span>
+</nav>
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div class="space-y-1">
+<h1 class="text-4xl md:text-5xl font-headline font-extrabold tracking-tight text-on-surface">XP Dividendos FII</h1>
+<p class="text-on-surface-variant font-body text-lg">Fundo de Investimento Imobiliário — <span class="text-primary font-bold">Logística</span></p>
+</div>
+<!-- Real-time Score Bento Card -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl shadow-lg border border-outline-variant/10 flex items-center gap-8 min-w-[280px]">
+<div class="space-y-1">
+<span class="text-[10px] font-label font-bold text-outline uppercase tracking-tighter">Total Score</span>
+<div class="flex items-baseline gap-1">
+<span class="text-4xl font-headline font-extrabold text-primary">14</span>
+<span class="text-outline font-headline font-bold">pts</span>
+</div>
+</div>
+<div class="h-10 w-px bg-outline-variant/20"></div>
+<div class="space-y-1">
+<span class="text-[10px] font-label font-bold text-outline uppercase tracking-tighter">Active Questions</span>
+<div class="flex items-baseline gap-1">
+<span class="text-2xl font-headline font-bold text-on-surface">08</span>
+<span class="text-outline-variant text-sm">/ 12</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Questions List -->
+<section class="space-y-4">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-headline font-bold text-xl text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary-fixed-dim" data-icon="fact_check" style="font-variation-settings: 'FILL' 1;">fact_check</span>
+                        Questionário Estratégico
+                    </h3>
+<div class="flex items-center gap-2 px-3 py-1.5 bg-tertiary-container rounded-full">
+<div class="w-2 h-2 rounded-full bg-tertiary-fixed-dim"></div>
+<span class="text-[10px] font-bold text-on-tertiary-fixed uppercase">Saving Progress</span>
+</div>
+</div>
+<!-- List of Questions -->
+<div class="space-y-3">
+<!-- Question Item 1 -->
+<div class="group bg-surface-container-low hover:bg-surface-container-lowest transition-all duration-300 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-transparent hover:border-outline-variant/20 hover:shadow-sm">
+<div class="space-y-1 max-w-2xl">
+<span class="text-[10px] font-label font-bold text-outline uppercase tracking-widest">Q01 — Governança</span>
+<p class="text-on-surface font-body font-medium leading-relaxed">A gestão possui histórico de transparência e entrega de resultados superior a 24 meses?</p>
+</div>
+<div class="flex items-center p-1 bg-surface-container-highest rounded-full w-full md:w-auto">
+<button class="flex-1 md:flex-none px-6 py-2 rounded-full text-xs font-bold transition-all bg-primary text-on-primary shadow-md">Sim</button>
+<button class="flex-1 md:flex-none px-6 py-2 rounded-full text-xs font-bold text-on-surface-variant hover:text-on-surface transition-all">Não</button>
+</div>
+</div>
+<!-- Question Item 2 -->
+<div class="group bg-surface-container-low hover:bg-surface-container-lowest transition-all duration-300 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-transparent hover:border-outline-variant/20 hover:shadow-sm">
+<div class="space-y-1 max-w-2xl">
+<span class="text-[10px] font-label font-bold text-outline uppercase tracking-widest">Q02 — Liquidez</span>
+<p class="text-on-surface font-body font-medium leading-relaxed">O volume médio diário de negociação é superior a R$ 1.000.000,00?</p>
+</div>
+<div class="flex items-center p-1 bg-surface-container-highest rounded-full w-full md:w-auto">
+<button class="flex-1 md:flex-none px-6 py-2 rounded-full text-xs font-bold text-on-surface-variant hover:text-on-surface transition-all">Sim</button>
+<button class="flex-1 md:flex-none px-6 py-2 rounded-full text-xs font-bold bg-surface-variant text-on-surface transition-all">Não</button>
+</div>
+</div>
+<!-- Question Item 3 -->
+<div class="group bg-surface-container-low hover:bg-surface-container-lowest transition-all duration-300 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-transparent hover:border-outline-variant/20 hover:shadow-sm">
+<div class="space-y-1 max-w-2xl">
+<span class="text-[10px] font-label font-bold text-outline uppercase tracking-widest">Q03 — Vacância</span>
+<p class="text-on-surface font-body font-medium leading-relaxed">A vacância física do portfólio atual é inferior a 5% da ABL total?</p>
+</div>
+<div class="flex items-center p-1 bg-surface-container-highest rounded-full w-full md:w-auto">
+<button class="flex-1 md:flex-none px-6 py-2 rounded-full text-xs font-bold text-on-surface-variant hover:text-on-surface transition-all">Sim</button>
+<button class="flex-1 md:flex-none px-6 py-2 rounded-full text-xs font-bold text-on-surface-variant hover:text-on-surface transition-all">Não</button>
+</div>
+</div>
+<!-- Question Item 4 (Loading/Processing State) -->
+<div class="group bg-surface-container-low p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 opacity-70 cursor-not-allowed">
+<div class="space-y-1 max-w-2xl">
+<span class="text-[10px] font-label font-bold text-outline uppercase tracking-widest">Q04 — Diversificação</span>
+<p class="text-on-surface font-body font-medium leading-relaxed italic">Validando critérios de concentração de inquilinos...</p>
+</div>
+<div class="flex items-center justify-center w-full md:w-24">
+<div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Action Tray -->
+<footer class="flex flex-col md:flex-row items-center justify-end gap-4 pt-10 pb-20 border-t border-outline-variant/20">
+<button class="w-full md:w-auto px-8 py-3 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container-high transition-all">
+                    Cancelar Alterações
+                </button>
+<button class="w-full md:w-auto px-10 py-3 rounded-xl text-sm font-bold bg-primary text-on-primary shadow-2xl hover:scale-[1.02] active:scale-95 transition-all">
+                    Salvar Pontuação
+                </button>
+</footer>
+</div>
+<!-- Global Footer (Shared) -->
+<footer class="w-full py-8 border-t border-slate-200/10 bg-slate-50 mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center px-8 max-w-7xl mx-auto w-full gap-4">
+<p class="text-slate-400 font-label text-xs tracking-wider uppercase">© 2024 THE FINANCIAL ARCHITECT. HIGH-FIDELITY LEDGER SYSTEM.</p>
+<div class="flex gap-6">
+<a class="text-slate-400 text-xs tracking-wider uppercase hover:text-emerald-500 transition-colors" href="#">Privacidade</a>
+<a class="text-slate-400 text-xs tracking-wider uppercase hover:text-emerald-500 transition-colors" href="#">Termos</a>
+<a class="text-slate-400 text-xs tracking-wider uppercase hover:text-emerald-500 transition-colors" href="#">Suporte</a>
+</div>
+</div>
+</footer>
+</main>
+<!-- Mobile Bottom Nav -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-slate-200/50 flex items-center justify-around h-16 px-4 z-50">
+<a class="flex flex-col items-center gap-1 text-slate-500" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="dashboard">dashboard</span>
+<span class="text-[10px] font-bold">Início</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-900 border-t-2 border-slate-900 pt-1 -mt-0.5" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="payments" style="font-variation-settings: 'FILL' 1;">payments</span>
+<span class="text-[10px] font-bold">Assessments</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-500" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="text-[10px] font-bold">Portfólio</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-500" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="settings">settings</span>
+<span class="text-[10px] font-bold">Ajustes</span>
+</a>
+</nav>
+</body></html>

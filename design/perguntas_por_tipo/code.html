@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+
+<html lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gerenciamento de Perguntas | The Financial Architect</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "inverse-surface": "#2d3133",
+              "secondary": "#505f76",
+              "surface-variant": "#e0e3e5",
+              "surface-container-low": "#f2f4f6",
+              "on-surface-variant": "#45464d",
+              "outline-variant": "#c6c6cd",
+              "on-surface": "#191c1e",
+              "on-secondary-container": "#54647a",
+              "tertiary": "#000000",
+              "on-primary-fixed": "#111c2d",
+              "tertiary-fixed-dim": "#4edea3",
+              "inverse-on-surface": "#eff1f3",
+              "secondary-fixed": "#d3e4fe",
+              "on-secondary-fixed": "#0b1c30",
+              "secondary-fixed-dim": "#b7c8e1",
+              "on-primary-fixed-variant": "#3c475a",
+              "surface-container-high": "#e6e8ea",
+              "secondary-container": "#d0e1fb",
+              "on-background": "#191c1e",
+              "surface-container-lowest": "#ffffff",
+              "primary-container": "#111c2d",
+              "on-secondary-fixed-variant": "#38485d",
+              "outline": "#76777d",
+              "on-primary-container": "#79849a",
+              "on-tertiary-fixed-variant": "#005236",
+              "on-error-container": "#93000a",
+              "on-tertiary": "#ffffff",
+              "surface-container-highest": "#e0e3e5",
+              "on-primary": "#ffffff",
+              "on-tertiary-container": "#009668",
+              "primary-fixed-dim": "#bcc7de",
+              "background": "#f7f9fb",
+              "surface-container": "#eceef0",
+              "error": "#ba1a1a",
+              "on-tertiary-fixed": "#002113",
+              "error-container": "#ffdad6",
+              "on-error": "#ffffff",
+              "primary-fixed": "#d8e3fb",
+              "primary": "#000000",
+              "surface-bright": "#f7f9fb",
+              "inverse-primary": "#bcc7de",
+              "surface-dim": "#d8dadc",
+              "tertiary-container": "#002113",
+              "surface": "#f7f9fb",
+              "surface-tint": "#545f73",
+              "tertiary-fixed": "#6ffbbe",
+              "on-secondary": "#ffffff"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopAppBar Shell -->
+<header class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl text-slate-900 dark:text-slate-50 font-['Manrope'] font-semibold tracking-tight fixed top-0 w-full z-50 shadow-sm dark:shadow-none transition-all duration-200">
+<div class="flex items-center justify-between px-6 h-16 w-full max-w-7xl mx-auto">
+<div class="text-xl font-bold text-slate-900 dark:text-slate-50">The Financial Architect</div>
+<nav class="hidden md:flex items-center space-x-8">
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors" href="#">Início</a>
+<a class="text-slate-900 dark:text-white border-b-2 border-slate-900 dark:border-white pb-1" href="#">Tipos de Investimento</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors" href="#">Investimentos</a>
+</nav>
+<div class="flex items-center space-x-4">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Close-up portrait of a professional male financial analyst in a modern office setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLwOaBqaQ0YbD_-gtbE64EvcaNWHoXqunwzZd95LSdqYc0FoKIDpN8Y0EBuDMZjKyKr-fdEk3upGQlpACqwc6jyo-ylkKRmSDSgTZQbIMIruAueX0BwRINbLKpcGqMemZMrdj9WerBFJQ_pU1f9PHkwKo5uuZ2QCEt-MIi_bg9iyXujWS4NkHqsY-LMPrzkbRqytty81C4vnzb0RSLm5xcmVEBJ7i4z5M6oyRgSYZIy2dbq-kEiD_vyqsTPukBsFqThasdQm6Jt_4"/>
+</div>
+<button class="hidden lg:block text-slate-500 dark:text-slate-400 hover:text-slate-900 transition-colors text-sm">Sign Out</button>
+</div>
+</div>
+</header>
+<div class="flex min-h-screen pt-16">
+<!-- SideNavBar Shell -->
+<aside class="hidden lg:flex flex-col p-4 space-y-2 bg-slate-50 dark:bg-slate-950 h-[calc(100vh-64px)] w-64 border-r border-slate-200/20 dark:border-slate-800/20 sticky top-16">
+<div class="px-4 py-6 mb-4">
+<div class="font-['Manrope'] font-extrabold text-slate-900 dark:text-slate-50 text-xl">Financial Architect</div>
+<div class="text-xs text-slate-500 font-medium">Premium Ledger</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center space-x-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-900 rounded-xl hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-['Inter'] text-sm font-medium">Início</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 bg-slate-900 dark:bg-emerald-500 text-white dark:text-slate-950 rounded-xl shadow-lg" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-['Inter'] text-sm font-medium">Tipos de Investimento</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-900 rounded-xl hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-['Inter'] text-sm font-medium">Investimentos</span>
+</a>
+</nav>
+<button class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center justify-center space-x-2 transition-all duration-200 active:scale-95 mb-6">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+<span>Novo Investimento</span>
+</button>
+<div class="pt-6 border-t border-slate-200/10 space-y-1">
+<a class="flex items-center space-x-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-900 rounded-xl hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-['Inter'] text-sm font-medium">Configurações</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-900 rounded-xl hover:translate-x-1 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-['Inter'] text-sm font-medium">Sair</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 p-6 md:p-12 max-w-7xl mx-auto w-full">
+<!-- Breadcrumbs -->
+<nav class="flex items-center space-x-3 mb-8 text-sm font-body text-on-surface-variant/80">
+<a class="hover:text-primary transition-colors" href="#">Tipos</a>
+<span class="text-surface-dim">/</span>
+<a class="hover:text-primary transition-colors font-medium" href="#">Ações Globais</a>
+<span class="text-surface-dim">/</span>
+<span class="text-primary font-semibold">Perguntas</span>
+</nav>
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+<div>
+<h1 class="text-4xl font-headline font-extrabold text-on-surface tracking-tight mb-2">Perguntas: Ações Globais</h1>
+<p class="text-on-surface-variant font-body">Gerencie os critérios que definem a pontuação de saúde deste tipo de investimento.</p>
+</div>
+<button class="inline-flex items-center space-x-2 px-6 py-3 bg-primary-container text-on-primary rounded-xl font-semibold shadow-lg hover:bg-primary transition-all duration-200 active:scale-95 group">
+<span class="material-symbols-outlined group-hover:rotate-90 transition-transform duration-300" data-icon="add">add</span>
+<span>Nova Pergunta</span>
+</button>
+</div>
+<!-- Dashboard Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+<!-- Questions List Table Section -->
+<div class="lg:col-span-8 space-y-6">
+<div class="bg-surface-container-low rounded-3xl p-1 overflow-hidden">
+<div class="overflow-x-auto no-scrollbar">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="text-outline uppercase text-[10px] tracking-widest font-bold">
+<th class="px-6 py-4">Texto da Pergunta</th>
+<th class="px-6 py-4 text-center">Ordem</th>
+<th class="px-6 py-4 text-center">Ativa</th>
+<th class="px-6 py-4 text-right">Ações</th>
+</tr>
+</thead>
+<tbody class="divide-y-8 divide-surface">
+<tr class="bg-surface-container-lowest hover:bg-surface-container-high transition-colors group">
+<td class="px-6 py-5 rounded-l-2xl">
+<p class="text-on-surface font-medium truncate max-w-xs md:max-w-md">O dividendo yield atual é superior a 6% ao ano nos últimos 12 meses?</p>
+</td>
+<td class="px-6 py-5 text-center font-headline font-bold text-on-primary-container">1</td>
+<td class="px-6 py-5 text-center">
+<span class="inline-flex items-center px-3 py-1 bg-tertiary-fixed-dim/20 text-on-tertiary-container text-xs font-bold rounded-full">SIM</span>
+</td>
+<td class="px-6 py-5 text-right rounded-r-2xl space-x-2">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined" data-icon="edit">edit</span></button>
+<button class="p-2 text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined" data-icon="delete">delete</span></button>
+</td>
+</tr>
+<tr class="bg-surface-container-lowest hover:bg-surface-container-high transition-colors">
+<td class="px-6 py-5 rounded-l-2xl">
+<p class="text-on-surface font-medium truncate max-w-xs md:max-w-md">A empresa possui dívida líquida / EBITDA inferior a 2.5x?</p>
+</td>
+<td class="px-6 py-5 text-center font-headline font-bold text-on-primary-container">2</td>
+<td class="px-6 py-5 text-center">
+<span class="inline-flex items-center px-3 py-1 bg-tertiary-fixed-dim/20 text-on-tertiary-container text-xs font-bold rounded-full">SIM</span>
+</td>
+<td class="px-6 py-5 text-right rounded-r-2xl space-x-2">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined" data-icon="edit">edit</span></button>
+<button class="p-2 text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined" data-icon="delete">delete</span></button>
+</td>
+</tr>
+<tr class="bg-surface-container-lowest hover:bg-surface-container-high transition-colors">
+<td class="px-6 py-5 rounded-l-2xl">
+<p class="text-on-surface font-medium truncate max-w-xs md:max-w-md">O ROE da companhia é consistentemente superior a 15%?</p>
+</td>
+<td class="px-6 py-5 text-center font-headline font-bold text-on-primary-container">3</td>
+<td class="px-6 py-5 text-center">
+<span class="inline-flex items-center px-3 py-1 bg-surface-variant text-outline text-xs font-bold rounded-full">NÃO</span>
+</td>
+<td class="px-6 py-5 text-right rounded-r-2xl space-x-2">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined" data-icon="edit">edit</span></button>
+<button class="p-2 text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined" data-icon="delete">delete</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Empty State Context (Integrated below table for flow) -->
+<div class="bg-primary-fixed/30 rounded-3xl p-8 flex items-start space-x-6">
+<div class="p-4 bg-primary-container text-on-primary rounded-2xl">
+<span class="material-symbols-outlined text-3xl" data-icon="psychology">psychology</span>
+</div>
+<div>
+<h3 class="text-xl font-headline font-bold mb-2">Por que as perguntas importam?</h3>
+<p class="text-on-primary-fixed-variant leading-relaxed text-sm">
+                                As perguntas são o motor do nosso sistema de Ledger. Elas automatizam a análise de risco e potencial de valorização. 
+                                <strong class="text-on-primary-fixed">Cada resposta "Sim" eleva o score do investimento</strong>, permitindo que você visualize seu portfólio através de uma lente de qualidade matemática, não apenas emocional.
+                            </p>
+</div>
+</div>
+</div>
+<!-- Form Section (Bento Sidebar) -->
+<div class="lg:col-span-4 space-y-8">
+<div class="bg-surface-container-lowest rounded-[2rem] p-8 shadow-sm border border-outline-variant/10">
+<div class="flex items-center space-x-3 mb-8">
+<div class="w-2 h-8 bg-tertiary-fixed-dim rounded-full"></div>
+<h2 class="text-2xl font-headline font-bold">Configurar Pergunta</h2>
+</div>
+<form class="space-y-6">
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-wider text-outline">Texto da Pergunta</label>
+<textarea class="w-full bg-surface-container-highest border-none rounded-2xl p-4 focus:ring-2 focus:ring-primary-container transition-all min-h-[120px] text-on-surface placeholder:text-outline/50 font-body" placeholder="Ex: O P/L está abaixo da média histórica?"></textarea>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-wider text-outline">Ordem de Exibição</label>
+<input class="w-full bg-surface-container-highest border-none rounded-2xl p-4 focus:ring-2 focus:ring-primary-container transition-all" type="number" value="4"/>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-wider text-outline">Status</label>
+<div class="flex items-center h-[56px] px-2 bg-surface-container-highest rounded-2xl">
+<button class="flex-1 py-2 text-xs font-bold rounded-xl bg-primary text-on-primary shadow-md" type="button">Sim</button>
+<button class="flex-1 py-2 text-xs font-bold text-outline" type="button">Não</button>
+</div>
+</div>
+</div>
+<div class="pt-4 flex flex-col space-y-3">
+<button class="w-full bg-primary-container text-on-primary py-4 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:translate-y-[-2px] transition-all duration-200" type="submit">
+                                    Salvar Alterações
+                                </button>
+<button class="w-full bg-surface-container-low text-on-surface-variant py-4 rounded-2xl font-semibold hover:bg-surface-container-high transition-colors" type="button">
+                                    Descartar
+                                </button>
+</div>
+</form>
+</div>
+<!-- Informational Card -->
+<div class="relative overflow-hidden rounded-[2rem] h-48 group">
+<div class="absolute inset-0 bg-gradient-to-br from-primary-container to-on-primary-fixed opacity-90 z-10"></div>
+<img class="absolute inset-0 w-full h-full object-cover grayscale opacity-30 group-hover:scale-110 transition-transform duration-700" data-alt="Dynamic financial stock market growth chart with glowing lines on a dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD19-rUdQBsmI2P-0HQuH4KUYzoyyozq5soBowz11pKeWolqwfl2o8NLkYBDvQR5SE4SvnCZAKgwgrdTrMnFSLUjPDzycY2mStorTQzyiksQ7HlenGU9gebxkX61yU4r8gclReb7m9-3h1l_qtLN1dX8qVyGT0li4pMPTRBlwYQtzrbb1mJt1eGMif9tfrD4Mft83E8mnd9Peo8eeXTk3SYiwGp9q1C4BGEZsZHAe5S_ryr7YoP878OWWwB1F2Rv2MFp4H9ZP2nyj4"/>
+<div class="relative z-20 p-8 h-full flex flex-col justify-end">
+<span class="text-tertiary-fixed-dim text-[10px] font-bold tracking-[0.2em] uppercase mb-1">Dica Pro</span>
+<p class="text-white font-headline font-bold text-lg leading-tight">Perguntas objetivas (Sim/Não) garantem precisão no cálculo do Alpha.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Footer Shell -->
+<footer class="bg-slate-50 dark:bg-slate-950 w-full py-8 border-t border-slate-200/10 dark:border-slate-800/10 transition-all">
+<div class="flex flex-col md:flex-row justify-between items-center px-8 max-w-7xl mx-auto w-full">
+<div class="text-slate-400 dark:text-slate-500 font-['Inter'] text-xs tracking-wider uppercase mb-4 md:mb-0">
+                © 2024 The Financial Architect. High-Fidelity Ledger System.
+            </div>
+<div class="flex space-x-8">
+<a class="text-slate-400 dark:text-slate-500 hover:text-emerald-500 transition-colors font-['Inter'] text-xs tracking-wider uppercase underline-offset-4 hover:underline opacity-80 hover:opacity-100" href="#">Privacidade</a>
+<a class="text-slate-400 dark:text-slate-500 hover:text-emerald-500 transition-colors font-['Inter'] text-xs tracking-wider uppercase underline-offset-4 hover:underline opacity-80 hover:opacity-100" href="#">Termos</a>
+<a class="text-slate-400 dark:text-slate-500 hover:text-emerald-500 transition-colors font-['Inter'] text-xs tracking-wider uppercase underline-offset-4 hover:underline opacity-80 hover:opacity-100" href="#">Suporte</a>
+</div>
+</div>
+</footer>
+</body></html>
