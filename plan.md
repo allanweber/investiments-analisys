@@ -47,6 +47,11 @@ Após o **registo**, o sistema faz **auto-seed** dos tipos sugeridos (alinhados 
 - **pnpm** como gestor de pacotes
 - Repositório: aplicação na **raiz** do projeto (junto de `DESIGN.md`, `design/`, `plans/`), não em `apps/web`
 
+## Desenvolvimento local e Docker
+
+- O `docker-compose.yml` do repositório serve para subir **só PostgreSQL** (por defeito `localhost:5432`, base `investiments`). A **aplicação corre na máquina de desenvolvimento** com `pnpm dev` (porta **3001**; alinhar `DATABASE_URL`, `BETTER_AUTH_URL` e `trustedOrigins` em `.env.local`).
+- O plano técnico original previa também um serviço da app no compose; **ainda não está modelado** — para produção/VPS falta documentar ou acrescentar **`Dockerfile`** e eventual `docker-compose` de deploy. Isto não bloqueia o MVP em local.
+
 ## O que fica para **depois** deste MVP
 
 - Metas percentuais (0–100%, soma ≤ 100%) e distribuição de valor por categoria.
@@ -57,6 +62,7 @@ Após o **registo**, o sistema faz **auto-seed** dos tipos sugeridos (alinhados 
 
 O plano técnico passo a passo (schema, rotas, edge cases, deploy, ordem de trabalhos) está em:
 
-`[plans/tanstack_start_mvp_7b936246.plan.md](plans/tanstack_start_mvp_7b936246.plan.md)`
+- `[plans/tanstack_start_mvp_7b936246.plan.md](plans/tanstack_start_mvp_7b936246.plan.md)` — scaffolding e MVP de pontuação.
+- `[plans/questions_and_scoring_f659a63c.plan.md](plans/questions_and_scoring_f659a63c.plan.md)` — banco de perguntas padrão, restaurar defaults, destaques no dashboard.
 
-Quem for implementar deve manter esse ficheiro atualizado quando surgirem decisões novas.
+Quem for implementar deve manter estes ficheiros atualizados quando surgirem decisões novas (incluindo o frontmatter `todos` quando aplicável).

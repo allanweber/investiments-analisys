@@ -4,22 +4,22 @@ overview: Seed per-user default questions, CRUD + “Restaurar perguntas padrão
 todos:
   - id: question-bank
     content: "Create default-question-bank.ts: all 7 seeded types — user-authored packs for ações/FIIs + assistant-suggested packs for Renda fixa/Cripto/Reserva (revise before ship)"
-    status: pending
+    status: completed
   - id: seed-questions
     content: Extend seed-default-types (or new module) to insert questions after type insert; keep signup idempotency
-    status: pending
+    status: completed
   - id: restore-default-questions
     content: "Server fn + perguntas page: “Restaurar perguntas padrão” — insert missing bank prompts only (trim match dedupe); hide if type name has no pack"
-    status: pending
+    status: completed
   - id: pontuacao-ui
     content: Align pontuação UI with design (Sim/Não control vs Select; preserve unanswered)
-    status: pending
+    status: completed
   - id: perguntas-polish
     content: Polish perguntas page vs mock + verify link from /tipos
-    status: pending
+    status: completed
   - id: dashboard-top-per-type
     content: "Server fn + dashboard UI: top 3 investments per type (score desc, name tiebreak; same rules as list ranking)"
-    status: pending
+    status: completed
 isProject: false
 ---
 

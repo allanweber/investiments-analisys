@@ -4,25 +4,25 @@ overview: "Scaffold TanStack Start at repo root (pnpm) with Better Auth (email +
 todos:
   - id: scaffold-start
     content: Scaffold TanStack Start + Tailwind; verify dev/build
-    status: pending
+    status: completed
   - id: db-drizzle
     content: Add Drizzle + PostgreSQL; schema for auth + domain tables; migrations/push
-    status: pending
+    status: completed
   - id: better-auth
     content: Wire Better Auth with Drizzle adapter and protected server functions
-    status: pending
+    status: completed
   - id: shadcn
     content: Init shadcn/ui; add components for forms, tables, toggles
-    status: pending
+    status: completed
   - id: design-system
     content: Map DESIGN.md tokens to Tailwind/shadcn; app shell + tables/toggles per spec
-    status: pending
+    status: completed
   - id: feature-types-questions
     content: "Routes + server fns: CRUD investment types and questions (TanStack Form + Table)"
-    status: pending
+    status: completed
   - id: feature-scoring
     content: "Routes + server fns: CRUD investments, answer persistence, score + rank UI"
-    status: pending
+    status: completed
 isProject: false
 ---
 
@@ -89,7 +89,7 @@ Todas as tabelas de domínio com `user_id` para isolamento multiusuário (alinha
 ### Auth e deploy (decisões fechadas)
 
 - **Login**: Better Auth com **email/password** e **Google**; UI como `[design/login/code.html](C:\Users\allan\projects\investiments-analisys\design\login\code.html)` onde aplicável.
-- **Produção**: **Docker / VPS** — imagem Node com artefacto de build do TanStack Start; Postgres com string de ligação segura; variáveis: `DATABASE_URL`, segredos Better Auth, **Google OAuth** (`client id` / `secret`), URL pública da app para callbacks. Incluir no repositório um `docker-compose` de desenvolvimento (app + Postgres) quando o scaffolding existir.
+- **Produção**: **Docker / VPS** — imagem Node com artefacto de build do TanStack Start; Postgres com string de ligação segura; variáveis: `DATABASE_URL`, segredos Better Auth, **Google OAuth** (`client id` / `secret`), URL pública da app para callbacks. **Dev atual**: o `docker-compose.yml` no repo sobe **só Postgres**; a app corre com `pnpm dev` no host (ver `[plan.md](../plan.md)` § Desenvolvimento local e Docker). **`Dockerfile` / compose com app** ficam para o passo de deploy.
 
 ## Design system: DESIGN.md e pasta `design/`
 
