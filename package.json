@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite dev --port 3001",
     "build": "vite build",
+    "start": "node .output/server/index.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",

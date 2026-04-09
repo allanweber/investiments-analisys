@@ -150,10 +150,43 @@ Use Coolify’s order (do **not** skip **Start Proxy**):
 
 ---
 
+## Database migrations — when and how
+
+**When to run**
+
+1. **First production deploy:** after Postgres is up, the app’s **`DATABASE_URL`** is correct in Coolify/Dokploy, and you can reach the database from your machine (or from a one-off job). Run migrations **before** expecting login and app data to work.
+2. **Later releases:** whenever you merge new files under [`drizzle/`](../drizzle) (from `pnpm db:generate` in dev). Typical order: **deploy the new image** (or wait for the build), then **apply migrations** so the schema matches the code.
+
+**Prerequisites**
+
+- This repo uses **Drizzle** with [`drizzle.config.ts`](../drizzle.config.ts). The command is **`pnpm db:migrate`** (runs `drizzle-kit migrate`).
+- Migration SQL must exist in **`drizzle/`** and be **committed to git**. If you have only ever used `pnpm db:push` locally, generate migrations in dev first (`pnpm db:generate`), commit them, then use the flow below in production.
+
+**How (recommended): from your laptop**
+
+1. Use the **same** `DATABASE_URL` the panel injects into the app (copy from Dokploy/Coolify Postgres / service env). **Do not** commit it or paste it into chat logs.
+2. From the **project root** on your machine (with `pnpm` and `node_modules` installed):
+
+   ```bash
+   DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DBNAME" pnpm db:migrate
+   ```
+
+   On Windows PowerShell you can use:
+
+   ```powershell
+   $env:DATABASE_URL = "postgresql://USER:PASSWORD@HOST:5432/DBNAME"; pnpm db:migrate
+   ```
+
+3. Confirm the command exits without errors. Then open the site and test sign-in.
+
+**Alternative:** if your panel offers **“run command”** or a **temporary console** on an image that includes **`drizzle-kit`** and the repo, you can run `pnpm db:migrate` there with `DATABASE_URL` set. The production **Dockerfile** runtime image is minimal (no `pnpm` / devDependencies); for most people **local `pnpm db:migrate`** against the production URL is simplest.
+
+---
+
 ## Shared: Before you call it production
 
 - [ ] **`Dockerfile`** builds and listens on **`0.0.0.0`**.
-- [ ] **Postgres** running; **`DATABASE_URL`** correct; **migrations** applied.
+- [ ] **Postgres** running; **`DATABASE_URL`** correct; **migrations** applied (see **Database migrations** above).
 - [ ] **S3 (or compatible) backups** configured and **test** restore understood.
 - [ ] **Tunnel** or **DNS** documented for your choice; **no** redirect loops on login.
 - [ ] **`BETTER_AUTH_URL` / `TRUSTED_ORIGINS` / OAuth** console match **`https://invest.allanweber.dev`**.
