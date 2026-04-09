@@ -1,0 +1,408 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Financial Architect tokens (from design mocks + DESIGN.md) */
+
+/* Material-style tokens as CSS vars (not static @theme hexes) so html.dark can override reliably */
+:root {
+  --fa-inverse-surface: #2d3133;
+  --fa-inverse-on-surface: #eff1f3;
+  --fa-secondary-token: #505f76;
+  --fa-surface-variant: #e0e3e5;
+  --fa-surface-container-low: #f2f4f6;
+  --fa-on-surface-variant: #45464d;
+  --fa-outline-variant: #c6c6cd;
+  --fa-on-surface: #191c1e;
+  --fa-on-secondary-container: #54647a;
+  --fa-tertiary: #000000;
+  --fa-on-primary-fixed: #111c2d;
+  --fa-tertiary-fixed-dim: #4edea3;
+  --fa-secondary-fixed: #d3e4fe;
+  --fa-on-secondary-fixed: #0b1c30;
+  --fa-secondary-fixed-dim: #b7c8e1;
+  --fa-on-primary-fixed-variant: #3c475a;
+  --fa-surface-container-high: #e6e8ea;
+  --fa-secondary-container: #d0e1fb;
+  --fa-on-background: #191c1e;
+  --fa-surface-container-lowest: #ffffff;
+  --fa-primary-container: #111c2d;
+  --fa-on-secondary-fixed-variant: #38485d;
+  --fa-outline: #76777d;
+  --fa-on-primary-container: #79849a;
+  --fa-on-tertiary-fixed-variant: #005236;
+  --fa-on-error-container: #93000a;
+  --fa-on-tertiary: #ffffff;
+  --fa-surface-container-highest: #e0e3e5;
+  --fa-on-primary: #ffffff;
+  --fa-on-tertiary-container: #009668;
+  --fa-primary-fixed-dim: #bcc7de;
+  --fa-surface-container: #eceef0;
+  --fa-error: #ba1a1a;
+  --fa-on-tertiary-fixed: #002113;
+  --fa-error-container: #ffdad6;
+  --fa-on-error: #ffffff;
+  --fa-primary-fixed: #d8e3fb;
+  --fa-surface-bright: #f7f9fb;
+  --fa-inverse-primary: #bcc7de;
+  --fa-surface-dim: #d8dadc;
+  --fa-tertiary-container: #002113;
+  --fa-surface: #f7f9fb;
+  --fa-surface-tint: #545f73;
+  --fa-tertiary-fixed: #6ffbbe;
+  --fa-on-secondary: #ffffff;
+}
+
+html.dark {
+  --fa-inverse-surface: #e2e5e9;
+  --fa-inverse-on-surface: #191c1e;
+  --fa-secondary-token: #9aacbf;
+  --fa-surface-variant: #3d4754;
+  --fa-surface-container-low: #222a32;
+  --fa-on-surface-variant: #b8bdc7;
+  --fa-outline-variant: rgba(154, 160, 168, 0.32);
+  --fa-on-surface: #eceef1;
+  --fa-on-secondary-container: #e3eaf5;
+  --fa-tertiary: #e8eaed;
+  --fa-on-primary-fixed: #0d1218;
+  /* Accent pills: dark copy on mint (was light-on-light mint) */
+  --fa-tertiary-fixed-dim: #3eb896;
+  --fa-on-tertiary-fixed-variant: #001b14;
+  --fa-secondary-fixed: #4a6282;
+  --fa-on-secondary-fixed: #eef3fa;
+  --fa-secondary-fixed-dim: #5a7399;
+  --fa-on-primary-fixed-variant: #c8d2e3;
+  --fa-surface-container-high: #333c48;
+  --fa-secondary-container: #3d4f6a;
+  --fa-on-background: #eceef1;
+  --fa-surface-container-lowest: #1a2128;
+  --fa-primary-container: #2d3d52;
+  --fa-on-secondary-fixed-variant: #cdd9eb;
+  --fa-outline: #9aa0a8;
+  --fa-on-primary-container: #c5d0e2;
+  --fa-on-error-container: #ffdad6;
+  --fa-on-tertiary: #101418;
+  --fa-surface-container-highest: #3d4754;
+  --fa-on-primary: #f4f7fc;
+  --fa-on-tertiary-container: #8ef5d4;
+  --fa-primary-fixed-dim: #8e9db3;
+  --fa-surface-container: #252e38;
+  --fa-error: #ffb4ab;
+  --fa-on-tertiary-fixed: #003828;
+  --fa-error-container: #93000a;
+  --fa-on-error: #690005;
+  --fa-primary-fixed: #5a6a82;
+  --fa-surface-bright: #282f38;
+  --fa-inverse-primary: #4a5f7a;
+  --fa-surface-dim: #2a3038;
+  --fa-tertiary-container: #0f4d3a;
+  --fa-surface: #101418;
+  --fa-surface-tint: #6b7f99;
+  --fa-tertiary-fixed: #5ee9b8;
+  --fa-on-secondary: #101418;
+}
+
+:root {
+  --background: #f7f9fb;
+  --foreground: #191c1e;
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --card: #ffffff;
+  --card-foreground: #191c1e;
+  --popover: #ffffff;
+  --popover-foreground: #191c1e;
+  --secondary: #eceef0;
+  --secondary-foreground: #191c1e;
+  --muted: #f2f4f6;
+  --muted-foreground: #45464d;
+  --accent: #f2f4f6;
+  --accent-foreground: #191c1e;
+  --destructive: #ba1a1a;
+  --destructive-foreground: #ffffff;
+  --border: rgba(198, 198, 205, 0.2);
+  --input: #e0e3e5;
+  --ring: #000000;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: #101418;
+  --foreground: #eff1f3;
+  --primary: #eff1f3;
+  --primary-foreground: #111c2d;
+  --card: #161c22;
+  --card-foreground: #eff1f3;
+  --popover: #161c22;
+  --popover-foreground: #eff1f3;
+  --muted: #1e252c;
+  --muted-foreground: #b0b4bc;
+  --accent: #1e252c;
+  --accent-foreground: #eff1f3;
+  --destructive: #ffb4ab;
+  --destructive-foreground: #690005;
+  --border: rgba(118, 119, 125, 0.25);
+  --input: #2d3133;
+  --ring: #eff1f3;
+}
+
+@theme inline {
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-headline: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-label: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-inverse-surface: var(--fa-inverse-surface);
+  --color-inverse-on-surface: var(--fa-inverse-on-surface);
+  --color-secondary-token: var(--fa-secondary-token);
+  --color-surface-variant: var(--fa-surface-variant);
+  --color-surface-container-low: var(--fa-surface-container-low);
+  --color-on-surface-variant: var(--fa-on-surface-variant);
+  --color-outline-variant: var(--fa-outline-variant);
+  --color-on-surface: var(--fa-on-surface);
+  --color-on-secondary-container: var(--fa-on-secondary-container);
+  --color-tertiary: var(--fa-tertiary);
+  --color-on-primary-fixed: var(--fa-on-primary-fixed);
+  --color-tertiary-fixed-dim: var(--fa-tertiary-fixed-dim);
+  --color-secondary-fixed: var(--fa-secondary-fixed);
+  --color-on-secondary-fixed: var(--fa-on-secondary-fixed);
+  --color-secondary-fixed-dim: var(--fa-secondary-fixed-dim);
+  --color-on-primary-fixed-variant: var(--fa-on-primary-fixed-variant);
+  --color-surface-container-high: var(--fa-surface-container-high);
+  --color-secondary-container: var(--fa-secondary-container);
+  --color-on-background: var(--fa-on-background);
+  --color-surface-container-lowest: var(--fa-surface-container-lowest);
+  --color-primary-container: var(--fa-primary-container);
+  --color-on-secondary-fixed-variant: var(--fa-on-secondary-fixed-variant);
+  --color-outline: var(--fa-outline);
+  --color-on-primary-container: var(--fa-on-primary-container);
+  --color-on-tertiary-fixed-variant: var(--fa-on-tertiary-fixed-variant);
+  --color-on-error-container: var(--fa-on-error-container);
+  --color-on-tertiary: var(--fa-on-tertiary);
+  --color-surface-container-highest: var(--fa-surface-container-highest);
+  --color-on-primary: var(--fa-on-primary);
+  --color-on-tertiary-container: var(--fa-on-tertiary-container);
+  --color-primary-fixed-dim: var(--fa-primary-fixed-dim);
+  --color-surface-container: var(--fa-surface-container);
+  --color-error: var(--fa-error);
+  --color-on-tertiary-fixed: var(--fa-on-tertiary-fixed);
+  --color-error-container: var(--fa-error-container);
+  --color-on-error: var(--fa-on-error);
+  --color-primary-fixed: var(--fa-primary-fixed);
+  --color-surface-bright: var(--fa-surface-bright);
+  --color-inverse-primary: var(--fa-inverse-primary);
+  --color-surface-dim: var(--fa-surface-dim);
+  --color-tertiary-container: var(--fa-tertiary-container);
+  --color-surface: var(--fa-surface);
+  --color-surface-tint: var(--fa-surface-tint);
+  --color-tertiary-fixed: var(--fa-tertiary-fixed);
+  --color-on-secondary: var(--fa-on-secondary);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  display: inline-block;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+.fa-glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .fa-glass {
+  background: rgba(16, 20, 24, 0.82);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.35;
+  background:
+    radial-gradient(420px 420px at 85% -5%, rgba(216, 227, 251, 0.9), transparent 60%),
+    radial-gradient(380px 380px at -10% 100%, rgba(78, 222, 163, 0.22), transparent 55%);
+}
+
+.dark body::before {
+  opacity: 0.2;
+  background:
+    radial-gradient(420px 420px at 85% -5%, rgba(30, 50, 70, 0.5), transparent 60%),
+    radial-gradient(380px 380px at -10% 100%, rgba(78, 222, 163, 0.08), transparent 55%);
+}
+
+.font-headline {
+  font-family: var(--font-headline), ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-body,
+.font-label {
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+code {
+  font-size: 0.9em;
+  border: 1px solid color-mix(in oklab, var(--color-outline-variant) 40%, transparent);
+  background: var(--color-surface-container-low);
+  border-radius: 7px;
+  padding: 2px 7px;
+}
+
+pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.page-wrap {
+  width: min(1080px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+}
+
+.fa-table-shell {
+  @apply rounded-3xl bg-surface-container-low p-1 shadow-sm;
+}
+
+.fa-table-inner {
+  border-radius: calc(1.5rem - 4px);
+  @apply overflow-hidden bg-surface-container-lowest;
+}
+
+.fa-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+  text-align: left;
+}
+
+.fa-th {
+  @apply px-4 py-5 text-[10px] font-bold uppercase tracking-[0.15em] text-outline;
+}
+
+.fa-tr {
+  @apply transition-colors hover:bg-surface-container-low;
+}
+
+.fa-tr td:first-child {
+  border-top-left-radius: 0.75rem;
+  border-bottom-left-radius: 0.75rem;
+}
+
+.fa-tr td:last-child {
+  border-top-right-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+}
+
+.fa-tr td {
+  @apply bg-transparent py-3 px-4;
+}
+
+.fa-mobile-nav {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Legacy helpers (about, etc.) */
+.island-shell {
+  background: var(--color-surface-container-lowest);
+  box-shadow: 0 12px 32px -4px rgba(25, 28, 30, 0.06);
+  border: 1px solid color-mix(in oklab, var(--color-outline-variant) 25%, transparent);
+}
+
+.island-kicker {
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 0.69rem;
+  color: var(--color-outline);
+}
+
+.nav-link {
+  position: relative;
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+}
+
+.nav-link:hover,
+.nav-link.is-active {
+  color: var(--color-on-surface);
+}
+
+.rise-in {
+  animation: rise-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

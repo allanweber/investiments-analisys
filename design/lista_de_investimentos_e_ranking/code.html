@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Investimentos | The Financial Architect</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "inverse-surface": "#2d3133",
+              "secondary": "#505f76",
+              "surface-variant": "#e0e3e5",
+              "surface-container-low": "#f2f4f6",
+              "on-surface-variant": "#45464d",
+              "outline-variant": "#c6c6cd",
+              "on-surface": "#191c1e",
+              "on-secondary-container": "#54647a",
+              "tertiary": "#000000",
+              "on-primary-fixed": "#111c2d",
+              "tertiary-fixed-dim": "#4edea3",
+              "inverse-on-surface": "#eff1f3",
+              "secondary-fixed": "#d3e4fe",
+              "on-secondary-fixed": "#0b1c30",
+              "secondary-fixed-dim": "#b7c8e1",
+              "on-primary-fixed-variant": "#3c475a",
+              "surface-container-high": "#e6e8ea",
+              "secondary-container": "#d0e1fb",
+              "on-background": "#191c1e",
+              "surface-container-lowest": "#ffffff",
+              "primary-container": "#111c2d",
+              "on-secondary-fixed-variant": "#38485d",
+              "outline": "#76777d",
+              "on-primary-container": "#79849a",
+              "on-tertiary-fixed-variant": "#005236",
+              "on-error-container": "#93000a",
+              "on-tertiary": "#ffffff",
+              "surface-container-highest": "#e0e3e5",
+              "on-primary": "#ffffff",
+              "on-tertiary-container": "#009668",
+              "primary-fixed-dim": "#bcc7de",
+              "background": "#f7f9fb",
+              "surface-container": "#eceef0",
+              "error": "#ba1a1a",
+              "on-tertiary-fixed": "#002113",
+              "error-container": "#ffdad6",
+              "on-error": "#ffffff",
+              "primary-fixed": "#d8e3fb",
+              "primary": "#000000",
+              "surface-bright": "#f7f9fb",
+              "inverse-primary": "#bcc7de",
+              "surface-dim": "#d8dadc",
+              "tertiary-container": "#002113",
+              "surface": "#f7f9fb",
+              "surface-tint": "#545f73",
+              "tertiary-fixed": "#6ffbbe",
+              "on-secondary": "#ffffff"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+      h1, h2, h3 {
+        font-family: 'Manrope', sans-serif;
+      }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex">
+<!-- SideNavBar (JSON Derived) -->
+<aside class="hidden lg:flex flex-col p-4 space-y-2 h-screen w-64 border-r border-slate-200/20 dark:border-slate-800/20 bg-slate-50 dark:bg-slate-950 fixed">
+<div class="px-4 py-6 mb-4">
+<h2 class="font-['Manrope'] font-extrabold text-slate-900 dark:text-slate-50 text-xl">Financial Architect</h2>
+<p class="text-xs text-slate-500 font-medium">Premium Ledger</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-900 rounded-xl transition-transform duration-200 hover:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-['Inter'] text-sm font-medium">Início</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-900 rounded-xl transition-transform duration-200 hover:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-['Inter'] text-sm font-medium">Tipos de Investimento</span>
+</a>
+<!-- Active State: Investimentos -->
+<a class="flex items-center gap-3 px-4 py-3 bg-slate-900 dark:bg-emerald-500 text-white dark:text-slate-950 rounded-xl shadow-lg transition-transform duration-200 hover:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-['Inter'] text-sm font-medium">Investimentos</span>
+</a>
+</nav>
+<div class="mt-auto space-y-1 pt-4 border-t border-slate-200/20">
+<button class="w-full mb-4 py-3 px-4 bg-primary-container text-on-primary rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm hover:opacity-90 active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                Novo Investimento
+            </button>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-900 rounded-xl transition-transform duration-200 hover:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-['Inter'] text-sm font-medium">Configurações</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-900 rounded-xl transition-transform duration-200 hover:translate-x-1" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-['Inter'] text-sm font-medium">Sair</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 lg:ml-64 min-h-screen flex flex-col">
+<!-- TopAppBar (JSON Derived) -->
+<header class="fixed top-0 w-full lg:w-[calc(100%-16rem)] z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-sm dark:shadow-none no-border bg-slate-100/50 dark:bg-slate-800/50">
+<div class="flex items-center justify-between px-6 h-16 w-full max-w-7xl mx-auto">
+<div class="flex items-center gap-4">
+<span class="lg:hidden material-symbols-outlined text-slate-900" data-icon="menu">menu</span>
+<h1 class="text-xl font-bold text-slate-900 dark:text-slate-50 font-['Manrope'] tracking-tight">Investimentos</h1>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors font-semibold tracking-tight font-['Manrope']" href="#">Início</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors font-semibold tracking-tight font-['Manrope']" href="#">Tipos de Investimento</a>
+<a class="text-slate-900 dark:text-white border-b-2 border-slate-900 dark:border-white pb-1 font-semibold tracking-tight font-['Manrope']" href="#">Investimentos</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-slate-200 overflow-hidden">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="close-up of a professional male executive with a warm smile in a modern office setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDr56f-Bb_aPLShBLH7PDrykPzC77rSWZF5vXvWOhi2LRMIo-MMyGkkCaVBZ1Z7fReWH2S3qlyb_i9fhRL8ZoLIdffWrhMrFCwA7sLLFwzdbkSRdAOVHrANQVbai3qZUmCVs4Zz5KO9K2DkLN0B_NDNxk4AWFEF8SNZxzzQbVIorXV5EkpemITLmFIit_2dXE1YTOepJ4G0W8Ac1_X7ywn0rh_virCqO0Xh5joq8Rj_ySx35q8oyZfqSqJvOzDbYYpbpkTicc5xixI"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Content Area -->
+<div class="mt-16 p-8 max-w-7xl mx-auto w-full space-y-10">
+<!-- Page Header & Filters -->
+<section class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+<div class="space-y-2">
+<nav class="flex items-center gap-2 text-sm text-outline font-body">
+<span>Investimentos</span>
+<span class="text-surface-dim">/</span>
+<span class="text-primary font-medium">Ranking Global</span>
+</nav>
+<h2 class="text-4xl font-extrabold font-headline tracking-tight text-on-surface">Ranking de Ativos</h2>
+<p class="text-on-surface-variant max-w-xl">Avalie e classifique seus ativos com base em critérios fundamentais de risco e retorno.</p>
+</div>
+<div class="flex items-center gap-3 w-full md:w-auto">
+<div class="relative flex-1 md:w-48">
+<select class="w-full appearance-none bg-surface-container-highest border-none rounded-xl px-4 py-3 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer">
+<option>Todos os Tipos</option>
+<option>Ações</option>
+<option>FIIs</option>
+<option>Cripto</option>
+<option>Renda Fixa</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-3 pointer-events-none text-outline" data-icon="expand_more">expand_more</span>
+</div>
+<button class="px-6 py-3 bg-primary text-on-primary rounded-xl font-bold flex items-center gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                        Novo Investimento
+                    </button>
+</div>
+</section>
+<!-- Bento Statistics (Editorial High-Contrast) -->
+<section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="md:col-span-2 bg-surface-container-lowest p-8 rounded-[2rem] flex flex-col justify-between h-48 border border-outline-variant/10">
+<span class="text-xs font-bold uppercase tracking-widest text-outline">Líder do Ranking</span>
+<div>
+<h3 class="text-3xl font-extrabold font-headline">WEGE3</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="bg-tertiary-fixed-dim/20 text-on-tertiary-container text-xs font-bold px-2 py-0.5 rounded-full">Ações</span>
+<span class="text-sm font-medium text-on-surface-variant">9.8 Pontos</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-[2rem] flex flex-col justify-between border border-outline-variant/10">
+<span class="text-xs font-bold uppercase tracking-widest text-outline">Total Avaliado</span>
+<h3 class="text-4xl font-extrabold font-headline">24</h3>
+</div>
+<div class="bg-primary-container p-6 rounded-[2rem] flex flex-col justify-between text-on-primary shadow-xl">
+<span class="text-xs font-bold uppercase tracking-widest opacity-60">Saúde Média</span>
+<div>
+<h3 class="text-4xl font-extrabold font-headline">82%</h3>
+<p class="text-[10px] mt-1 opacity-80">CRESCIMENTO POSITIVO</p>
+</div>
+</div>
+</section>
+<!-- TanStack Inspired Table -->
+<section class="overflow-x-auto">
+<table class="w-full border-separate border-spacing-y-2">
+<thead>
+<tr class="text-left text-outline font-label text-[10px] uppercase tracking-[0.15em]">
+<th class="px-6 pb-4 font-semibold">Posição</th>
+<th class="px-6 pb-4 font-semibold">Nome</th>
+<th class="px-6 pb-4 font-semibold">Tipo</th>
+<th class="px-6 pb-4 font-semibold text-center">Pontos Totais</th>
+<th class="px-6 pb-4 font-semibold text-center">Respostas</th>
+<th class="px-6 pb-4 font-semibold text-right">Ações</th>
+</tr>
+</thead>
+<tbody class="space-y-4">
+<!-- Row 1 -->
+<tr class="bg-surface-container-lowest hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-5 first:rounded-l-2xl">
+<span class="text-lg font-black font-headline text-primary">1º</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-xs">WE</div>
+<div>
+<p class="font-bold text-on-surface">WEGE3</p>
+<p class="text-xs text-outline">Weg S.A.</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="text-sm font-medium text-on-surface-variant">Ações</span>
+</td>
+<td class="px-6 py-5 text-center">
+<div class="flex flex-col items-center">
+<span class="text-lg font-bold">9.8</span>
+<span class="text-[10px] text-on-tertiary-container font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]" data-icon="trending_up">trending_up</span> 0.2
+                                    </span>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<div class="flex items-center justify-center gap-1">
+<span class="text-sm font-semibold">5/5</span>
+<div class="w-12 h-1 bg-surface-container-high rounded-full overflow-hidden">
+<div class="w-full h-full bg-on-tertiary-container"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-5 last:rounded-r-2xl text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="p-2 hover:bg-surface-container-high rounded-lg transition-all text-on-tertiary-container" title="Pontuar">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+</button>
+<button class="p-2 hover:bg-surface-container-high rounded-lg transition-all text-secondary" title="Editar">
+<span class="material-symbols-outlined" data-icon="edit_square">edit_square</span>
+</button>
+<button class="p-2 hover:bg-error-container/20 rounded-lg transition-all text-error" title="Eliminar">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="bg-surface-container-lowest hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-5 first:rounded-l-2xl">
+<span class="text-lg font-black font-headline text-on-surface-variant">2º</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-xs">KN</div>
+<div>
+<p class="font-bold text-on-surface">KNRI11</p>
+<p class="text-xs text-outline">Kinea Renda Imob.</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="text-sm font-medium text-on-surface-variant">FIIs</span>
+</td>
+<td class="px-6 py-5 text-center">
+<div class="flex flex-col items-center">
+<span class="text-lg font-bold">8.5</span>
+<span class="text-[10px] text-error font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]" data-icon="trending_down">trending_down</span> 0.5
+                                    </span>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<div class="flex items-center justify-center gap-1">
+<span class="text-sm font-semibold">4/5</span>
+<div class="w-12 h-1 bg-surface-container-high rounded-full overflow-hidden">
+<div class="w-[80%] h-full bg-on-tertiary-container"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-5 last:rounded-r-2xl text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="p-2 hover:bg-surface-container-high rounded-lg transition-all text-on-tertiary-container" title="Pontuar">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+</button>
+<button class="p-2 hover:bg-surface-container-high rounded-lg transition-all text-secondary" title="Editar">
+<span class="material-symbols-outlined" data-icon="edit_square">edit_square</span>
+</button>
+<button class="p-2 hover:bg-error-container/20 rounded-lg transition-all text-error" title="Eliminar">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="bg-surface-container-lowest hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-5 first:rounded-l-2xl">
+<span class="text-lg font-black font-headline text-on-surface-variant">3º</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-xs">IV</div>
+<div>
+<p class="font-bold text-on-surface">IVVB11</p>
+<p class="text-xs text-outline">iShares S&amp;P 500</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="text-sm font-medium text-on-surface-variant">ETFs</span>
+</td>
+<td class="px-6 py-5 text-center">
+<div class="flex flex-col items-center">
+<span class="text-lg font-bold">7.2</span>
+<span class="text-[10px] text-outline font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]" data-icon="trending_flat">trending_flat</span> 0.0
+                                    </span>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<div class="flex items-center justify-center gap-1">
+<span class="text-sm font-semibold">3/5</span>
+<div class="w-12 h-1 bg-surface-container-high rounded-full overflow-hidden">
+<div class="w-[60%] h-full bg-on-tertiary-container"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-5 last:rounded-r-2xl text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="p-2 hover:bg-surface-container-high rounded-lg transition-all text-on-tertiary-container" title="Pontuar">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+</button>
+<button class="p-2 hover:bg-surface-container-high rounded-lg transition-all text-secondary" title="Editar">
+<span class="material-symbols-outlined" data-icon="edit_square">edit_square</span>
+</button>
+<button class="p-2 hover:bg-error-container/20 rounded-lg transition-all text-error" title="Eliminar">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<!-- Empty State (Conditional View) - Hidden by default in this demo -->
+<section class="hidden flex flex-col items-center justify-center py-20 px-6 text-center bg-surface-container-low rounded-[3rem] border-2 border-dashed border-outline-variant/30">
+<div class="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-4xl text-outline" data-icon="inventory_2">inventory_2</span>
+</div>
+<h3 class="text-2xl font-bold font-headline mb-2">Nenhum investimento encontrado</h3>
+<p class="text-on-surface-variant max-w-sm mb-8 text-sm">Você ainda não possui tipos de investimentos configurados para começar o ranking.</p>
+<a class="px-8 py-3 bg-primary text-on-primary rounded-xl font-bold flex items-center gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all" href="/tipos">
+                    Configurar Tipos
+                    <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</section>
+</div>
+<!-- Footer (JSON Derived) -->
+<footer class="mt-auto w-full py-8 border-t border-slate-200/10 dark:border-slate-800/10 bg-slate-50 dark:bg-slate-950 tonal-shift-low">
+<div class="flex flex-col md:flex-row justify-between items-center px-8 max-w-7xl mx-auto w-full">
+<p class="text-slate-400 dark:text-slate-500 font-['Inter'] text-xs tracking-wider uppercase">© 2024 THE FINANCIAL ARCHITECT. HIGH-FIDELITY LEDGER SYSTEM.</p>
+<div class="flex items-center gap-6 mt-4 md:mt-0">
+<a class="text-slate-400 dark:text-slate-500 hover:text-emerald-500 transition-colors font-['Inter'] text-xs tracking-wider uppercase underline-offset-4 hover:underline" href="#">Privacidade</a>
+<a class="text-slate-400 dark:text-slate-500 hover:text-emerald-500 transition-colors font-['Inter'] text-xs tracking-wider uppercase underline-offset-4 hover:underline" href="#">Termos</a>
+<a class="text-slate-400 dark:text-slate-500 hover:text-emerald-500 transition-colors font-['Inter'] text-xs tracking-wider uppercase underline-offset-4 hover:underline" href="#">Suporte</a>
+</div>
+</div>
+</footer>
+</main>
+<!-- Mobile Bottom Navigation (JSON Derived Responsive Logic) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md flex justify-around items-center h-16 border-t border-slate-100 z-50">
+<a class="flex flex-col items-center justify-center text-slate-400" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-[10px] font-medium">Início</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="text-[10px] font-medium">Tipos</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-900" href="#">
+<span class="material-symbols-outlined" data-icon="payments" data-weight="fill">payments</span>
+<span class="text-[10px] font-bold">Ranking</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-[10px] font-medium">Conta</span>
+</a>
+</nav>
+</body></html>
