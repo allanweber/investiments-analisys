@@ -1,190 +1,176 @@
 ---
-name: Hetzner Coolify deploy
-overview: Beginner-friendly steps for Hetzner + Coolify + PostgreSQL + GitHub, using Coolify’s built-in Cloudflare Tunnel integration (recommended “all resources” path) and optional Full TLS when Better Auth/OAuth needs end-to-end HTTPS on the origin.
+name: Hetzner Dokploy or Coolify deploy
+overview: Two self-hosted PaaS options on Hetzner—Dokploy first, Coolify second—with step-by-step database, application (GitHub + Docker), and Cloudflare Tunnel notes for each. Subdomain target invest.allanweber.dev; TanStack Start + Postgres + Better Auth.
 todos:
   - id: dockerfile
-    content: Add a production Dockerfile (Coolify builds/runs the app; Dockerfile recommended for this Nitro/TanStack stack)
+    content: Add production Dockerfile (needed for both Dokploy and Coolify application deploys)
     status: pending
-  - id: hetzner-coolify
-    content: Create Hetzner VPS (fresh Ubuntu), firewall/SSH per Coolify docs, run install script, secure Coolify registration
+  - id: dokploy-path
+    content: "If using Dokploy: install, Postgres resource + S3 backups, Git app + domain/tunnel per Option 1"
     status: pending
-  - id: cf-tunnel-coolify
-    content: "Cloudflare Tunnel (Zero Trust) + Coolify Cloudflared resource + Start Proxy; follow Coolify ‘All Resource’ tunnel guide — link in Part C"
-    status: pending
-  - id: full-tls-better-auth
-    content: "If cookies/OAuth/JWT misbehave: complete Coolify Full TLS guide (origin cert, tunnel → HTTPS:443, Full strict, app URLs HTTPS)"
-    status: pending
-  - id: postgres-coolify
-    content: "In Coolify: PostgreSQL for this app; enable backups to S3-compatible storage"
-    status: pending
-  - id: github-coolify
-    content: "Connect GitHub, create Application, auto-deploy branch, env vars (DATABASE_URL from Coolify, BETTER_AUTH_*)"
+  - id: coolify-path
+    content: "If using Coolify: install, Postgres + backups, Git app + Cloudflared + proxy per Option 2"
     status: pending
   - id: prod-env-auth
-    content: OAuth redirects + BETTER_AUTH_URL/TRUSTED_ORIGINS for https://invest.allanweber.dev; run migrations after first deploy
+    content: BETTER_AUTH_* and OAuth redirects for https://invest.allanweber.dev; DB migrations after first deploy
     status: pending
 isProject: false
 ---
 
-# Deploy on Hetzner with Coolify (simple guide)
+# Hetzner: Dokploy (option 1) or Coolify (option 2)
 
-## What you are building (in plain English)
+This guide assumes **one VPS** on **Hetzner**, domain **Cloudflare** (`allanweber.dev`), app URL **`invest.allanweber.dev`**, and this repo: **TanStack Start / Nitro + PostgreSQL + Better Auth** — you need a **`Dockerfile`** in git ([`package.json`](../package.json); dev-only Postgres: [`docker-compose.yml`](../docker-compose.yml)).
 
-1. You rent a small Linux computer in Hetzner (**a VPS**).
-2. You install **Coolify** on it once. Coolify is a **web dashboard** that installs Docker for you and then deploys **many apps** from Git — good for your “this server will have other apps” goal.
-3. You use **Cloudflare** for DNS. You will use a **Cloudflare Tunnel** the **Coolify-approved way**: Coolify runs a **Cloudflared** container and sends traffic to Coolify’s **proxy** on port **80**, so you do **not** add a new tunnel hostname for every future app in most setups. Cloudflare handles **HTTPS at the edge** first; your app may later need **Full TLS on Coolify** for login/OAuth (see Part C).
-4. You add **PostgreSQL** in Coolify, turn on **backups** to S3-compatible storage, and connect **GitHub** so pushes can redeploy automatically.
+Pick **one** platform. Both manage **Docker**, **reverse proxy**, and **deploy-from-Git**; both can use a **Cloudflare Tunnel** so you do not rely on public `A` records to your server IP.
 
-Your app is **TanStack Start / Nitro + PostgreSQL + Better Auth**. You still need a proper **`Dockerfile`** in the repo so Coolify can build and run it reliably ([`package.json`](../package.json); local [`docker-compose.yml`](../docker-compose.yml) is only for dev Postgres today).
+**Doc links (bookmark these):**
 
----
-
-## Part A — Hetzner server (one time)
-
-1. **Create an account** at [Hetzner Cloud](https://console.hetzner.cloud/) if needed.
-2. **Add an SSH key** on your PC (so you can log in without a password):
-   - Example: `ssh-keygen -t ed25519 -C "hetzner"`  
-   - Upload the **public** key (`.pub` file) in Hetzner when creating the server.
-3. **Create a new server** (important: **dedicated to Coolify** — Coolify’s docs recommend a **fresh** machine):
-   - **Image:** Ubuntu **24.04** LTS.
-   - **Size:** at least **2 vCPU, 2 GB RAM, ~30 GB disk** (Coolify minimum); if you expect several apps + builds on the same box, **4 GB RAM** is more comfortable.
-   - **SSH key:** select yours.
-   - Note the **public IPv4 address**.
-4. **Log in:** `ssh root@YOUR_SERVER_IP`
-5. **Firewall (simple rule of thumb):** allow inbound **SSH (22)**, **HTTP (80)**, **HTTPS (443)**. Coolify’s own UI often uses port **8000** until you put it on a domain — either allow **8000** from **your home IP only**, or follow Coolify’s docs to secure the dashboard quickly. Official firewall notes: [Coolify firewall guide](https://coolify.io/docs/knowledge-base/server/firewall).
+- [Dokploy](https://dokploy.com/) — [Installation](https://docs.dokploy.com/docs/core/installation), [Databases](https://docs.dokploy.com/docs/core/databases), [Database backups](https://docs.dokploy.com/docs/core/databases/backups), [Applications](https://docs.dokploy.com/docs/core/applications), [Cloudflare DNS/SSL](https://docs.dokploy.com/docs/core/domains/cloudflare), [Cloudflare Tunnels](https://docs.dokploy.com/docs/core/guides/cloudflare-tunnels), [Cloudflared template](https://docs.dokploy.com/docs/templates/cloudflared)
+- [Coolify](https://coolify.io/) — [Installation](https://coolify.io/docs/get-started/installation), [Cloudflare Tunnels overview](https://coolify.io/docs/integrations/cloudflare/tunnels/overview), [All resources tunnel](https://coolify.io/docs/integrations/cloudflare/tunnels/all-resource), [Full HTTPS/TLS](https://coolify.io/docs/integrations/cloudflare/tunnels/full-tls)
 
 ---
 
-## Part B — Install Coolify (one command)
+## Shared: Hetzner server
 
-On the server as **root** (what Coolify expects for the quick installer):
+1. Create a **new** VPS (both tools expect a fresh box you can dedicate to the panel).
+2. **Ubuntu 24.04 LTS** is a safe choice.
+3. **Specs:** at least **2 vCPU, 2 GB RAM, ~30 GB disk**; use **4 GB RAM** if you will run several apps + builds.
+4. Add your **SSH public key** in Hetzner; note the server **IPv4**.
 
-```bash
-curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
-```
-
-When it finishes, open the URL it prints (usually `http://YOUR_SERVER_IP:8000`).
-
-- **Immediately** complete the **first admin registration** — anyone who hits that page before you could register as admin.
-- After that, prefer following Coolify’s guidance to **use a proper hostname + HTTPS for the Coolify dashboard** (so you are not using raw IP:8000 forever).
-
-Details and options: [Coolify installation](https://coolify.io/docs/get-started/installation).
+You will install **either** Dokploy **or** Coolify on this machine (not both on the same first-time setup unless you know what you are doing).
 
 ---
 
-## Part C — Cloudflare Tunnel + `invest.allanweber.dev` (Coolify’s way)
+## Option 1 — Dokploy
 
-Coolify documents this clearly; follow their pages in order (don’t skip the “Start Proxy” step):
+Dokploy uses **Docker Swarm** and **Traefik** on ports **80** and **443**; the panel defaults to **port 3000** until you put it on a domain.
 
-- **Overview (why / when):** [Cloudflare Tunnels](https://coolify.io/docs/integrations/cloudflare/tunnels/overview)
-- **What you should use as a beginner:** [Access All Resource via Cloudflare Tunnels](https://coolify.io/docs/integrations/cloudflare/tunnels/all-resource)
-- **If login or OAuth acts wrong:** [Full HTTPS/TLS](https://coolify.io/docs/integrations/cloudflare/tunnels/full-tls)
+### 1.1 Install Dokploy
 
-### C1 — Create the tunnel in Cloudflare (high level)
+1. Open ports: **22** (SSH), **80**, **443**, **3000** (panel until you secure it). Hetzner **Cloud Firewall** or `ufw` — see your provider.
+2. SSH as root (or a sudo user per Dokploy docs): run the official installer from [Installation](https://docs.dokploy.com/docs/core/installation):
 
-1. Log into Cloudflare → **Zero Trust** → **Networks** → **Tunnels** → **Add a tunnel** → type **Cloudflared**.
-2. Name it (e.g. `hetzner-coolify`).
-3. Copy the **token** (the long `eyJ…` string — store it in a password manager).
+   ```bash
+   curl -sSL https://dokploy.com/install.sh | sh
+   ```
 
-When Cloudflare asks you to add a **public hostname**, the **All Resource** guide uses one rule for **everything**:
+3. Open **`http://YOUR_SERVER_IP:3000`** and complete **admin registration** immediately.
+4. Later: put the **Dokploy panel** on a hostname with HTTPS and consider **disabling** raw `IP:3000` — [Domains](https://docs.dokploy.com/docs/core/domains), [Secure your installation](https://docs.dokploy.com/docs/core/installation#secure-your-installation).
 
-- **Type:** **HTTP** (important).
-- **URL:** **`http://localhost:80`** (important).
+### 1.2 PostgreSQL in Dokploy
 
-For the hostname, beginners often use a **wildcard** like `*.allanweber.dev` so **every** Coolify app on that server can use its own subdomain **without** coming back to Cloudflare for each new app. If you prefer only this app for now, you can use `invest.allanweber.dev` instead and add more hostnames later (same `localhost:80`).
+1. In the UI, create a **Project** (if needed), then add a **Database** → **Postgres**.
+2. **Deploy** the database and wait until it is healthy.
+3. Copy the **credentials / connection details** Dokploy exposes (host is usually a **Docker/Swarm service name** reachable from app containers on the same stack — use the exact URL Dokploy documents for “connect from an application”).
+4. Set your app env **`DATABASE_URL`** to that value (same shape as [`.env.example`](../.env.example): `postgresql://user:password@host:5432/dbname`).
 
-### C2 — Encryption mode (first pass)
+**Backups**
 
-In Cloudflare **SSL/TLS** → **Overview**: set encryption to **Full** (as in Coolify’s tunnel guide). You may move to **Full (strict)** after you complete **Full TLS** if needed.
+1. Add an **S3-compatible destination** under **Settings → Destinations** (bucket + keys), per [Backups](https://docs.dokploy.com/docs/core/databases/backups).
+2. Open your database → **Backups** tab: pick destination, **schedule** (cron), prefix, enable, then **Test**.
+3. Read [Restore](https://docs.dokploy.com/docs/core/databases/restore) once so you know where restores live.
 
-### C3 — Run the tunnel **inside Coolify** (not by hand)
+### 1.3 Application in Dokploy (GitHub + this repo)
 
-1. In Coolify: **+ New resource** → search **Cloudflared** → deploy it.
-2. Paste the **tunnel token** in that service’s **environment variables** and deploy.
+1. **Applications** → new application → source **GitHub** (connect OAuth / deploy keys per Dokploy’s [SSH keys](https://docs.dokploy.com/docs/core/ssh-keys) if private).
+2. Select this repository and branch (e.g. `main`).
+3. **Build:** use **Dockerfile** (recommended for Nitro/TanStack): ensure the Dockerfile exposes the **container port** your app listens on (e.g. `3000`) and binds **`0.0.0.0`**.
+4. **Environment:** add at least:
+   - `DATABASE_URL` (from step 1.2)
+   - `BETTER_AUTH_URL=https://invest.allanweber.dev` (after HTTPS works end-to-end)
+   - `BETTER_AUTH_SECRET` (strong random)
+   - `BETTER_AUTH_TRUSTED_ORIGINS` including `https://invest.allanweber.dev`
+5. **Deploy**; fix build logs until green.
+6. **Migrations:** run `pnpm db:migrate` once against production (Dokploy **Advanced → Run Command** or from your laptop with production URL — pick one documented workflow).
 
-### C4 — Start Coolify’s proxy
+**Domains (without tunnel — see 1.4 for tunnel)**
 
-Coolify: **Servers** → your server → **Proxy** → **Start Proxy**.
+- **Domains** tab → **Create domain**: Host `invest.allanweber.dev`, path `/`, **Container port** = your app port.
+- In Cloudflare DNS: **A** record `invest` → server IP; use **Full (strict)** or **Flexible** per [Cloudflare domains](https://docs.dokploy.com/docs/core/domains/cloudflare) (Let’s Encrypt on origin vs Cloudflare-origin cert).
+- Enable **HTTPS** + **Let’s Encrypt** when using direct DNS to the VPS (not when using tunnel-only routing — see below).
 
-This is what routes traffic from the tunnel (`localhost:80`) to **each** application. Without this, tunnel setup won’t make sense.
+**Webhooks:** enable **Deployments → Webhook** so **git push** triggers rebuild (documented under [Applications](https://docs.dokploy.com/docs/core/applications)).
 
-### C5 — DNS gotcha (if the site doesn’t load)
+### 1.4 Cloudflare Tunnel with Dokploy
 
-If Cloudflare **does not** create a DNS record because one already existed, Coolify explains fixing it with a **CNAME** to `YOUR_TUNNEL_ID.cfargotunnel.com` (proxied). See **Known issues** on the same **All Resource** page.
+Follow **[Cloudflare Tunnels](https://docs.dokploy.com/docs/core/guides/cloudflare-tunnels)** (official). Short version:
 
-### C6 — Your app domain in Coolify (Better Auth / OAuth)
+1. **Cloudflare** → Zero Trust → **Networks** → **Connectors** → **Create tunnel** → **Cloudflared** → copy **`TUNNEL_TOKEN`**.
+2. **SSL/TLS** in Cloudflare: use **Full** or **Full (strict)** — the doc says **avoid Flexible** (redirect loops with Traefik).
+3. In **Dokploy**, create an **Application** with Docker image **`cloudflare/cloudflared`**; env **`TUNNEL_TOKEN`**; **Advanced → Arguments**: `tunnel` then `run` (see guide).
+4. **Published routes / public hostname** in Cloudflare:
+   - **Recommended:** route to **Traefik** so **all** Dokploy apps share one tunnel: **HTTP** service URL **`dokploy-traefik:80`** (exact hostname from guide — this reaches Traefik inside the swarm).
+   - **Wildcard subdomains:** DNS **CNAME** `*` → `YOUR_TUNNEL_ID.cfargotunnel.com` (proxied), and one tunnel hostname to **`dokploy-traefik:80`** so `invest.allanweber.dev` and future subdomains work without new tunnel entries.
+5. For **your app** in Dokploy → **Domains**: add **`invest.allanweber.dev`** with the **correct container port**; with tunnel + Traefik, the doc recommends **HTTPS off** and **no Let’s Encrypt** on that domain in Dokploy so Cloudflare terminates TLS at the edge (see guide — conflicts otherwise).
+6. **Better Auth / OAuth:** if cookies or redirects break, you may need **Full (strict)** plus a **trusted origin certificate** on Traefik — same class of issue as Coolify’s [Full TLS](https://coolify.io/docs/integrations/cloudflare/tunnels/full-tls); plan extra time to tune SSL mode and app `BETTER_AUTH_URL`.
 
-Coolify warns: for tunnel setups, start with the app URL as **HTTP** in the resource settings to avoid **`TOO_MANY_REDIRECTS`**, because **Cloudflare** terminates HTTPS first.
-
-**But:** this app uses **Better Auth** (cookies, redirects, OAuth). Coolify explicitly says: if something needs real HTTPS to the app, follow **[Full HTTPS/TLS](https://coolify.io/docs/integrations/cloudflare/tunnels/full-tls)** after the tunnel works — origin certificate on the server, tunnel points to **HTTPS on 443**, Cloudflare **Full (strict)**, then use **`https://invest.allanweber.dev`** everywhere (`BETTER_AUTH_URL`, trusted origins, OAuth console).
-
-**Practical order for you:** get the tunnel + proxy + app **loading** with the **All Resource** guide, then plan **Full TLS** before you call authentication “done.”
-
-### Optional: no tunnel (simpler, but exposes server IP)
-
-If you ever skip the tunnel: point **`invest` A record** to the Hetzner IP and let Coolify use **Let’s Encrypt** on the server. You lose the “hidden IP” benefit. With your choice, **stay on Coolify’s tunnel guides** above.
-
----
-
-## Part D — PostgreSQL + backups inside Coolify
-
-1. In the Coolify UI, **create a PostgreSQL database** (as a **resource** tied to a project).
-2. Coolify will give you a **connection string** / credentials your app should use as `DATABASE_URL`.
-3. Enable **automated backups** in Coolify to an **S3-compatible bucket** (Cloudflare R2, Backblaze B2, AWS S3, etc.). Coolify documents this as a built-in feature ([Coolify docs overview](https://coolify.io/docs) mentions S3 backups and one-click restore).
-4. **Later apps:** add **another** database instance or another database on the same server depending on how you like to isolate data — Coolify supports multiple resources.
-
----
-
-## Part E — Deploy *this* app from GitHub
-
-1. In Coolify, connect **GitHub** (OAuth or token — follow Coolify’s “Source” / Git provider screens).
-2. **New resource → Application** (or equivalent wizard), pick **this repository**.
-3. **Build pack:** prefer **Dockerfile** — add one to the repo that:
-   - Installs dependencies with `pnpm`
-   - Runs `pnpm build`
-   - Starts the Nitro production server on **`0.0.0.0`** and the port Coolify expects (often you expose one port in the Dockerfile; Coolify maps it).
-4. Set the **public hostname** to `invest.allanweber.dev`. Match **HTTP vs HTTPS** to whatever stage you are at in Part C (HTTP-first for tunnel basics; **HTTPS URLs** after **Full TLS** if Coolify requires it for your auth flow).
-5. **Environment variables** (at minimum, from your [`.env.example`](../.env.example)):
-   - `DATABASE_URL` — paste the value Coolify shows for the Postgres you created.
-   - `BETTER_AUTH_URL` — must match the **public URL users type in the browser** (`https://invest.allanweber.dev` once Full TLS / production HTTPS is correct).
-   - `BETTER_AUTH_SECRET` — long random secret.
-   - `BETTER_AUTH_TRUSTED_ORIGINS` — include the same public origin as above.
-6. **Deploy.** After the first successful deploy, run **database migrations** once (Coolify often lets you run a one-off command in the container, or you run `pnpm db:migrate` locally against production `DATABASE_URL` if you prefer — pick one safe workflow).
-7. In **Google (or other) OAuth** console, add **authorized redirect URIs** for the **production** URL.
-
-**Automation:** Coolify’s **Git integration** handles “push to deploy” so you usually **do not** need a separate GitHub Actions deploy pipeline unless you want extra CI steps (tests, lint).
+**Alternative (no tunnel):** use **A record** to the VPS and Dokploy **HTTPS + Let’s Encrypt** as in [Cloudflare + Dokploy](https://docs.dokploy.com/docs/core/domains/cloudflare); server IP is visible.
 
 ---
 
-## Part F — Multiple apps on the same server
+## Option 2 — Coolify
 
-- This is **exactly** what Coolify is for: add **another Application**, another **FQDN** (e.g. `other.allanweber.dev`), another database if needed.
-- Watch **RAM and disk**: builds are heavy; upgrade the VPS if the server feels slow.
+Coolify uses its own **proxy** (not Traefik like Dokploy); Cloudflare Tunnel is a **first-class** integration.
+
+### 2.1 Install Coolify
+
+1. Firewall: **SSH**, **80**, **443**, and **8000** for first UI access (then lock down). See [Firewall](https://coolify.io/docs/knowledge-base/server/firewall).
+2. Install (official [Installation](https://coolify.io/docs/get-started/installation)):
+
+   ```bash
+   curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
+   ```
+
+3. Open the printed URL (often **`http://IP:8000`**) and **register admin** immediately.
+
+### 2.2 PostgreSQL in Coolify
+
+1. **Project** → **+ New** → **Database** (or **PostgreSQL**).
+2. Deploy; copy **`DATABASE_URL`** / credentials Coolify shows.
+3. **Backups:** enable in the DB resource to **S3-compatible** storage ([Coolify docs](https://coolify.io/docs)).
+
+### 2.3 Application in Coolify (GitHub + this repo)
+
+1. Connect **GitHub** as a source.
+2. **New Application** → this repo; build with **Dockerfile**.
+3. **Environment variables:** same set as in 1.3 (`DATABASE_URL`, `BETTER_AUTH_*`).
+4. **Deploy**; run **migrations** once when ready.
+
+### 2.4 Cloudflare Tunnel with Coolify
+
+Use Coolify’s order (do **not** skip **Start Proxy**):
+
+1. Read [Tunnels overview](https://coolify.io/docs/integrations/cloudflare/tunnels/overview) then [All resources](https://coolify.io/docs/integrations/cloudflare/tunnels/all-resource).
+2. **Cloudflare:** create tunnel → **HTTP** → **`http://localhost:80`** for the public hostname (or wildcard).
+3. **Coolify:** deploy **Cloudflared** resource with **tunnel token**.
+4. **Servers** → **Proxy** → **Start Proxy** (routes tunnel → apps).
+5. **Application** FQDN: **`invest.allanweber.dev`**; follow Coolify’s **HTTP vs HTTPS** advice to avoid `TOO_MANY_REDIRECTS`; for **Better Auth**, plan **[Full HTTPS/TLS](https://coolify.io/docs/integrations/cloudflare/tunnels/full-tls)** after basics work.
+
+**No tunnel:** point **`invest`** **A** record at the VPS and use Let’s Encrypt via Coolify; origin IP visible.
 
 ---
 
-## Quick checklist before you call it “live”
+## Shared: Before you call it production
 
-- [ ] VPS meets Coolify minimums; SSH/firewall match Coolify’s docs.
-- [ ] Coolify installed; first admin account claimed; dashboard access tightened over time.
-- [ ] Cloudflare **Tunnel** created; **Cloudflared** deployed in Coolify with token; **Proxy started**.
-- [ ] DNS / tunnel hostname covers `invest.allanweber.dev` (direct record or wildcard).
-- [ ] If using Better Auth/OAuth: **Full TLS** completed or verified; no redirect/cookie loops.
-- [ ] App `Dockerfile` works; deploy succeeds from GitHub.
-- [ ] Postgres in Coolify; `DATABASE_URL` set; migrations applied.
-- [ ] Backups go to **remote** S3-compatible storage.
-- [ ] `BETTER_AUTH_*` and OAuth provider redirect URIs match your real public URL.
+- [ ] **`Dockerfile`** builds and listens on **`0.0.0.0`**.
+- [ ] **Postgres** running; **`DATABASE_URL`** correct; **migrations** applied.
+- [ ] **S3 (or compatible) backups** configured and **test** restore understood.
+- [ ] **Tunnel** or **DNS** documented for your choice; **no** redirect loops on login.
+- [ ] **`BETTER_AUTH_URL` / `TRUSTED_ORIGINS` / OAuth** console match **`https://invest.allanweber.dev`**.
 
 ---
 
-## What you are not doing anymore
+## Quick comparison (why two options)
 
-- No manual SSH deploy scripts from GitHub Actions (unless you add tests/CI yourself).
-- No hand-written `docker compose` folder structure on the VPS for this app — Coolify owns that.
-- No separate `systemd` unit for `cloudflared` — Coolify runs **Cloudflared** as a managed resource.
+- **Dokploy:** Traefik-based; tunnel points at **`dokploy-traefik:80`**; [single tunnel guide](https://docs.dokploy.com/docs/core/guides/cloudflare-tunnels) matches multi-app wildcard flow.
+- **Coolify:** dedicated **Proxy** + **Cloudflared** template path; **`localhost:80`** to proxy in Cloudflare route; **Full TLS** doc for strict HTTPS to origin.
+
+Both replace hand-written server **bash + systemd** deploys for multiple future apps.
 
 ---
 
-## The simple story (read this when you feel lost)
+## The simple story if you feel lost
 
-**Order:** Hetzner → **Coolify install** → **Tunnel in Cloudflare** → **Cloudflared + Proxy in Coolify** → **Postgres in Coolify** → **App from GitHub** → **Full TLS if auth needs it** → **OAuth URLs**.
+**Dokploy:** Hetzner → **install Dokploy** → **Postgres + backups** → **App from GitHub** → **Domains** → **Cloudflared app + tunnel → Traefik:80** → tune SSL for auth.
+
+**Coolify:** Hetzner → **install Coolify** → **Postgres + backups** → **App from GitHub** → **Tunnel + Cloudflared + Start Proxy** → **Full TLS** if auth needs it.

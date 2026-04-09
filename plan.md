@@ -50,7 +50,7 @@ Após o **registo**, o sistema faz **auto-seed** dos tipos sugeridos (alinhados 
 ## Desenvolvimento local e Docker
 
 - O `docker-compose.yml` do repositório serve para subir **só PostgreSQL** (por defeito `localhost:5432`, base `investiments`). A **aplicação corre na máquina de desenvolvimento** com `pnpm dev` (porta **3001**; alinhar `DATABASE_URL`, `BETTER_AUTH_URL` e `trustedOrigins` em `.env.local`).
-- O plano técnico original previa também um serviço da app no compose; **ainda não está modelado** — para produção/VPS falta documentar ou acrescentar **`Dockerfile`** e eventual `docker-compose` de deploy. Isto não bloqueia o MVP em local.
+- Para **produção** (Hetzner, Cloudflare, PostgreSQL com backups, deploy a partir do Git), o passo a passo está em [`plans/hetzner_coolify_cloudflare_deploy.plan.md`](plans/hetzner_coolify_cloudflare_deploy.plan.md): **Dokploy** (opção 1) ou **Coolify** (opção 2), cada um com Postgres, aplicação, e Cloudflare Tunnel. É necessário um **`Dockerfile`** no repositório para o painel fazer o build.
 
 ## O que fica para **depois** deste MVP
 
@@ -65,5 +65,6 @@ O plano técnico passo a passo (schema, rotas, edge cases, deploy, ordem de trab
 - `[plans/tanstack_start_mvp_7b936246.plan.md](plans/tanstack_start_mvp_7b936246.plan.md)` — scaffolding e MVP de pontuação.
 - `[plans/questions_and_scoring_f659a63c.plan.md](plans/questions_and_scoring_f659a63c.plan.md)` — banco de perguntas padrão, restaurar defaults, destaques no dashboard.
 - `[plans/ui_i18n_full_extraction.plan.md](plans/ui_i18n_full_extraction.plan.md)` — extrair **todas** as strings de UI para `#/messages` (pt-BR primeiro), com ordem de trabalhos e critérios de aceitação.
+- `[plans/hetzner_coolify_cloudflare_deploy.plan.md](plans/hetzner_coolify_cloudflare_deploy.plan.md)` — deploy em VPS (Hetzner): **Dokploy** ou **Coolify**, Postgres, túnel Cloudflare, Git.
 
 Quem for implementar deve manter estes ficheiros atualizados quando surgirem decisões novas (incluindo o frontmatter `todos` quando aplicável).
