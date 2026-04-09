@@ -3,18 +3,12 @@ import { useEffect, useState } from 'react'
 
 import { Button } from '#/components/ui/button'
 import { Label } from '#/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '#/components/ui/select'
 import { authClient } from '#/lib/auth-client'
 import {
   loadInvestmentScoringFn,
   saveInvestmentScoringFn,
 } from '#/lib/investment-server'
+import { cn } from '#/lib/utils'
 
 type AnswerChoice = 'unanswered' | 'no' | 'yes'
 
@@ -23,6 +17,56 @@ export const Route = createFileRoute('/investimentos/$id/pontuacao')({
   loader: async ({ params }) =>
     await loadInvestmentScoringFn({ data: { investmentId: params.id } }),
 })
+
+function AnswerSegmented({
+  value,
+  onChange,
+}: {
+  value: AnswerChoice
+  onChange: (v: AnswerChoice) => void
+}) {
+  /** Same “pill” for any choice so Sim / Não / Não respondida look identical when active. */
+  const selectedSegment =
+    'bg-secondary-container text-on-secondary-container shadow-sm ring-1 ring-inset ring-secondary-token/45'
+
+  const seg = (v: AnswerChoice, label: string, sub?: string) => {
+    const selected = value === v
+    return (
+      <button
+        type="button"
+        onClick={() => onChange(v)}
+        className={cn(
+          'flex min-h-[2.75rem] flex-1 flex-col items-center justify-center rounded-lg px-2 py-2 font-body text-sm font-semibold transition-colors',
+          selected ? selectedSegment : 'text-on-surface-variant hover:bg-surface-container-high',
+        )}
+      >
+        <span>{label}</span>
+        {sub && (
+          <span
+            className={cn(
+              'mt-0.5 font-label text-[10px] font-normal uppercase tracking-wide',
+              selected ? 'text-on-secondary-container/85' : 'text-on-surface-variant/90',
+            )}
+          >
+            {sub}
+          </span>
+        )}
+      </button>
+    )
+  }
+
+  return (
+    <div
+      className="flex w-full min-w-0 gap-1 rounded-xl bg-surface-container-highest p-1"
+      role="group"
+      aria-label="Resposta sim ou não"
+    >
+      {seg('unanswered', 'Não respondida', '0')}
+      {seg('no', 'Não', '−1')}
+      {seg('yes', 'Sim', '+1')}
+    </div>
+  )
+}
 
 function PontuacaoPage() {
   const router = useRouter()
@@ -100,15 +144,15 @@ function PontuacaoPage() {
         )
         return
       }
-      setMsg('Salvo.')
       await router.invalidate()
+      await router.navigate({ to: '/investimentos' })
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <main className="w-full max-w-3xl px-4 py-8 sm:p-8 lg:p-12">
+    <main className="w-full max-w-6xl px-4 py-8 sm:p-8 lg:p-12">
       <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-body text-sm text-outline">
         <Link to="/dashboard" className="no-underline hover:text-on-surface">
           Admin
@@ -161,27 +205,18 @@ function PontuacaoPage() {
           {questions.map((q) => (
             <li
               key={q.id}
-              className="rounded-xl border border-outline-variant/25 bg-surface-container-lowest p-4 shadow-sm"
+              className="min-w-0 rounded-xl bg-surface-container-lowest p-4 shadow-[0px_12px_32px_-4px_rgba(25,28,30,0.06)]"
             >
               <Label className="font-headline text-base font-semibold text-on-surface">
                 {q.prompt}
               </Label>
-              <div className="mt-3 max-w-xs">
-                <Select
+              <div className="mt-3 w-full min-w-0">
+                <AnswerSegmented
                   value={choices[q.id] ?? 'unanswered'}
-                  onValueChange={(v: AnswerChoice) =>
+                  onChange={(v) =>
                     setChoices((prev) => ({ ...prev, [q.id]: v }))
                   }
-                >
-                  <SelectTrigger className="border-outline-variant/30 bg-surface-container-highest">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unanswered">Não respondida</SelectItem>
-                    <SelectItem value="no">Não (−1)</SelectItem>
-                    <SelectItem value="yes">Sim (+1)</SelectItem>
-                  </SelectContent>
-                </Select>
+                />
               </div>
             </li>
           ))}
@@ -194,7 +229,10 @@ function PontuacaoPage() {
         </p>
       )}
 
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div className="mt-8 flex w-full flex-wrap items-center justify-between gap-3">
+        <Button type="button" variant="outline" asChild className="border-outline-variant/30">
+          <Link to="/investimentos">Voltar para a lista</Link>
+        </Button>
         <Button
           type="button"
           onClick={() => void onSave()}
@@ -202,9 +240,6 @@ function PontuacaoPage() {
           className="rounded-xl bg-primary-container font-headline font-semibold text-on-primary"
         >
           {busy ? 'Salvando…' : 'Salvar'}
-        </Button>
-        <Button type="button" variant="outline" asChild className="border-outline-variant/30">
-          <Link to="/investimentos">Voltar para a lista</Link>
         </Button>
       </div>
     </main>

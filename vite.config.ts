@@ -1,3 +1,7 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import type { Plugin } from 'vite'
 import { defineConfig } from 'vite'
 import { devtools } from '@tanstack/devtools-vite'
 import tsconfigPaths from 'vite-tsconfig-paths'
@@ -8,8 +12,30 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
 
-const config = defineConfig({
+const root = path.dirname(fileURLToPath(import.meta.url))
+
+/**
+ * `#/db` must resolve to the real Drizzle client for SSR / server handlers.
+ * `defineConfig`'s `isSsrBuild` is unreliable in `vite dev` and Nitro, which
+ * led to the browser stub (`db === null`) loading on the server and breaking
+ * Better Auth. Rollup's `resolveId(..., { ssr })` matches the actual graph.
+ */
+function viteDbClientStub(): Plugin {
+  const stub = path.resolve(root, 'src/db/browser-stub.ts')
+  return {
+    name: 'vite-db-client-stub',
+    enforce: 'pre',
+    resolveId(source, _importer, options) {
+      if (source !== '#/db') return null
+      if (options?.ssr) return null
+      return stub
+    },
+  }
+}
+
+export default defineConfig({
   plugins: [
+    viteDbClientStub(),
     devtools(),
     nitro({ rollupConfig: { external: [/^@sentry\//] } }),
     tsconfigPaths({ projects: ['./tsconfig.json'] }),
@@ -18,5 +44,3 @@ const config = defineConfig({
     viteReact(),
   ],
 })
-
-export default config

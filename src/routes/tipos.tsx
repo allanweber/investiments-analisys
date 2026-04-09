@@ -1,11 +1,14 @@
 import {
   Link,
+  Outlet,
   createFileRoute,
   Navigate,
   useRouter,
+  useRouterState,
 } from '@tanstack/react-router'
 import { useState } from 'react'
 
+import { FaDetailsCard, FaMobilePanel } from '#/components/fa/details-card'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
@@ -24,6 +27,12 @@ export const Route = createFileRoute('/tipos')({
 
 function TiposPage() {
   const router = useRouter()
+  const isTiposIndex = useRouterState({
+    select: (s) => {
+      const p = s.location.pathname
+      return p === '/tipos' || p === '/tipos/'
+    },
+  })
   const { data: session, isPending: sessionPending } = authClient.useSession()
   const types = Route.useLoaderData()
   const [name, setName] = useState('')
@@ -106,6 +115,8 @@ function TiposPage() {
   }
 
   return (
+    <>
+    {isTiposIndex ? (
     <main className="w-full max-w-6xl px-4 py-8 sm:p-8 lg:p-12">
       <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
         <div>
@@ -160,12 +171,141 @@ function TiposPage() {
         </Button>
       </form>
 
-      <div className="fa-table-shell">
-        <div className="fa-table-inner overflow-x-auto px-2 pb-2 pt-1">
+      {types.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-outline-variant/35 bg-surface-container-low/50 py-12 text-center md:hidden">
+          <p className="px-4 font-body text-sm text-on-surface-variant">
+            Ainda sem tipos. Adicione acima ou cadastre-se para receber tipos
+            sugeridos.
+          </p>
+        </div>
+      )}
+
+      <div className="space-y-3 md:hidden">
+        {types.map((row) =>
+          editId === row.id ? (
+            <FaMobilePanel key={row.id}>
+              <div className="space-y-4">
+                <div>
+                  <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
+                    Nome
+                  </span>
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="h-10 border-outline-variant/30 bg-surface-container-high"
+                  />
+                </div>
+                <div>
+                  <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
+                    Ordem
+                  </span>
+                  <Input
+                    type="number"
+                    value={editOrder}
+                    onChange={(e) =>
+                      setEditOrder(Number.parseInt(e.target.value, 10) || 0)
+                    }
+                    className="h-10 max-w-[8rem] border-outline-variant/30 bg-surface-container-high"
+                  />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    type="button"
+                    className="flex-1 bg-primary-container text-on-primary"
+                    onClick={() => void onSaveEdit()}
+                    disabled={busy === row.id}
+                  >
+                    Salvar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 border-outline-variant/30"
+                    onClick={cancelEdit}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            </FaMobilePanel>
+          ) : (
+            <FaDetailsCard
+              key={row.id}
+              summary={
+                <>
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary-fixed text-on-primary-fixed">
+                      <span className="material-symbols-outlined text-lg leading-none">
+                        trending_up
+                      </span>
+                    </div>
+                    <span className="min-w-0 font-semibold text-on-surface">
+                      {row.name}
+                    </span>
+                  </div>
+                  <span className="shrink-0 rounded-md bg-surface-container-high px-2 py-0.5 font-mono text-xs font-semibold tabular-nums text-on-surface-variant">
+                    {String(row.sortOrder).padStart(2, '0')}
+                  </span>
+                  <span
+                    className="material-symbols-outlined shrink-0 text-xl leading-none text-on-surface-variant transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden
+                  >
+                    expand_more
+                  </span>
+                </>
+              }
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="inline-flex items-center whitespace-nowrap rounded-full bg-tertiary-fixed-dim px-2.5 py-0.5 font-label text-xs font-bold text-on-tertiary-fixed-variant">
+                  {row.questionCount} perguntas
+                </span>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-outline-variant/15 pt-4">
+                <Link
+                  to="/tipos/$typeId/perguntas"
+                  params={{ typeId: row.id }}
+                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl bg-primary-container/20 px-3 py-2.5 font-body text-sm font-semibold text-on-surface no-underline transition-colors hover:bg-primary-container/35"
+                >
+                  <span className="material-symbols-outlined text-xl leading-none">
+                    quiz
+                  </span>
+                  Perguntas
+                </Link>
+                <button
+                  type="button"
+                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-outline-variant/30 px-3 py-2.5 font-body text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                  title="Editar"
+                  onClick={() => startEdit(row)}
+                >
+                  <span className="material-symbols-outlined text-xl leading-none">
+                    edit
+                  </span>
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex flex-1 min-w-[6rem] items-center justify-center gap-1 rounded-xl px-3 py-2.5 font-body text-sm font-semibold text-error transition-colors hover:bg-error-container/25"
+                  title="Excluir"
+                  onClick={() => void onDelete(row.id)}
+                  disabled={busy === row.id}
+                >
+                  <span className="material-symbols-outlined text-xl leading-none">
+                    delete
+                  </span>
+                  Excluir
+                </button>
+              </div>
+            </FaDetailsCard>
+          ),
+        )}
+      </div>
+
+      <div className="fa-table-shell hidden md:block">
+        <div className="fa-table-inner px-2 pb-2 pt-1">
           <table className="fa-table">
             <thead>
               <tr className="fa-th">
-                <th className="text-left">Nome</th>
+                <th className="min-w-[12rem] text-left">Nome</th>
                 <th className="text-left">Ordem</th>
                 <th className="text-left">Nº de perguntas</th>
                 <th className="text-right">Ações</th>
@@ -185,25 +325,25 @@ function TiposPage() {
               )}
               {types.map((row) => (
                 <tr key={row.id} className="fa-tr">
-                  <td className="font-semibold text-on-surface">
+                  <td className="min-w-[12rem] font-semibold text-on-surface [overflow-wrap:anywhere]">
                     {editId === row.id ? (
                       <Input
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
-                        className="h-9 border-none bg-surface-container-high"
+                        className="h-9 min-w-[10rem] border-none bg-surface-container-high"
                       />
                     ) : (
-                      <div className="flex items-center gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary-fixed text-on-primary-fixed">
                           <span className="material-symbols-outlined text-lg leading-none">
                             trending_up
                           </span>
                         </div>
-                        {row.name}
+                        <span className="min-w-0">{row.name}</span>
                       </div>
                     )}
                   </td>
-                  <td className="font-medium text-on-surface-variant">
+                  <td className="whitespace-nowrap font-medium text-on-surface-variant">
                     {editId === row.id ? (
                       <Input
                         type="number"
@@ -211,19 +351,19 @@ function TiposPage() {
                         onChange={(e) =>
                           setEditOrder(Number.parseInt(e.target.value, 10) || 0)
                         }
-                        className="h-9 w-20 border-none bg-surface-container-high"
+                        className="h-9 w-20 shrink-0 border-none bg-surface-container-high"
                       />
                     ) : (
                       String(row.sortOrder).padStart(2, '0')
                     )}
                   </td>
-                  <td>
-                    <span className="inline-flex items-center rounded-full bg-tertiary-fixed-dim px-2.5 py-0.5 font-label text-xs font-bold text-on-tertiary-fixed-variant">
+                  <td className="whitespace-nowrap">
+                    <span className="inline-flex items-center whitespace-nowrap rounded-full bg-tertiary-fixed-dim px-2.5 py-0.5 font-label text-xs font-bold text-on-tertiary-fixed-variant">
                       {row.questionCount} perguntas
                     </span>
                   </td>
                   <td className="text-right">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex flex-nowrap items-center justify-end gap-1">
                       {editId === row.id ? (
                         <>
                           <Button
@@ -289,5 +429,8 @@ function TiposPage() {
         </div>
       </div>
     </main>
+    ) : null}
+    <Outlet />
+    </>
   )
 }

@@ -2,7 +2,10 @@ import { Link, createFileRoute, Navigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
 import { authClient } from '#/lib/auth-client'
-import { getDashboardSummaryFn } from '#/lib/investment-server'
+import {
+  getDashboardHighlightsFn,
+  getDashboardSummaryFn,
+} from '#/lib/investment-server'
 
 export const Route = createFileRoute('/dashboard')({
   component: DashboardPage,
@@ -15,14 +18,33 @@ function DashboardPage() {
     investmentCount: number
     answerCount: number
   } | null>(null)
+  const [highlights, setHighlights] = useState<{
+    groups: Array<{
+      typeId: string
+      typeName: string
+      top: Array<{ id: string; name: string; score: number }>
+    }>
+  } | null>(null)
 
   useEffect(() => {
     if (!session?.user) return
-    void getDashboardSummaryFn()
-      .then(setStats)
-      .catch(() =>
-        setStats({ typeCount: 0, investmentCount: 0, answerCount: 0 }),
-      )
+    void Promise.all([
+      getDashboardSummaryFn().catch(() => ({
+        typeCount: 0,
+        investmentCount: 0,
+        answerCount: 0,
+      })),
+      getDashboardHighlightsFn().catch(() => ({
+        groups: [] as Array<{
+          typeId: string
+          typeName: string
+          top: Array<{ id: string; name: string; score: number }>
+        }>,
+      })),
+    ]).then(([s, h]) => {
+      setStats(s)
+      setHighlights(h)
+    })
   }, [session?.user])
 
   if (isPending) {
@@ -68,6 +90,61 @@ function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {highlights && highlights.groups.length > 0 && (
+        <section className="mb-12">
+          <span className="mb-3 block font-label text-xs font-semibold uppercase tracking-[0.2em] text-outline">
+            Destaques
+          </span>
+          <h2 className="font-headline text-2xl font-extrabold tracking-tight text-on-surface md:text-3xl">
+            Melhor pontuação por tipo
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm text-on-surface-variant">
+            Até três investimentos com maior pontuação em cada tipo (só
+            comparável dentro do mesmo tipo).
+          </p>
+          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {highlights.groups.map((g) => (
+              <div
+                key={g.typeId}
+                className="rounded-xl bg-surface-container-low p-6 transition-colors hover:bg-surface-container-high"
+              >
+                <h3 className="font-headline text-lg font-bold text-on-surface">
+                  {g.typeName}
+                </h3>
+                {g.top.length === 0 ? (
+                  <p className="mt-4 font-body text-sm text-on-surface-variant">
+                    Sem investimentos neste tipo.
+                  </p>
+                ) : (
+                  <ol className="mt-4 space-y-3 font-body text-sm">
+                    {g.top.map((inv, idx) => (
+                      <li key={inv.id}>
+                        <Link
+                          to="/investimentos/$id/pontuacao"
+                          params={{ id: inv.id }}
+                          className="flex items-center justify-between gap-3 text-on-surface no-underline transition-colors hover:text-primary"
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="font-label text-xs font-bold text-outline">
+                              {idx + 1}.
+                            </span>{' '}
+                            <span className="font-medium">{inv.name}</span>
+                          </span>
+                          <span className="shrink-0 font-headline text-base font-bold tabular-nums text-on-surface">
+                            {inv.score > 0 ? '+' : ''}
+                            {inv.score}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-3">
         <div className="flex flex-col justify-between rounded-xl bg-surface-container-lowest p-8 transition-all hover:-translate-y-1">
@@ -176,7 +253,7 @@ function DashboardPage() {
         </Link>
       </div>
 
-      <div className="relative mt-8 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-outline-variant/30 bg-surface-container-low p-12 text-center">
+      <div className="relative mt-10 flex flex-col items-center justify-center rounded-xl bg-surface-container-low p-12 text-center">
         <div className="mb-6 flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-surface-container-high">
           <span className="material-symbols-outlined text-5xl leading-none text-outline">
             query_stats

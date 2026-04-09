@@ -3,17 +3,27 @@ import { getRequest } from '@tanstack/react-start/server'
 import { and, asc, count, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { db } from '#/db'
+import {
+  getDefaultQuestionsForTypeName,
+  hasDefaultQuestionPackForTypeName,
+  normalizeQuestionPrompt,
+} from '#/db/default-question-bank'
 import {
   investment,
   investmentAnswer,
   investmentType,
   question,
 } from '#/db/schema'
-import { auth } from '#/lib/auth'
+
+/** Avoid top-level `#/db` / `auth` imports so client chunks do not bundle `pg`. */
+async function getDb() {
+  return (await import('#/db')).db
+}
 
 async function requireUserId(): Promise<string> {
   const request = getRequest()
+  const { getAuth } = await import('#/lib/auth')
+  const auth = await getAuth()
   const session = await auth.api.getSession({ headers: request.headers })
   const id = session?.user?.id
   if (!id) throw new Error('Não autorizado')
@@ -24,6 +34,7 @@ const uuid = z.string().uuid()
 
 export const listInvestmentTypesWithCounts = createServerFn({ method: 'GET' }).handler(
   async () => {
+    const db = await getDb()
     const userId = await requireUserId()
     const types = await db
       .select()
@@ -59,6 +70,7 @@ const createTypeInput = z.object({
 export const createInvestmentTypeFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => createTypeInput.parse(data))
   .handler(async ({ data }) => {
+    const db = await getDb()
     const userId = await requireUserId()
     const [maxRow] = await db
       .select({
@@ -88,6 +100,7 @@ const updateTypeInput = z.object({
 export const updateInvestmentTypeFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => updateTypeInput.parse(data))
   .handler(async ({ data }) => {
+    const db = await getDb()
     const userId = await requireUserId()
     const [updated] = await db
       .update(investmentType)
@@ -102,6 +115,7 @@ const idInput = z.object({ id: uuid })
 export const deleteInvestmentTypeFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => idInput.parse(data))
   .handler(async ({ data }) => {
+    const db = await getDb()
     const userId = await requireUserId()
 
     const [qRow] = await db
@@ -140,6 +154,7 @@ const listQuestionsInput = z.object({ typeId: uuid })
 export const listQuestionsForTypeFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => listQuestionsInput.parse(data))
   .handler(async ({ data }) => {
+    const db = await getDb()
     const userId = await requireUserId()
     const typeRow = await db
       .select({ id: investmentType.id, name: investmentType.name })
@@ -172,6 +187,7 @@ const createQuestionInput = z.object({
 export const createQuestionFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => createQuestionInput.parse(data))
   .handler(async ({ data }) => {
+    const db = await getDb()
     const userId = await requireUserId()
     const [t] = await db
       .select({ id: investmentType.id })
@@ -217,6 +233,7 @@ const updateQuestionInput = z.object({
 export const updateQuestionFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => updateQuestionInput.parse(data))
   .handler(async ({ data }) => {
+    const db = await getDb()
     const userId = await requireUserId()
     const [row] = await db
       .update(question)
@@ -233,6 +250,7 @@ export const updateQuestionFn = createServerFn({ method: 'POST' })
 export const deleteQuestionFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => idInput.parse(data))
   .handler(async ({ data }) => {
+    const db = await getDb()
     const userId = await requireUserId()
     const [aRow] = await db
       .select({ n: count() })
@@ -249,79 +267,98 @@ export const deleteQuestionFn = createServerFn({ method: 'POST' })
     return { ok: true as const }
   })
 
+export type InvestmentOverviewRow = {
+  id: string
+  name: string
+  investmentTypeId: string
+  typeName: string
+  typeSortOrder: number
+  score: number
+  activeQuestionCount: number
+  answeredActiveCount: number
+}
+
+/** Shared: investments with score / counts for ranking and dashboard. */
+export async function loadInvestmentOverviewRows(
+  userId: string,
+): Promise<InvestmentOverviewRow[]> {
+  const db = await getDb()
+  const rows = await db
+    .select({
+      id: investment.id,
+      name: investment.name,
+      investmentTypeId: investment.investmentTypeId,
+      typeName: investmentType.name,
+      typeSortOrder: investmentType.sortOrder,
+    })
+    .from(investment)
+    .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
+    .where(eq(investment.userId, userId))
+    .orderBy(asc(investmentType.sortOrder), asc(investment.name))
+
+  if (rows.length === 0) return []
+
+  const invIds = rows.map((r) => r.id)
+  const answers = await db
+    .select({
+      investmentId: investmentAnswer.investmentId,
+      questionId: investmentAnswer.questionId,
+      valueYes: investmentAnswer.valueYes,
+    })
+    .from(investmentAnswer)
+    .where(inArray(investmentAnswer.investmentId, invIds))
+
+  const questions = await db
+    .select()
+    .from(question)
+    .where(eq(question.userId, userId))
+
+  const qByType = new Map<string, typeof questions>()
+  for (const qrow of questions) {
+    const list = qByType.get(qrow.investmentTypeId) ?? []
+    list.push(qrow)
+    qByType.set(qrow.investmentTypeId, list)
+  }
+
+  const ansKey = (i: string, q: string) => `${i}:${q}`
+  const ansMap = new Map(
+    answers.map((a) => [ansKey(a.investmentId, a.questionId), a.valueYes]),
+  )
+
+  return rows.map((r) => {
+    const typeQs = qByType.get(r.investmentTypeId) ?? []
+    const activeQs = typeQs.filter((q) => q.active)
+    let score = 0
+    let answeredActive = 0
+    for (const q of activeQs) {
+      const key = ansKey(r.id, q.id)
+      if (!ansMap.has(key)) continue
+      answeredActive += 1
+      score += ansMap.get(key) ? 1 : -1
+    }
+    return {
+      ...r,
+      score,
+      activeQuestionCount: activeQs.length,
+      answeredActiveCount: answeredActive,
+    }
+  })
+}
+
 /** Investimentos + métricas para lista / ranking */
 export const listInvestmentsOverviewFn = createServerFn({ method: 'GET' }).handler(
   async () => {
     const userId = await requireUserId()
-    const rows = await db
-      .select({
-        id: investment.id,
-        name: investment.name,
-        investmentTypeId: investment.investmentTypeId,
-        typeName: investmentType.name,
-        typeSortOrder: investmentType.sortOrder,
-      })
-      .from(investment)
-      .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
-      .where(eq(investment.userId, userId))
-      .orderBy(asc(investmentType.sortOrder), asc(investment.name))
+    const enriched = await loadInvestmentOverviewRows(userId)
 
-    if (rows.length === 0) return []
-
-    const invIds = rows.map((r) => r.id)
-    const answers = await db
-      .select({
-        investmentId: investmentAnswer.investmentId,
-        questionId: investmentAnswer.questionId,
-        valueYes: investmentAnswer.valueYes,
-      })
-      .from(investmentAnswer)
-      .where(inArray(investmentAnswer.investmentId, invIds))
-
-    const questions = await db
-      .select()
-      .from(question)
-      .where(eq(question.userId, userId))
-
-    const qByType = new Map<string, typeof questions>()
-    for (const qrow of questions) {
-      const list = qByType.get(qrow.investmentTypeId) ?? []
-      list.push(qrow)
-      qByType.set(qrow.investmentTypeId, list)
-    }
-
-    const ansKey = (i: string, q: string) => `${i}:${q}`
-    const ansMap = new Map(
-      answers.map((a) => [ansKey(a.investmentId, a.questionId), a.valueYes]),
-    )
-
-    const enriched = rows.map((r) => {
-      const typeQs = qByType.get(r.investmentTypeId) ?? []
-      const activeQs = typeQs.filter((q) => q.active)
-      let score = 0
-      let answeredActive = 0
-      for (const q of activeQs) {
-        const key = ansKey(r.id, q.id)
-        if (!ansMap.has(key)) continue
-        answeredActive += 1
-        score += ansMap.get(key) ? 1 : -1
-      }
-      return {
-        ...r,
-        score,
-        activeQuestionCount: activeQs.length,
-        answeredActiveCount: answeredActive,
-      }
-    })
-
-    const byType = new Map<string, typeof enriched>()
+    const byType = new Map<string, InvestmentOverviewRow[]>()
     for (const row of enriched) {
       const list = byType.get(row.investmentTypeId) ?? []
       list.push(row)
       byType.set(row.investmentTypeId, list)
     }
 
-    const withRank: Array<(typeof enriched)[number] & { position: number }> = []
+    const withRank: Array<InvestmentOverviewRow & { position: number }> = []
     for (const [, list] of byType) {
       const sorted = [...list].sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score
@@ -329,16 +366,126 @@ export const listInvestmentsOverviewFn = createServerFn({ method: 'GET' }).handl
       })
       sorted.forEach((item, idx) => {
         withRank.push({ ...item, position: idx + 1 })
-      }
-      )
+      })
     }
 
     return withRank
   },
 )
 
+export const DASHBOARD_TOP_PER_TYPE = 3
+
+export const getDashboardHighlightsFn = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    const db = await getDb()
+    const userId = await requireUserId()
+    const types = await db
+      .select({
+        id: investmentType.id,
+        name: investmentType.name,
+        sortOrder: investmentType.sortOrder,
+      })
+      .from(investmentType)
+      .where(eq(investmentType.userId, userId))
+      .orderBy(asc(investmentType.sortOrder), asc(investmentType.name))
+
+    const enriched = await loadInvestmentOverviewRows(userId)
+    const byTypeId = new Map<string, InvestmentOverviewRow[]>()
+    for (const row of enriched) {
+      const list = byTypeId.get(row.investmentTypeId) ?? []
+      list.push(row)
+      byTypeId.set(row.investmentTypeId, list)
+    }
+
+    return {
+      groups: types.map((t) => {
+        const list = byTypeId.get(t.id) ?? []
+        const sorted = [...list].sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score
+          return a.name.localeCompare(b.name, 'pt-BR')
+        })
+        const top = sorted.slice(0, DASHBOARD_TOP_PER_TYPE).map((r) => ({
+          id: r.id,
+          name: r.name,
+          score: r.score,
+        }))
+        return {
+          typeId: t.id,
+          typeName: t.name,
+          top,
+        }
+      }),
+    }
+  },
+)
+
+const restoreDefaultsInput = z.object({ typeId: uuid })
+
+export const restoreDefaultQuestionsForTypeFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => restoreDefaultsInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = await getDb()
+    const userId = await requireUserId()
+    const [t] = await db
+      .select({
+        id: investmentType.id,
+        name: investmentType.name,
+      })
+      .from(investmentType)
+      .where(
+        and(eq(investmentType.id, data.typeId), eq(investmentType.userId, userId)),
+      )
+      .limit(1)
+
+    if (!t) return { ok: false as const, code: 'NOT_FOUND' as const }
+
+    if (!hasDefaultQuestionPackForTypeName(t.name)) {
+      return { ok: false as const, code: 'NO_PACK' as const }
+    }
+
+    const bankPrompts = getDefaultQuestionsForTypeName(t.name)
+    const existing = await db
+      .select({ prompt: question.prompt })
+      .from(question)
+      .where(
+        and(eq(question.investmentTypeId, data.typeId), eq(question.userId, userId)),
+      )
+
+    const seenNorm = new Set(
+      existing.map((e) => normalizeQuestionPrompt(e.prompt)),
+    )
+
+    const [maxRow] = await db
+      .select({
+        m: sql<number>`COALESCE(MAX(${question.sortOrder}), -1)`,
+      })
+      .from(question)
+      .where(eq(question.investmentTypeId, data.typeId))
+
+    let nextOrder = Number(maxRow?.m ?? -1)
+    let inserted = 0
+
+    for (const prompt of bankPrompts) {
+      const norm = normalizeQuestionPrompt(prompt)
+      if (seenNorm.has(norm)) continue
+      nextOrder += 1
+      await db.insert(question).values({
+        userId,
+        investmentTypeId: data.typeId,
+        prompt,
+        sortOrder: nextOrder,
+        active: true,
+      })
+      seenNorm.add(norm)
+      inserted += 1
+    }
+
+    return { ok: true as const, inserted }
+  })
+
 export const listInvestmentTypesOptionsFn = createServerFn({ method: 'GET' }).handler(
   async () => {
+    const db = await getDb()
     const userId = await requireUserId()
     return db
       .select({ id: investmentType.id, name: investmentType.name })
@@ -356,6 +503,7 @@ const createInvInput = z.object({
 export const createInvestmentFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => createInvInput.parse(data))
   .handler(async ({ data }) => {
+    const db = await getDb()
     const userId = await requireUserId()
     const [t] = await db
       .select({ id: investmentType.id })
@@ -388,6 +536,7 @@ const createInvBulkInput = z.object({
 export const createInvestmentsBulkFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => createInvBulkInput.parse(data))
   .handler(async ({ data }) => {
+    const db = await getDb()
     const userId = await requireUserId()
     const [t] = await db
       .select({ id: investmentType.id })
@@ -431,6 +580,7 @@ const updateInvInput = z.object({
 export const updateInvestmentFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => updateInvInput.parse(data))
   .handler(async ({ data }) => {
+    const db = await getDb()
     const userId = await requireUserId()
     const [existing] = await db
       .select()
@@ -475,6 +625,7 @@ export const updateInvestmentFn = createServerFn({ method: 'POST' })
 export const deleteInvestmentFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => idInput.parse(data))
   .handler(async ({ data }) => {
+    const db = await getDb()
     const userId = await requireUserId()
     await db
       .delete(investment)
@@ -487,6 +638,7 @@ const scoringLoadInput = z.object({ investmentId: uuid })
 export const loadInvestmentScoringFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => scoringLoadInput.parse(data))
   .handler(async ({ data }) => {
+    const db = await getDb()
     const userId = await requireUserId()
     const [inv] = await db
       .select({
@@ -550,6 +702,7 @@ const saveScoringInput = z.object({
 export const saveInvestmentScoringFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => saveScoringInput.parse(data))
   .handler(async ({ data }) => {
+    const db = await getDb()
     const userId = await requireUserId()
     const [inv] = await db
       .select()
@@ -614,6 +767,7 @@ export const saveInvestmentScoringFn = createServerFn({ method: 'POST' })
 
 export const getDashboardSummaryFn = createServerFn({ method: 'GET' }).handler(
   async () => {
+    const db = await getDb()
     const userId = await requireUserId()
     const [tRow] = await db
       .select({ n: count() })
