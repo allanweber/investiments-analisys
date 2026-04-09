@@ -7,6 +7,29 @@ import * as schema from '#/db/schema'
 const googleClientId = process.env.GOOGLE_CLIENT_ID
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
 
+const authBaseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3001'
+
+const extraTrustedOrigins =
+  process.env.BETTER_AUTH_TRUSTED_ORIGINS?.split(',')
+    .map((o) => o.trim())
+    .filter(Boolean) ?? []
+
+/** Origins allowed for cookie / CSRF checks (must include the URL users open in the browser). */
+const trustedOrigins = [
+  ...new Set([
+    authBaseURL,
+    ...extraTrustedOrigins,
+    ...(process.env.NODE_ENV !== 'production'
+      ? ([
+          'http://localhost:3001',
+          'http://127.0.0.1:3001',
+          'http://localhost:3000',
+          'http://127.0.0.1:3000',
+        ] as const)
+      : []),
+  ]),
+]
+
 let authInstance: ReturnType<typeof betterAuth> | undefined
 
 /**
@@ -19,7 +42,8 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
   const { seedDefaultInvestmentTypesForUser } = await import('#/db/seed-default-types')
   const instance = betterAuth({
     secret: process.env.BETTER_AUTH_SECRET ?? 'dev-only-change-me',
-    baseURL: process.env.BETTER_AUTH_URL ?? 'http://localhost:3000',
+    baseURL: authBaseURL,
+    trustedOrigins,
     database: drizzleAdapter(db, {
       provider: 'pg',
       schema,

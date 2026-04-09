@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 import { useState } from 'react'
 
+import { FaDetailsCard, FaMobilePanel } from '#/components/fa/details-card'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
@@ -240,12 +241,153 @@ function PerguntasPage() {
         </div>
       </form>
 
-      <div className="fa-table-shell">
-        <div className="fa-table-inner overflow-x-auto px-2 pb-2 pt-1">
+      {questions.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-outline-variant/35 bg-surface-container-low/50 py-12 text-center md:hidden">
+          <p className="px-4 font-body text-sm text-on-surface-variant">
+            Sem perguntas. As respostas aqui definem a pontuação dos
+            investimentos deste tipo.
+          </p>
+        </div>
+      )}
+
+      <div className="space-y-3 md:hidden">
+        {questions.map((q) =>
+          editId === q.id ? (
+            <FaMobilePanel key={q.id}>
+              <div className="space-y-4">
+                <div>
+                  <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
+                    Texto
+                  </span>
+                  <Textarea
+                    value={editPrompt}
+                    onChange={(e) => setEditPrompt(e.target.value)}
+                    rows={4}
+                    className="border-outline-variant/30 bg-surface-container-high"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
+                      Ordem
+                    </span>
+                    <Input
+                      type="number"
+                      value={editOrder}
+                      onChange={(e) =>
+                        setEditOrder(Number.parseInt(e.target.value, 10) || 0)
+                      }
+                      className="h-10 border-outline-variant/30 bg-surface-container-high"
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
+                      Ativa
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={editActive}
+                        onCheckedChange={(v) => setEditActive(!!v)}
+                      />
+                      <span className="font-label text-xs text-on-surface-variant">
+                        {editActive ? 'Sim' : 'Não'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    type="button"
+                    className="flex-1 bg-primary-container text-on-primary"
+                    onClick={() => void onSaveEdit()}
+                    disabled={busy === q.id}
+                  >
+                    Salvar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 border-outline-variant/30"
+                    onClick={() => setEditId(null)}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            </FaMobilePanel>
+          ) : (
+            <FaDetailsCard
+              key={q.id}
+              summary={
+                <>
+                  <span className="min-w-0 flex-1 text-left font-medium text-on-surface line-clamp-2">
+                    {q.prompt}
+                  </span>
+                  <span className="shrink-0 rounded-md bg-surface-container-high px-2 py-0.5 font-mono text-xs font-semibold tabular-nums text-on-surface-variant">
+                    {String(q.sortOrder).padStart(2, '0')}
+                  </span>
+                  <span
+                    className="material-symbols-outlined shrink-0 text-xl leading-none text-on-surface-variant transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden
+                  >
+                    expand_more
+                  </span>
+                </>
+              }
+            >
+              <p className="font-body text-sm leading-relaxed text-on-surface">
+                {q.prompt}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span
+                  className={
+                    q.active
+                      ? 'inline-flex items-center whitespace-nowrap rounded-full bg-tertiary-fixed-dim/30 px-2 py-0.5 font-label text-xs font-bold text-on-tertiary-fixed-variant'
+                      : 'whitespace-nowrap font-label text-xs text-on-surface-variant'
+                  }
+                >
+                  {q.active ? 'Ativa' : 'Inativa'}
+                </span>
+                <span className="text-on-surface-variant text-xs">
+                  Ordem {String(q.sortOrder).padStart(2, '0')}
+                </span>
+              </div>
+              <div className="mt-4 flex gap-2 border-t border-outline-variant/15 pt-4">
+                <button
+                  type="button"
+                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-outline-variant/30 px-3 py-2.5 font-body text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                  title="Editar"
+                  onClick={() => startEdit(q)}
+                >
+                  <span className="material-symbols-outlined text-xl leading-none">
+                    edit
+                  </span>
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2.5 font-body text-sm font-semibold text-error transition-colors hover:bg-error-container/25"
+                  title="Excluir"
+                  onClick={() => void onDelete(q.id)}
+                  disabled={busy === q.id}
+                >
+                  <span className="material-symbols-outlined text-xl leading-none">
+                    delete
+                  </span>
+                  Excluir
+                </button>
+              </div>
+            </FaDetailsCard>
+          ),
+        )}
+      </div>
+
+      <div className="fa-table-shell hidden md:block">
+        <div className="fa-table-inner px-2 pb-2 pt-1">
           <table className="fa-table">
             <thead>
               <tr className="fa-th">
-                <th className="text-left">Texto</th>
+                <th className="min-w-[18rem] text-left">Texto</th>
                 <th className="text-left">Ordem</th>
                 <th className="text-left">Ativa</th>
                 <th className="text-right">Ações</th>
@@ -265,19 +407,19 @@ function PerguntasPage() {
               )}
               {questions.map((q) => (
                 <tr key={q.id} className="fa-tr">
-                  <td className="align-middle font-medium text-on-surface">
+                  <td className="min-w-[18rem] align-middle font-medium text-on-surface [overflow-wrap:anywhere]">
                     {editId === q.id ? (
                       <Textarea
                         value={editPrompt}
                         onChange={(e) => setEditPrompt(e.target.value)}
                         rows={2}
-                        className="border-outline-variant/30 bg-surface-container-high"
+                        className="min-w-[16rem] border-outline-variant/30 bg-surface-container-high"
                       />
                     ) : (
                       <span className="line-clamp-2">{q.prompt}</span>
                     )}
                   </td>
-                  <td className="align-middle text-on-surface-variant w-24 min-w-[5.5rem]">
+                  <td className="align-middle whitespace-nowrap text-on-surface-variant w-24 min-w-[5.5rem]">
                     {editId === q.id ? (
                       <Input
                         type="number"
@@ -307,8 +449,8 @@ function PerguntasPage() {
                       <span
                         className={
                           q.active
-                            ? 'inline-flex items-center rounded-full bg-tertiary-fixed-dim/30 px-2 py-0.5 font-label text-xs font-bold text-on-tertiary-fixed-variant'
-                            : 'text-on-surface-variant'
+                            ? 'inline-flex items-center whitespace-nowrap rounded-full bg-tertiary-fixed-dim/30 px-2 py-0.5 font-label text-xs font-bold text-on-tertiary-fixed-variant'
+                            : 'whitespace-nowrap text-on-surface-variant'
                         }
                       >
                         {q.active ? 'Ativa' : 'Inativa'}
@@ -338,7 +480,7 @@ function PerguntasPage() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex flex-wrap justify-end gap-1">
+                      <div className="flex flex-nowrap justify-end gap-1">
                         <button
                           type="button"
                           title="Editar"

@@ -330,18 +330,39 @@ pre code {
 
 .fa-table-inner {
   border-radius: calc(1.5rem - 4px);
-  @apply overflow-hidden bg-surface-container-lowest;
+  /* Mobile uses card lists; desktop may scroll if the table min-width exceeds the pane */
+  @apply overflow-x-visible overflow-y-visible bg-surface-container-lowest;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 768px) {
+  .fa-table-inner {
+    overflow-x: auto;
+  }
 }
 
 .fa-table {
   width: 100%;
+  min-width: 0;
   border-collapse: separate;
   border-spacing: 0 0.5rem;
   text-align: left;
+  table-layout: auto;
+}
+
+@media (min-width: 768px) {
+  .fa-table {
+    /* Wide enough for desktop columns; mobile uses card list instead of scroll */
+    min-width: 44rem;
+  }
 }
 
 .fa-th {
   @apply px-4 py-5 text-[10px] font-bold uppercase tracking-[0.15em] text-outline;
+}
+
+.fa-th th {
+  @apply whitespace-nowrap;
 }
 
 .fa-tr {

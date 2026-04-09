@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 
+import { FaDetailsCard, FaMobilePanel } from '#/components/fa/details-card'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
@@ -410,12 +411,186 @@ function InvestimentosPage() {
                 {group.items.length === 1 ? 'investimento' : 'investimentos'}
               </span>
             </div>
-            <div className="fa-table-shell">
-              <div className="fa-table-inner overflow-x-auto px-2 pb-2 pt-1">
+            <div className="space-y-3 md:hidden">
+              {group.items.map((row) =>
+                editId === row.id ? (
+                  <FaMobilePanel key={row.id}>
+                    <div className="space-y-4">
+                      <div>
+                        <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
+                          Nome
+                        </span>
+                        <Input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="h-10 border-outline-variant/30 bg-surface-container-high"
+                        />
+                      </div>
+                      <dl className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <dt className="font-label text-[10px] font-bold uppercase tracking-wider text-outline">
+                            Pontos
+                          </dt>
+                          <dd className="mt-0.5 font-semibold tabular-nums text-on-surface">
+                            {row.score}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="font-label text-[10px] font-bold uppercase tracking-wider text-outline">
+                            Resp. / ativas
+                          </dt>
+                          <dd className="mt-0.5 font-semibold tabular-nums text-on-surface-variant">
+                            {row.answeredActiveCount}/{row.activeQuestionCount}
+                          </dd>
+                        </div>
+                        <div className="col-span-2">
+                          <dt className="font-label text-[10px] font-bold uppercase tracking-wider text-outline">
+                            Posição
+                          </dt>
+                          <dd className="mt-0.5 text-on-surface-variant">
+                            {row.activeQuestionCount === 0 ? (
+                              <span className="text-outline">—</span>
+                            ) : (
+                              <span className="whitespace-nowrap font-medium tabular-nums">
+                                {row.position}º
+                              </span>
+                            )}
+                          </dd>
+                        </div>
+                      </dl>
+                      <div>
+                        <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
+                          Tipo
+                        </span>
+                        <Select
+                          value={editTypeId}
+                          onValueChange={setEditTypeId}
+                        >
+                          <SelectTrigger className="h-10 w-full border-outline-variant/30 bg-surface-container-highest">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {types.map((t) => (
+                              <SelectItem key={t.id} value={t.id}>
+                                {t.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <Button
+                          type="button"
+                          className="flex-1 bg-primary-container text-on-primary"
+                          onClick={() => void onSaveEdit()}
+                          disabled={busy === row.id}
+                        >
+                          Salvar
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1 border-outline-variant/30"
+                          onClick={() => setEditId(null)}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  </FaMobilePanel>
+                ) : (
+                  <FaDetailsCard
+                    key={row.id}
+                    summary={
+                      <>
+                        <span className="min-w-0 flex-1 font-semibold text-on-surface">
+                          {row.name}
+                        </span>
+                        <span className="shrink-0 text-xs font-semibold tabular-nums text-on-surface-variant">
+                          {row.score} pts
+                        </span>
+                        <span
+                          className="material-symbols-outlined shrink-0 text-xl leading-none text-on-surface-variant transition-transform duration-200 group-open:rotate-180"
+                          aria-hidden
+                        >
+                          expand_more
+                        </span>
+                      </>
+                    }
+                  >
+                    <dl className="space-y-2.5 text-sm">
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-on-surface-variant">Pontos</dt>
+                        <dd className="font-semibold tabular-nums text-on-surface">
+                          {row.score}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-on-surface-variant">
+                          Respondidas / ativas
+                        </dt>
+                        <dd className="font-medium tabular-nums text-on-surface-variant">
+                          {row.answeredActiveCount}/{row.activeQuestionCount}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-on-surface-variant">Posição</dt>
+                        <dd className="text-on-surface-variant">
+                          {row.activeQuestionCount === 0 ? (
+                            <span className="text-outline">—</span>
+                          ) : (
+                            <span className="whitespace-nowrap font-medium tabular-nums">
+                              {row.position}º
+                            </span>
+                          )}
+                        </dd>
+                      </div>
+                    </dl>
+                    <div className="mt-4 flex flex-wrap gap-2 border-t border-outline-variant/15 pt-4">
+                      <Link
+                        to="/investimentos/$id/pontuacao"
+                        params={{ id: row.id }}
+                        className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl bg-primary-container/20 px-3 py-2.5 font-body text-sm font-semibold text-on-surface no-underline transition-colors hover:bg-primary-container/35"
+                      >
+                        <span className="material-symbols-outlined text-xl leading-none">
+                          analytics
+                        </span>
+                        Pontuar
+                      </Link>
+                      <button
+                        type="button"
+                        className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-outline-variant/30 px-3 py-2.5 font-body text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                        title="Editar"
+                        onClick={() => startEdit(row)}
+                      >
+                        <span className="material-symbols-outlined text-xl leading-none">
+                          edit
+                        </span>
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex flex-1 min-w-[6rem] items-center justify-center gap-1 rounded-xl px-3 py-2.5 font-body text-sm font-semibold text-error transition-colors hover:bg-error-container/25"
+                        title="Excluir"
+                        onClick={() => void onDelete(row.id)}
+                        disabled={busy === row.id}
+                      >
+                        <span className="material-symbols-outlined text-xl leading-none">
+                          delete
+                        </span>
+                        Excluir
+                      </button>
+                    </div>
+                  </FaDetailsCard>
+                ),
+              )}
+            </div>
+            <div className="fa-table-shell hidden md:block">
+              <div className="fa-table-inner px-2 pb-2 pt-1">
                 <table className="fa-table">
                   <thead>
                     <tr className="fa-th">
-                      <th className="text-left">Nome</th>
+                      <th className="min-w-[11rem] text-left">Nome</th>
                       <th className="text-left">Pontos</th>
                       <th className="text-left">Respondidas / ativas</th>
                       <th className="text-left">Posição</th>
@@ -425,31 +600,35 @@ function InvestimentosPage() {
                   <tbody className="font-body text-sm">
                     {group.items.map((row) => (
                       <tr key={row.id} className="fa-tr">
-                        <td className="font-semibold text-on-surface">
+                        <td className="min-w-[11rem] font-semibold text-on-surface [overflow-wrap:anywhere]">
                           {editId === row.id ? (
                             <Input
                               value={editName}
                               onChange={(e) => setEditName(e.target.value)}
-                              className="h-9 border-none bg-surface-container-high"
+                              className="h-9 min-w-[10rem] border-none bg-surface-container-high"
                             />
                           ) : (
                             row.name
                           )}
                         </td>
-                        <td className="tabular-nums text-on-surface">{row.score}</td>
-                        <td className="text-on-surface-variant">
+                        <td className="whitespace-nowrap tabular-nums text-on-surface">
+                          {row.score}
+                        </td>
+                        <td className="whitespace-nowrap text-on-surface-variant">
                           {row.answeredActiveCount}/{row.activeQuestionCount}
                         </td>
-                        <td className="text-on-surface-variant">
+                        <td className="whitespace-nowrap text-on-surface-variant">
                           {row.activeQuestionCount === 0 ? (
                             <span className="text-outline">—</span>
                           ) : (
-                            `${row.position}º`
+                            <span className="inline-block whitespace-nowrap">
+                              {row.position}º
+                            </span>
                           )}
                         </td>
                         <td className="text-right">
                           {editId === row.id ? (
-                            <div className="flex flex-col items-end gap-2 sm:flex-row sm:justify-end">
+                            <div className="flex flex-nowrap items-center justify-end gap-2">
                               <Select
                                 value={editTypeId}
                                 onValueChange={setEditTypeId}
@@ -485,11 +664,11 @@ function InvestimentosPage() {
                               </Button>
                             </div>
                           ) : (
-                            <div className="flex flex-wrap items-center justify-end gap-0.5">
+                            <div className="flex flex-nowrap items-center justify-end gap-0.5">
                               <Link
                                 to="/investimentos/$id/pontuacao"
                                 params={{ id: row.id }}
-                                className="inline-flex items-center gap-1 rounded-lg px-2 py-2 font-body text-xs font-semibold text-on-surface-variant no-underline transition-colors hover:bg-surface-container-high hover:text-primary"
+                                className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-2 py-2 font-body text-xs font-semibold text-on-surface-variant no-underline transition-colors hover:bg-surface-container-high hover:text-primary"
                                 title="Pontuar"
                               >
                                 <span className="material-symbols-outlined text-xl leading-none">
