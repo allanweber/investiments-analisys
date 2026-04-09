@@ -1,8 +1,10 @@
 import {
   Link,
+  Outlet,
   createFileRoute,
   Navigate,
   useRouter,
+  useRouterState,
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 
@@ -40,6 +42,12 @@ type OverviewRow = Awaited<
 
 function InvestimentosPage() {
   const router = useRouter()
+  const isInvestimentosIndex = useRouterState({
+    select: (s) => {
+      const p = s.location.pathname
+      return p === '/investimentos' || p === '/investimentos/'
+    },
+  })
   const { data: session, isPending: sessionPending } = authClient.useSession()
   const { rows, types } = Route.useLoaderData()
   const [filterTypeId, setFilterTypeId] = useState<string>('all')
@@ -189,6 +197,8 @@ function InvestimentosPage() {
   }
 
   return (
+    <>
+    {isInvestimentosIndex ? (
     <main className="w-full max-w-6xl px-4 py-8 sm:p-8 lg:py-12">
       <header className="mb-10 lg:mb-12">
         <div className="min-w-0">
@@ -521,5 +531,8 @@ function InvestimentosPage() {
         ))}
       </div>
     </main>
+    ) : null}
+    <Outlet />
+    </>
   )
 }

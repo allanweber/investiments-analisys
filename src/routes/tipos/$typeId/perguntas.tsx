@@ -11,11 +11,13 @@ import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { Switch } from '#/components/ui/switch'
 import { Textarea } from '#/components/ui/textarea'
+import { hasDefaultQuestionPackForTypeName } from '#/db/default-question-bank'
 import { authClient } from '#/lib/auth-client'
 import {
   createQuestionFn,
   deleteQuestionFn,
   listQuestionsForTypeFn,
+  restoreDefaultQuestionsForTypeFn,
   updateQuestionFn,
 } from '#/lib/investment-server'
 
@@ -36,6 +38,7 @@ function PerguntasPage() {
   const [editPrompt, setEditPrompt] = useState('')
   const [editOrder, setEditOrder] = useState(0)
   const [editActive, setEditActive] = useState(true)
+  const [restoreMsg, setRestoreMsg] = useState('')
 
   if (sessionPending) {
     return (
@@ -105,8 +108,37 @@ function PerguntasPage() {
     }
   }
 
+  const onRestoreDefaults = async () => {
+    if (
+      !confirm(
+        'Adicionar perguntas padrão em falta? Nada será removido nem sobrescrito.',
+      )
+    )
+      return
+    setRestoreMsg('')
+    setBusy('restore')
+    try {
+      const res = await restoreDefaultQuestionsForTypeFn({ data: { typeId } })
+      if (!res.ok) {
+        if (res.code === 'NO_PACK') {
+          setRestoreMsg('Este tipo não tem conjunto padrão de perguntas.')
+        } else {
+          setRestoreMsg('Não foi possível restaurar.')
+        }
+        return
+      }
+      setRestoreMsg(
+        res.inserted === 0
+          ? 'Nada a restaurar: todas as perguntas padrão já existem.'
+          : `${res.inserted} pergunta(s) padrão adicionada(s).`,
+      )
+      await refresh()
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const onDelete = async (id: string) => {
-    const q = questions.find((x) => x.id === id)
     if (
       !confirm(
         `Excluir esta pergunta? Se existirem respostas em investimentos, a exclusão será bloqueada.`,
@@ -151,6 +183,29 @@ function PerguntasPage() {
           Perguntas inativas não entram na pontuação; respostas antigas podem
           permanecer no banco de dados.
         </p>
+        {hasDefaultQuestionPackForTypeName(type.name) && (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy === 'restore'}
+              onClick={() => void onRestoreDefaults()}
+              className="border-outline-variant/30"
+            >
+              <span className="material-symbols-outlined mr-1 shrink-0 text-lg leading-none">
+                restore_page
+              </span>
+              {busy === 'restore'
+                ? 'A restaurar…'
+                : 'Restaurar perguntas padrão'}
+            </Button>
+          </div>
+        )}
+        {restoreMsg && (
+          <p className="mt-3 font-body text-sm text-on-surface-variant">
+            {restoreMsg}
+          </p>
+        )}
       </div>
 
       <form
@@ -222,7 +277,7 @@ function PerguntasPage() {
                       <span className="line-clamp-2">{q.prompt}</span>
                     )}
                   </td>
-                  <td className="align-middle text-on-surface-variant">
+                  <td className="align-middle text-on-surface-variant w-24 min-w-[5.5rem]">
                     {editId === q.id ? (
                       <Input
                         type="number"
@@ -230,20 +285,21 @@ function PerguntasPage() {
                         onChange={(e) =>
                           setEditOrder(Number.parseInt(e.target.value, 10) || 0)
                         }
-                        className="h-9 w-20 border-none bg-surface-container-high"
+                        className="h-9 w-20 shrink-0 border-none bg-surface-container-high"
                       />
                     ) : (
                       String(q.sortOrder).padStart(2, '0')
                     )}
                   </td>
-                  <td className="align-middle">
+                  <td className="align-middle w-[7.5rem] min-w-[7.5rem] max-w-[7.5rem]">
                     {editId === q.id ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
                         <Switch
                           checked={editActive}
                           onCheckedChange={(v) => setEditActive(!!v)}
+                          className="shrink-0"
                         />
-                        <span className="font-label text-xs text-on-surface-variant">
+                        <span className="font-label shrink-0 text-xs text-on-surface-variant">
                           {editActive ? 'Sim' : 'Não'}
                         </span>
                       </div>
@@ -259,15 +315,15 @@ function PerguntasPage() {
                       </span>
                     )}
                   </td>
-                  <td className="align-middle text-right">
+                  <td className="align-middle text-right w-[12rem] min-w-[12rem] whitespace-nowrap">
                     {editId === q.id ? (
-                      <div className="flex flex-wrap justify-end gap-2">
+                      <div className="flex flex-nowrap items-center justify-end gap-2">
                         <Button
                           type="button"
                           size="sm"
                           onClick={() => void onSaveEdit()}
                           disabled={busy === q.id}
-                          className="bg-primary-container text-on-primary"
+                          className="shrink-0 bg-primary-container text-on-primary"
                         >
                           Salvar
                         </Button>
@@ -275,7 +331,7 @@ function PerguntasPage() {
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="border-outline-variant/30"
+                          className="shrink-0 border-outline-variant/30"
                           onClick={() => setEditId(null)}
                         >
                           Cancelar

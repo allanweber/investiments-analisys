@@ -1,8 +1,10 @@
 import {
   Link,
+  Outlet,
   createFileRoute,
   Navigate,
   useRouter,
+  useRouterState,
 } from '@tanstack/react-router'
 import { useState } from 'react'
 
@@ -24,6 +26,12 @@ export const Route = createFileRoute('/tipos')({
 
 function TiposPage() {
   const router = useRouter()
+  const isTiposIndex = useRouterState({
+    select: (s) => {
+      const p = s.location.pathname
+      return p === '/tipos' || p === '/tipos/'
+    },
+  })
   const { data: session, isPending: sessionPending } = authClient.useSession()
   const types = Route.useLoaderData()
   const [name, setName] = useState('')
@@ -106,6 +114,8 @@ function TiposPage() {
   }
 
   return (
+    <>
+    {isTiposIndex ? (
     <main className="w-full max-w-6xl px-4 py-8 sm:p-8 lg:p-12">
       <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
         <div>
@@ -289,5 +299,8 @@ function TiposPage() {
         </div>
       </div>
     </main>
+    ) : null}
+    <Outlet />
+    </>
   )
 }

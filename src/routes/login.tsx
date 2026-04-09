@@ -1,4 +1,9 @@
-import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
+import {
+  Link,
+  Navigate,
+  createFileRoute,
+  useRouter,
+} from '@tanstack/react-router'
 import { useState } from 'react'
 
 import ThemeToggle from '#/components/ThemeToggle'
@@ -30,33 +35,7 @@ function LoginPage() {
   }
 
   if (session?.user) {
-    return (
-      <div className="min-h-screen bg-surface px-4 py-16">
-        <div className="mx-auto max-w-md rounded-xl bg-surface-container-lowest p-8 shadow-[0px_12px_32px_-4px_rgba(25,28,30,0.06)]">
-          <p className="font-headline text-lg font-semibold text-on-surface">
-            Sessão iniciada
-          </p>
-          <p className="mt-2 font-body text-sm text-on-surface-variant">
-            {session.user.email}
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              to="/dashboard"
-              className="inline-flex rounded-xl bg-primary-container px-5 py-3 font-headline text-sm font-bold text-on-primary no-underline"
-            >
-              Acessar o painel
-            </Link>
-            <button
-              type="button"
-              onClick={() => void authClient.signOut()}
-              className="rounded-xl border border-outline-variant/40 px-5 py-3 font-body text-sm font-medium text-on-surface"
-            >
-              Sair
-            </button>
-          </div>
-        </div>
-      </div>
-    )
+    return <Navigate to="/dashboard" replace />
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
