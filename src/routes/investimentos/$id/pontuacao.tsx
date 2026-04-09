@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '#/components/ui/button'
 import { Label } from '#/components/ui/label'
 import { authClient } from '#/lib/auth-client'
+import { messages } from '#/messages'
 import {
   loadInvestmentScoringFn,
   saveInvestmentScoringFn,
@@ -182,7 +183,7 @@ function PontuacaoPage() {
           pontos
         </p>
         <p className="mt-1 font-body text-xs text-outline">
-          Sim = +1 · Não = −1 · Não respondida = 0 (não entra na soma)
+          {messages.scoring.legend}
         </p>
         <p className="mt-2 font-body text-xs text-outline">
           Perguntas ativas: {questions.length}

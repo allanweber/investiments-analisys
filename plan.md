@@ -64,5 +64,6 @@ O plano técnico passo a passo (schema, rotas, edge cases, deploy, ordem de trab
 
 - `[plans/tanstack_start_mvp_7b936246.plan.md](plans/tanstack_start_mvp_7b936246.plan.md)` — scaffolding e MVP de pontuação.
 - `[plans/questions_and_scoring_f659a63c.plan.md](plans/questions_and_scoring_f659a63c.plan.md)` — banco de perguntas padrão, restaurar defaults, destaques no dashboard.
+- `[plans/ui_i18n_full_extraction.plan.md](plans/ui_i18n_full_extraction.plan.md)` — extrair **todas** as strings de UI para `#/messages` (pt-BR primeiro), com ordem de trabalhos e critérios de aceitação.
 
 Quem for implementar deve manter estes ficheiros atualizados quando surgirem decisões novas (incluindo o frontmatter `todos` quando aplicável).

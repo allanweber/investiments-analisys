@@ -9,6 +9,10 @@ import {
   normalizeQuestionPrompt,
 } from '#/db/default-question-bank'
 import {
+  compareInvestmentsByRank,
+  computeScoreFromActiveQuestions,
+} from '#/lib/investment-scoring'
+import {
   investment,
   investmentAnswer,
   investmentType,
@@ -328,19 +332,23 @@ export async function loadInvestmentOverviewRows(
   return rows.map((r) => {
     const typeQs = qByType.get(r.investmentTypeId) ?? []
     const activeQs = typeQs.filter((q) => q.active)
-    let score = 0
-    let answeredActive = 0
+    const answerForInv = new Map<string, boolean>()
     for (const q of activeQs) {
       const key = ansKey(r.id, q.id)
-      if (!ansMap.has(key)) continue
-      answeredActive += 1
-      score += ansMap.get(key) ? 1 : -1
+      if (ansMap.has(key)) {
+        answerForInv.set(q.id, ansMap.get(key)!)
+      }
     }
+    const { score, answeredActiveCount, activeQuestionCount } =
+      computeScoreFromActiveQuestions(
+        activeQs.map((q) => q.id),
+        answerForInv,
+      )
     return {
       ...r,
       score,
-      activeQuestionCount: activeQs.length,
-      answeredActiveCount: answeredActive,
+      activeQuestionCount,
+      answeredActiveCount,
     }
   })
 }
@@ -400,10 +408,7 @@ export const getDashboardHighlightsFn = createServerFn({ method: 'GET' }).handle
     return {
       groups: types.map((t) => {
         const list = byTypeId.get(t.id) ?? []
-        const sorted = [...list].sort((a, b) => {
-          if (b.score !== a.score) return b.score - a.score
-          return a.name.localeCompare(b.name, 'pt-BR')
-        })
+        const sorted = [...list].sort(compareInvestmentsByRank)
         const top = sorted.slice(0, DASHBOARD_TOP_PER_TYPE).map((r) => ({
           id: r.id,
           name: r.name,
@@ -673,12 +678,10 @@ export const loadInvestmentScoringFn = createServerFn({ method: 'POST' })
 
     const answerByQ = new Map(answers.map((a) => [a.questionId, a.valueYes]))
 
-    let total = 0
-    for (const q of activeQs) {
-      const v = answerByQ.get(q.id)
-      if (v === undefined) continue
-      total += v ? 1 : -1
-    }
+    const { score: total } = computeScoreFromActiveQuestions(
+      activeQs.map((q) => q.id),
+      answerByQ,
+    )
 
     return {
       investment: inv,

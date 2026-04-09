@@ -14,6 +14,7 @@ import { Switch } from '#/components/ui/switch'
 import { Textarea } from '#/components/ui/textarea'
 import { hasDefaultQuestionPackForTypeName } from '#/db/default-question-bank'
 import { authClient } from '#/lib/auth-client'
+import { messages } from '#/messages'
 import {
   createQuestionFn,
   deleteQuestionFn,
@@ -110,21 +111,16 @@ function PerguntasPage() {
   }
 
   const onRestoreDefaults = async () => {
-    if (
-      !confirm(
-        'Adicionar perguntas padrão em falta? Nada será removido nem sobrescrito.',
-      )
-    )
-      return
+    if (!confirm(messages.questions.restoreConfirm)) return
     setRestoreMsg('')
     setBusy('restore')
     try {
       const res = await restoreDefaultQuestionsForTypeFn({ data: { typeId } })
       if (!res.ok) {
         if (res.code === 'NO_PACK') {
-          setRestoreMsg('Este tipo não tem conjunto padrão de perguntas.')
+          setRestoreMsg(messages.questions.restoreNoPack)
         } else {
-          setRestoreMsg('Não foi possível restaurar.')
+          setRestoreMsg(messages.questions.restoreFailed)
         }
         return
       }
@@ -140,19 +136,12 @@ function PerguntasPage() {
   }
 
   const onDelete = async (id: string) => {
-    if (
-      !confirm(
-        `Excluir esta pergunta? Se existirem respostas em investimentos, a exclusão será bloqueada.`,
-      )
-    )
-      return
+    if (!confirm(messages.questions.deleteConfirm)) return
     setBusy(id)
     try {
       const res = await deleteQuestionFn({ data: { id } })
       if (!res.ok && res.code === 'HAS_ANSWERS') {
-        alert(
-          'Não é possível excluir: existem respostas. Desative a pergunta em vez de excluí-la.',
-        )
+        alert(messages.questions.deleteBlocked)
         return
       }
       await refresh()

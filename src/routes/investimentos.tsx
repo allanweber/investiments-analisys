@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '#/components/ui/select'
 import { authClient } from '#/lib/auth-client'
+import { messages } from '#/messages'
 import {
   createInvestmentsBulkFn,
   deleteInvestmentFn,
@@ -113,7 +114,7 @@ function InvestimentosPage() {
     e.preventDefault()
     if (!newTypeId) {
       if (types.length === 0) {
-        alert('Crie primeiro um tipo em Tipos de investimento.')
+        alert(messages.investments.createTypeFirst)
       }
       return
     }
@@ -123,9 +124,7 @@ function InvestimentosPage() {
       .filter(Boolean)
     const names = lines.slice(0, 100)
     if (lines.length > 100) {
-      alert(
-        'No máximo 100 nomes por envio. Foram consideradas apenas as primeiras 100 linhas.',
-      )
+      alert(messages.investments.bulkMaxLines)
     }
     if (names.length === 0) {
       alert('Indique pelo menos um nome (um por linha).')
@@ -139,8 +138,8 @@ function InvestimentosPage() {
       if (!res.ok) {
         alert(
           res.code === 'BAD_TYPE'
-            ? 'Tipo inválido.'
-            : 'Nenhum nome válido para criar.',
+            ? messages.investments.bulkInvalidType
+            : messages.investments.bulkNoValidNames,
         )
         return
       }
@@ -170,11 +169,9 @@ function InvestimentosPage() {
       })
       if (!res.ok) {
         if (res.code === 'HAS_ANSWERS_TYPE_LOCKED') {
-          alert(
-            'Não é possível mudar o tipo: já existem respostas. Crie um novo investimento.',
-          )
+          alert(messages.investments.typeChangeBlocked)
         } else if (res.code === 'BAD_TYPE') {
-          alert('Tipo inválido.')
+          alert(messages.investments.invalidType)
         }
         return
       }
@@ -187,7 +184,7 @@ function InvestimentosPage() {
 
   const onDelete = async (id: string) => {
     const row = rows.find((r) => r.id === id)
-    if (!confirm(`Excluir o investimento "${row?.name ?? id}"?`)) return
+    if (!confirm(messages.investments.deleteConfirm(row?.name ?? id))) return
     setBusy(id)
     try {
       await deleteInvestmentFn({ data: { id } })

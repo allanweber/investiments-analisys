@@ -13,6 +13,7 @@ import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { authClient } from '#/lib/auth-client'
+import { messages } from '#/messages'
 import {
   createInvestmentTypeFn,
   deleteInvestmentTypeFn,
@@ -91,20 +92,15 @@ function TiposPage() {
   const onDelete = async (id: string) => {
     const row = types.find((t) => t.id === id)
     const label = row?.name ?? id
-    if (
-      !confirm(
-        `Excluir o tipo "${label}"? Só é possível se não tiver perguntas nem investimentos.`,
-      )
-    )
-      return
+    if (!confirm(messages.types.deleteConfirm(label))) return
     setBusy(id)
     try {
       const res = await deleteInvestmentTypeFn({ data: { id } })
       if (!res.ok) {
         if (res.code === 'HAS_QUESTIONS') {
-          alert('Não é possível excluir: existem perguntas neste tipo.')
+          alert(messages.types.deleteBlockedQuestions)
         } else if (res.code === 'HAS_INVESTMENTS') {
-          alert('Não é possível excluir: existem investimentos neste tipo.')
+          alert(messages.types.deleteBlockedInvestments)
         }
         return
       }
