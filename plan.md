@@ -49,7 +49,7 @@ Após o **registo**, o sistema faz **auto-seed** dos tipos sugeridos (alinhados 
 
 ## Desenvolvimento local e Docker
 
-- O `docker-compose.yml` do repositório serve para subir **só PostgreSQL** (por defeito `localhost:5432`, base `investiments`). A **aplicação corre na máquina de desenvolvimento** com `pnpm dev` (porta **3001**; alinhar `DATABASE_URL`, `BETTER_AUTH_URL` e `trustedOrigins` em `.env.local`).
+- O `docker-compose.yml` do repositório serve para subir **só PostgreSQL** (por defeito `localhost:5434` → contentor `5432`, base `investiments`, para evitar conflito com outro Postgres na porta 5432). A **aplicação corre na máquina de desenvolvimento** com `pnpm dev` (porta **3001**; alinhar `DATABASE_URL`, `BETTER_AUTH_URL` e `trustedOrigins` em `.env.local`).
 - Para **produção** (Hetzner, Cloudflare, PostgreSQL com backups, deploy a partir do Git), o passo a passo está em [`plans/hetzner_coolify_cloudflare_deploy.plan.md`](plans/hetzner_coolify_cloudflare_deploy.plan.md): **Dokploy** (opção 1) ou **Coolify** (opção 2), cada um com Postgres, aplicação, e Cloudflare Tunnel. É necessário um **`Dockerfile`** no repositório para o painel fazer o build.
 
 ## O que fica para **depois** deste MVP
