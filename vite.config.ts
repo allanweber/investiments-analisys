@@ -37,7 +37,23 @@ export default defineConfig({
   plugins: [
     viteDbClientStub(),
     devtools(),
-    nitro({ rollupConfig: { external: [/^@sentry\//] } }),
+    nitro({
+      rollupConfig: { external: [/^@sentry\//] },
+      // Avoid edge/CDN caching HTML that still points at old hashed `/assets/*` after a deploy.
+      // `/assets/**` stays long-cache immutable (Nitro default); listed last so it wins over `/**`.
+      routeRules: {
+        '/**': {
+          headers: {
+            'cache-control': 'private, no-cache, must-revalidate',
+          },
+        },
+        '/assets/**': {
+          headers: {
+            'cache-control': 'public, max-age=31536000, immutable',
+          },
+        },
+      },
+    }),
     tsconfigPaths({ projects: ['./tsconfig.json'] }),
     tailwindcss(),
     tanstackStart(),
