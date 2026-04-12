@@ -18,11 +18,21 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --prod
+
+COPY drizzle ./drizzle
+COPY drizzle.config.ts ./
+COPY src/db/schema.ts ./src/db/schema.ts
 COPY --from=builder /app/.output ./.output
 
-WORKDIR /app/.output
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 3000
 
 USER node
 
-CMD ["node", "server/index.mjs"]
+ENTRYPOINT ["/entrypoint.sh"]
