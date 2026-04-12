@@ -1,0 +1,12 @@
+# Nixpacks (Dokploy default builder): pin Node 22+ for Vite 7; this app is a Nitro server, not a static Vite SPA.
+# Prefer deploying with the repo Dockerfile in Dokploy if you can choose "Dockerfile" build type.
+
+[variables]
+NIXPACKS_NODE_VERSION = "22"
+NIXPACKS_SPA_CADDY = "false"
+HOST = "0.0.0.0"
+PORT = "3000"
+NODE_ENV = "production"
+
+[start]
+cmd = "node .output/server/index.mjs"
