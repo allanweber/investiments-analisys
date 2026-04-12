@@ -34,6 +34,22 @@ function viteDbClientStub(): Plugin {
 }
 
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        // Single stable CSS URL so edge-cached HTML never points at a removed hashed file after deploy.
+        // JS chunks stay content-hashed under `assets/`.
+        assetFileNames(assetInfo) {
+          const names = (assetInfo as { names?: string[] }).names
+          const name = names?.[0] ?? (assetInfo as { name?: string }).name ?? ''
+          if (typeof name === 'string' && name.endsWith('.css')) {
+            return 'assets/app.css'
+          }
+          return 'assets/[name]-[hash][extname]'
+        },
+      },
+    },
+  },
   plugins: [
     viteDbClientStub(),
     devtools(),
@@ -45,6 +61,12 @@ export default defineConfig({
         '/**': {
           headers: {
             'cache-control': 'private, no-cache, must-revalidate',
+          },
+        },
+        // Non-fingerprinted CSS: allow revalidation so deploys pick up new styles without stale immutable cache.
+        '/assets/app.css': {
+          headers: {
+            'cache-control': 'public, max-age=86400, must-revalidate',
           },
         },
         '/assets/**': {
