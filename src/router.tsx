@@ -1,4 +1,8 @@
-import { createRouter as createTanStackRouter } from '@tanstack/react-router'
+import {
+  ErrorComponent,
+  Navigate,
+  createRouter as createTanStackRouter,
+} from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 
 export function getRouter() {
@@ -7,6 +11,16 @@ export function getRouter() {
     scrollRestoration: true,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
+    defaultErrorComponent: ({ error }) => {
+      const message = error instanceof Error ? error.message : ''
+      const status = typeof error === 'object' && error ? (error as any).status : undefined
+
+      if (message === 'UNAUTHORIZED' || status === 401) {
+        return <Navigate to="/login" />
+      }
+
+      return <ErrorComponent error={error} />
+    },
   })
 
   return router

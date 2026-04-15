@@ -1,6 +1,7 @@
-import { Link, useRouterState } from '@tanstack/react-router'
+import { Link, Navigate, useRouterState } from '@tanstack/react-router'
 
 import BetterAuthHeader from '#/integrations/better-auth/header-user'
+import { authClient } from '#/lib/auth-client'
 import { messages as m } from '#/messages'
 import ThemeToggle from './ThemeToggle'
 
@@ -37,6 +38,7 @@ function navLabels() {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const { data: session, isPending } = authClient.useSession()
   const isLogin = pathname === '/login'
   const L = navLabels()
   const NAV = NAV_CONFIG.map((c) => ({
@@ -47,6 +49,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   if (isLogin) {
     return <>{children}</>
+  }
+
+  if (isPending) {
+    return null
+  }
+
+  if (!session?.user) {
+    return <Navigate to="/login" replace />
   }
 
   return (
@@ -61,7 +71,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               {m.shell.brand}
             </Link>
             <nav className="hidden min-w-0 items-center gap-3 font-headline text-sm font-semibold tracking-tight md:flex lg:gap-6">
-              {NAV.map(({ to, label, icon }) => {
+              {NAV.map(({ to, label, shortLabel, icon }) => {
                 const active =
                   to === '/dashboard'
                     ? pathname === '/dashboard'
@@ -80,7 +90,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                       {icon}
                     </span>
                     <span className="hidden lg:inline">{label}</span>
-                    <span className="inline lg:hidden">{NAV.find((n) => n.to === to)?.shortLabel}</span>
+                    <span className="inline lg:hidden">{shortLabel || label}</span>
                   </Link>
                 )
               })}
