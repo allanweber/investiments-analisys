@@ -358,9 +358,15 @@ function TiposPage() {
                     )}
                   </td>
                   <td className="whitespace-nowrap">
-                    <span className="inline-flex items-center whitespace-nowrap rounded-full bg-tertiary-fixed-dim px-2.5 py-0.5 font-label text-xs font-bold text-on-tertiary-fixed-variant">
+                    <Link
+                      to="/tipos/$typeId/perguntas"
+                      params={{ typeId: row.id }}
+                      className="inline-flex cursor-pointer items-center whitespace-nowrap rounded-full bg-tertiary-fixed-dim px-2.5 py-0.5 font-label text-xs font-bold text-on-tertiary-fixed-variant no-underline transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest"
+                      title={m.types.titleManageQuestions}
+                      aria-label={m.types.titleManageQuestions}
+                    >
                       {m.types.questionCount(row.questionCount)}
-                    </span>
+                    </Link>
                   </td>
                   <td className="text-right">
                     <div className="flex flex-nowrap items-center justify-end gap-1">
