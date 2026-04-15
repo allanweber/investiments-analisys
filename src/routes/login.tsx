@@ -123,7 +123,7 @@ function LoginPage() {
               </span>
             </div>
             <h1 className="font-headline text-3xl font-extrabold tracking-tight text-on-surface">
-              {isSignUp ? m.auth.titleSignUp : m.auth.titleSignIn(m.shell.brand)}
+              {isSignUp ? m.auth.titleSignUp : m.auth.submitSignIn}
             </h1>
             <p className="mt-2 font-body text-sm text-on-surface-variant">
               {m.auth.subtitle}
@@ -131,11 +131,11 @@ function LoginPage() {
           </div>
 
           <div className="rounded-xl bg-surface-container-lowest p-8 shadow-[0px_12px_32px_-4px_rgba(25,28,30,0.06)] md:p-10">
-            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="mb-8 grid grid-cols-1 gap-4">
               <button
                 type="button"
                 onClick={() => void googleSignIn()}
-                className="flex items-center justify-center gap-3 rounded-lg bg-surface-container-low px-4 py-3 font-body text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high"
+                className="flex w-full items-center justify-center gap-3 rounded-lg bg-surface-container-low px-4 py-3 font-body text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
                   <path
@@ -262,7 +262,7 @@ function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-container py-4 font-headline text-base font-bold text-on-primary shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
+                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary-container py-4 font-headline text-base font-bold text-on-primary shadow-lg transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? (
                   <>
@@ -292,7 +292,7 @@ function LoginPage() {
                       setIsSignUp(false)
                       setError('')
                     }}
-                    className="font-semibold text-primary underline decoration-surface-tint underline-offset-4"
+                    className="cursor-pointer font-semibold text-primary underline decoration-surface-tint underline-offset-4"
                   >
                     {m.auth.linkSignIn}
                   </button>
@@ -306,7 +306,7 @@ function LoginPage() {
                       setIsSignUp(true)
                       setError('')
                     }}
-                    className="font-semibold text-primary underline decoration-surface-tint underline-offset-4"
+                    className="cursor-pointer font-semibold text-primary underline decoration-surface-tint underline-offset-4"
                   >
                     {m.auth.linkSignUp}
                   </button>

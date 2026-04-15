@@ -358,11 +358,11 @@ pre code {
 }
 
 .fa-th {
-  @apply px-4 py-5 text-[10px] font-bold uppercase tracking-[0.15em] text-outline;
+  @apply text-[10px] font-bold uppercase tracking-[0.15em] text-outline;
 }
 
 .fa-th th {
-  @apply whitespace-nowrap;
+  @apply whitespace-nowrap px-4 py-5;
 }
 
 .fa-tr {

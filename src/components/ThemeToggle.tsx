@@ -76,15 +76,21 @@ export default function ThemeToggle() {
         ? m.theme.buttonDark
         : m.theme.buttonLight
 
+  const icon =
+    mode === 'auto' ? 'contrast' : mode === 'dark' ? 'dark_mode' : 'light_mode'
+
   return (
     <button
       type="button"
       onClick={toggleMode}
       aria-label={label}
       title={label}
-      className="rounded-full border border-outline-variant/25 bg-surface-container-lowest/90 px-3 py-1.5 font-body text-xs font-semibold text-on-surface shadow-[0px_12px_32px_-4px_rgba(25,28,30,0.06)] transition hover:bg-surface-container-high"
+      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-outline-variant/25 bg-surface-container-lowest/90 text-on-surface shadow-[0px_12px_32px_-4px_rgba(25,28,30,0.06)] transition hover:bg-surface-container-high"
     >
-      {buttonLabel}
+      <span className="material-symbols-outlined text-[22px] leading-none">
+        {icon}
+      </span>
+      <span className="sr-only">{buttonLabel}</span>
     </button>
   )
 }

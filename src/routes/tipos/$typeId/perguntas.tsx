@@ -400,7 +400,7 @@ function PerguntasPage() {
               )}
               {questions.map((q) => (
                 <tr key={q.id} className="fa-tr">
-                  <td className="min-w-[18rem] align-middle font-medium text-on-surface [overflow-wrap:anywhere]">
+                  <td className="min-w-[18rem] align-top font-medium text-on-surface [overflow-wrap:anywhere]">
                     {editId === q.id ? (
                       <Textarea
                         value={editPrompt}
@@ -409,10 +409,10 @@ function PerguntasPage() {
                         className="min-w-[16rem] border-outline-variant/30 bg-surface-container-high"
                       />
                     ) : (
-                      <span className="line-clamp-2">{q.prompt}</span>
+                      <span className="block whitespace-normal">{q.prompt}</span>
                     )}
                   </td>
-                  <td className="align-middle whitespace-nowrap text-on-surface-variant w-24 min-w-[5.5rem]">
+                  <td className="align-top whitespace-nowrap text-on-surface-variant w-24 min-w-[5.5rem]">
                     {editId === q.id ? (
                       <Input
                         type="number"
@@ -426,7 +426,7 @@ function PerguntasPage() {
                       String(q.sortOrder).padStart(2, '0')
                     )}
                   </td>
-                  <td className="align-middle w-[7.5rem] min-w-[7.5rem] max-w-[7.5rem]">
+                  <td className="align-top w-[7.5rem] min-w-[7.5rem] max-w-[7.5rem]">
                     {editId === q.id ? (
                       <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
                         <Switch
@@ -450,7 +450,7 @@ function PerguntasPage() {
                       </span>
                     )}
                   </td>
-                  <td className="align-middle text-right w-[12rem] min-w-[12rem] whitespace-nowrap">
+                  <td className="align-top text-right w-[12rem] min-w-[12rem] whitespace-nowrap">
                     {editId === q.id ? (
                       <div className="flex flex-nowrap items-center justify-end gap-2">
                         <Button

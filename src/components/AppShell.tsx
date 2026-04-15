@@ -53,14 +53,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <>
       <header className="fa-glass fixed top-0 z-50 w-full border-b border-outline-variant/15 shadow-sm">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-6">
+          <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-6">
             <Link
               to="/dashboard"
-              className="font-headline text-lg font-bold tracking-tight text-on-surface no-underline"
+              className="shrink-0 font-headline text-lg font-bold tracking-tight text-on-surface no-underline"
             >
               {m.shell.brand}
             </Link>
-            <nav className="hidden items-center gap-6 font-headline text-sm font-semibold tracking-tight md:flex">
+            <nav className="hidden min-w-0 items-center gap-3 font-headline text-sm font-semibold tracking-tight md:flex lg:gap-6">
               {NAV.map(({ to, label, icon }) => {
                 const active =
                   to === '/dashboard'
@@ -79,21 +79,31 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     <span className="material-symbols-outlined shrink-0 text-xl leading-none">
                       {icon}
                     </span>
-                    {label}
+                    <span className="hidden lg:inline">{label}</span>
+                    <span className="inline lg:hidden">{NAV.find((n) => n.to === to)?.shortLabel}</span>
                   </Link>
                 )
               })}
             </nav>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
             <Link
               to="/investimentos"
-              className="hidden items-center gap-1.5 rounded-xl bg-primary-container px-3 py-2 font-headline text-xs font-bold text-on-primary no-underline shadow-sm transition-opacity hover:opacity-95 sm:inline-flex"
+              className="hidden items-center gap-1.5 rounded-xl bg-primary-container px-3 py-2 font-headline text-xs font-bold text-on-primary no-underline shadow-sm transition-opacity hover:opacity-95 lg:inline-flex"
             >
               <span className="material-symbols-outlined shrink-0 text-lg leading-none">
                 add_circle
               </span>
               {m.shell.newInvestment}
+            </Link>
+            <Link
+              to="/investimentos"
+              className="hidden h-9 w-9 items-center justify-center rounded-xl bg-primary-container text-on-primary no-underline shadow-sm transition-opacity hover:opacity-95 md:inline-flex lg:hidden"
+              aria-label={m.shell.newInvestment}
+            >
+              <span className="material-symbols-outlined shrink-0 text-[20px] leading-none">
+                add_circle
+              </span>
             </Link>
             <ThemeToggle />
             <BetterAuthHeader variant="topbar" />

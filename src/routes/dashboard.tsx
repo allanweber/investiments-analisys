@@ -72,15 +72,23 @@ function DashboardPage() {
   const ac = stats?.answerCount ?? 0
   const fmt = (n: number) => n.toString().padStart(2, '0')
   const displayName = session.user.name || session.user.email
+  const highlightGroups = highlights
+    ? [
+        ...highlights.groups.filter((g) => g.top.length > 0),
+        ...highlights.groups.filter((g) => g.top.length === 0),
+      ]
+    : []
 
   return (
     <main className="w-full max-w-7xl px-4 py-8 sm:p-8 lg:p-12">
       <section className="mb-12">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-          <div>
-            <span className="mb-2 block font-label text-xs font-semibold uppercase tracking-[0.2em] text-outline">
-              {m.dashboard.kickerOverview}
-            </span>
+          <div className="min-w-0">
+            <div className="mb-2 flex flex-wrap items-center gap-2 font-body text-sm text-outline">
+              <span>{m.dashboard.crumbDashboard}</span>
+              <span className="text-surface-dim">/</span>
+              <span className="font-semibold text-on-surface">{m.dashboard.crumbInicio}</span>
+            </div>
             <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
               {m.dashboard.title}
             </h1>
@@ -88,15 +96,10 @@ function DashboardPage() {
               {m.dashboard.greeting(displayName)}
             </p>
           </div>
-          <div className="flex items-center gap-2 font-body text-sm text-outline">
-            <span>{m.dashboard.crumbDashboard}</span>
-            <span className="text-surface-dim">/</span>
-            <span className="font-semibold text-on-surface">{m.dashboard.crumbInicio}</span>
-          </div>
         </div>
       </section>
 
-      {highlights && highlights.groups.length > 0 && (
+      {highlights && highlightGroups.length > 0 && (
         <section className="mb-12">
           <span className="mb-3 block font-label text-xs font-semibold uppercase tracking-[0.2em] text-outline">
             {m.dashboard.kickerHighlights}
@@ -108,7 +111,7 @@ function DashboardPage() {
             {m.dashboard.highlightsSubtitle}
           </p>
           <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {highlights.groups.map((g) => (
+            {highlightGroups.map((g) => (
               <div
                 key={g.typeId}
                 className="rounded-xl bg-surface-container-low p-6 transition-colors hover:bg-surface-container-high"

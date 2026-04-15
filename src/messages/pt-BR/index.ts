@@ -268,7 +268,7 @@ const core = {
     emptyMobile:
       'Sem perguntas. As respostas aqui definem a pontuação dos investimentos deste tipo.',
     mobileOrderLabel: (order: string) => `Ordem ${order}`,
-    thTexto: 'Texto',
+    thTexto: 'Pergunta',
   },
   scoring: {
     legend:
