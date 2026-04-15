@@ -71,7 +71,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               {m.shell.brand}
             </Link>
             <nav className="hidden min-w-0 items-center gap-3 font-headline text-sm font-semibold tracking-tight md:flex lg:gap-6">
-              {NAV.map(({ to, label, shortLabel, icon }) => {
+              {NAV.map(({ to, label, icon }) => {
                 const active =
                   to === '/dashboard'
                     ? pathname === '/dashboard'
@@ -89,8 +89,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     <span className="material-symbols-outlined shrink-0 text-xl leading-none">
                       {icon}
                     </span>
-                    <span className="hidden lg:inline">{label}</span>
-                    <span className="inline lg:hidden">{shortLabel || label}</span>
+                    <span>{label}</span>
                   </Link>
                 )
               })}
@@ -140,13 +139,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               className={`flex flex-col items-center gap-1 no-underline ${
                 active ? 'text-primary' : 'text-outline'
               }`}
+              aria-label={shortLabel}
             >
               <span className="material-symbols-outlined shrink-0 text-[22px] leading-none">
                 {icon}
               </span>
-              <span className="text-[10px] font-bold uppercase">
-                {shortLabel}
-              </span>
+              <span className="sr-only">{shortLabel}</span>
             </Link>
           )
         })}
