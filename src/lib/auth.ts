@@ -119,6 +119,21 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
               clientId: googleClientId,
 
               clientSecret: googleClientSecret,
+              scope: ['email', 'profile'],
+              overrideUserInfoOnSignIn: true,
+
+              mapProfileToUser: (profile) => {
+                if (!profile || typeof profile !== 'object') return {}
+
+                const p = profile as Record<string, unknown>
+                const image =
+                  (typeof p.picture === 'string' && p.picture) ||
+                  (typeof p.avatar_url === 'string' && p.avatar_url) ||
+                  (typeof p.image === 'string' && p.image) ||
+                  undefined
+
+                return image ? { image } : {}
+              },
 
             },
 
