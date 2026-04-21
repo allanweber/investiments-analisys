@@ -57,6 +57,12 @@ function normalizeHoldingCurrency(c: string | null | undefined): string | null {
   return t.length ? t : null
 }
 
+/** DB flag and/or legacy tipos só identificáveis pelo nome (pt-BR seed: «Renda fixa»). */
+function isFixedIncomeTipo(fixedIncome: boolean, typeName: string | null | undefined): boolean {
+  if (fixedIncome) return true
+  return (typeName ?? '').trim().toLowerCase() === 'renda fixa'
+}
+
 /**
  * If the same symbol appears with mixed `holdingCurrency` values, **any** `BRL`
  * row routes that symbol to brapi-first for this refresh.
@@ -147,10 +153,6 @@ async function loadQuotesWithCache(params: {
   >
   stale: boolean
 }> {
-  // Strict boot-time requirement (validated on first server invocation).
-  // We keep the check here (not at module top-level) to avoid leaking server-only env access into client stubs.
-  requireBrapiToken()
-
   const logEnabled = isMarketDataLogEnabled()
 
   const db = await getDb()
@@ -199,10 +201,12 @@ async function loadQuotesWithCache(params: {
     const brlPrimary = needFetch.filter((s) => symbolPreferBrapiFirst(params.inputs, s))
     const nonBrl = needFetch.filter((s) => !symbolPreferBrapiFirst(params.inputs, s))
 
+    if (brlPrimary.length > 0) requireBrapiToken()
+
     const brlInputs = brlPrimary.map((s) => ({ symbol: s, holdingCurrency: 'BRL' as const }))
     let brlResults: QuoteFetchResult[] = []
     const brapiStart = Date.now()
-    if (logEnabled) {
+    if (logEnabled && brlPrimary.length > 0) {
       logMarketDataEvent({
         level: 'info',
         msg: 'brapi -> triggered',
@@ -213,7 +217,7 @@ async function loadQuotesWithCache(params: {
       })
     }
     try {
-      brlResults = await brapi.fetchQuotes(brlInputs)
+      brlResults = brlPrimary.length > 0 ? await brapi.fetchQuotes(brlInputs) : []
       // brapi provider logs the real request/response when MARKET_DATA_LOG=true
     } catch (e: any) {
       stale = true
@@ -441,6 +445,7 @@ export const listInvestmentTypesWithCounts = createServerFn({ method: 'GET' }).h
 const createTypeInput = z.object({
   name: z.string().min(1).max(200),
   sortOrder: z.number().int().optional(),
+  fixedIncome: z.boolean().optional(),
 })
 
 export const createInvestmentTypeFn = createServerFn({ method: 'POST' })
@@ -461,6 +466,7 @@ export const createInvestmentTypeFn = createServerFn({ method: 'POST' })
       .values({
         userId,
         name: data.name.trim(),
+        fixedIncome: data.fixedIncome ?? false,
         sortOrder: nextOrder,
       })
       .returning()
@@ -471,6 +477,7 @@ const updateTypeInput = z.object({
   id: uuid,
   name: z.string().min(1).max(200),
   sortOrder: z.number().int(),
+  fixedIncome: z.boolean(),
 })
 
 export const updateInvestmentTypeFn = createServerFn({ method: 'POST' })
@@ -480,7 +487,11 @@ export const updateInvestmentTypeFn = createServerFn({ method: 'POST' })
     const userId = await requireUserId()
     const [updated] = await db
       .update(investmentType)
-      .set({ name: data.name.trim(), sortOrder: data.sortOrder })
+      .set({
+        name: data.name.trim(),
+        sortOrder: data.sortOrder,
+        fixedIncome: data.fixedIncome,
+      })
       .where(and(eq(investmentType.id, data.id), eq(investmentType.userId, userId)))
       .returning()
     return updated ?? null
@@ -649,6 +660,7 @@ export type InvestmentOverviewRow = {
   investmentTypeId: string
   typeName: string
   typeSortOrder: number
+  fixedIncome: boolean
   score: number
   activeQuestionCount: number
   answeredActiveCount: number
@@ -666,6 +678,7 @@ export async function loadInvestmentOverviewRows(
       investmentTypeId: investment.investmentTypeId,
       typeName: investmentType.name,
       typeSortOrder: investmentType.sortOrder,
+      fixedIncome: investmentType.fixedIncome,
     })
     .from(investment)
     .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
@@ -1199,31 +1212,55 @@ export const upsertPortfolioHoldingFn = createServerFn({ method: 'POST' })
     const userId = await requireUserId()
 
     const [inv] = await db
-      .select({ id: investment.id })
+      .select({
+        id: investment.id,
+        fixedIncome: investmentType.fixedIncome,
+        investmentTypeName: investmentType.name,
+      })
       .from(investment)
+      .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
       .where(and(eq(investment.id, data.investmentId), eq(investment.userId, userId)))
       .limit(1)
     if (!inv) return { ok: false as const, code: 'NOT_FOUND' as const }
+
+    const ticker = data.ticker?.trim() ? data.ticker.trim() : null
+
+    // Authoritative holding currency: infer from the ticker quote currency when possible.
+    // This prevents saving e.g. ASML as BRL just because the user selected BRL in the modal.
+    // Renda fixa e similares: sem provedores de mercado.
+    let holdingCurrency = data.currency.trim().toUpperCase()
+    if (ticker && !isFixedIncomeTipo(inv.fixedIncome, inv.investmentTypeName)) {
+      try {
+        const yfinance = getQuoteProvider('yfinance')
+        const [res] = await yfinance.fetchQuotes([{ symbol: ticker }])
+        if (res?.ok) {
+          const inferred = normalizeHoldingCurrency(res.quote.currency)
+          if (inferred) holdingCurrency = inferred
+        }
+      } catch {
+        // If inference fails, fall back to user-provided currency.
+      }
+    }
 
     await db
       .insert(portfolioHolding)
       .values({
         userId,
         investmentId: data.investmentId,
-        ticker: data.ticker?.trim() ? data.ticker.trim() : null,
+        ticker,
         quantity: String(data.quantity),
         avgCost: String(data.avgCost),
-        currency: data.currency.trim().toUpperCase(),
+        currency: holdingCurrency,
         broker: data.broker?.trim() ? data.broker.trim() : null,
         lastOperationAt: data.lastOperationAt ? new Date(data.lastOperationAt) : null,
       })
       .onConflictDoUpdate({
         target: [portfolioHolding.userId, portfolioHolding.investmentId],
         set: {
-          ticker: data.ticker?.trim() ? data.ticker.trim() : null,
+          ticker,
           quantity: String(data.quantity),
           avgCost: String(data.avgCost),
-          currency: data.currency.trim().toUpperCase(),
+          currency: holdingCurrency,
           broker: data.broker?.trim() ? data.broker.trim() : null,
           lastOperationAt: data.lastOperationAt ? new Date(data.lastOperationAt) : null,
           updatedAt: sql`now()`,
@@ -1267,6 +1304,7 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
         investmentTypeId: investmentType.id,
         investmentTypeName: investmentType.name,
         typeSortOrder: investmentType.sortOrder,
+        fixedIncome: investmentType.fixedIncome,
       })
       .from(portfolioHolding)
       .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
@@ -1281,6 +1319,7 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
       .orderBy(asc(investmentType.sortOrder), asc(investment.name))
 
     const tickers: MarketQuoteInput[] = rows
+      .filter((r) => !isFixedIncomeTipo(r.fixedIncome, r.investmentTypeName))
       .map((r) => ({
         symbol: (r.ticker ?? '').trim(),
         holdingCurrency: r.currency ?? null,
@@ -1289,10 +1328,28 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
     const { bySymbol, stale } = await loadQuotesWithCache({ userId, inputs: tickers })
 
     const enriched = rows.map((r) => {
-      const q = (r.ticker ?? '').trim() ? bySymbol.get((r.ticker ?? '').trim()) : null
-      const lastPrice = q?.price ?? null
+      const sym = (r.ticker ?? '').trim()
       const qty = toMoney(num(r.quantity))
       const avg = toMoney(num(r.avgCost))
+
+      if (isFixedIncomeTipo(r.fixedIncome, r.investmentTypeName)) {
+        const book = qty * avg
+        return {
+          ...r,
+          quantity: qty,
+          avgCost: avg,
+          lastPrice: null as number | null,
+          marketValue: book,
+          unrealizedPl: 0,
+          quoteFetchedAt: null as Date | null,
+          quoteCurrency: null as string | null,
+          quoteLogoUrl: null as string | null,
+          quoteStatus: 'BOOK_VALUE' as const,
+        }
+      }
+
+      const q = sym ? bySymbol.get(sym) : null
+      const lastPrice = q?.price ?? null
       const marketValue = lastPrice == null ? null : qty * lastPrice
       const pl = lastPrice == null ? null : qty * (lastPrice - avg)
       return {
@@ -1429,6 +1486,7 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
         investmentTypeId: investmentType.id,
         investmentTypeName: investmentType.name,
         typeSortOrder: investmentType.sortOrder,
+        fixedIncome: investmentType.fixedIncome,
       })
       .from(portfolioHolding)
       .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
@@ -1444,6 +1502,7 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
     const scoped = selected ? holdings.filter((h) => h.currency === selected) : []
 
     const inputs: MarketQuoteInput[] = scoped
+      .filter((r) => !isFixedIncomeTipo(r.fixedIncome, r.investmentTypeName))
       .map((r) => ({
         symbol: (r.ticker ?? '').trim(),
         holdingCurrency: r.currency ?? null,
@@ -1465,11 +1524,30 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
     let total = 0
     let unrealizedPl = 0
     for (const r of scoped) {
-      const q = (r.ticker ?? '').trim() ? bySymbol.get((r.ticker ?? '').trim()) : null
-      const lastPrice = q?.price ?? null
-      if (lastPrice == null) continue
       const qty = toMoney(num(r.quantity))
       const avg = toMoney(num(r.avgCost))
+
+      if (isFixedIncomeTipo(r.fixedIncome, r.investmentTypeName)) {
+        const mv = qty * avg
+        total += mv
+        const prev = byType.get(r.investmentTypeId)
+        if (!prev) {
+          byType.set(r.investmentTypeId, {
+            investmentTypeId: r.investmentTypeId,
+            investmentTypeName: r.investmentTypeName,
+            typeSortOrder: r.typeSortOrder,
+            marketValue: mv,
+          })
+        } else {
+          prev.marketValue += mv
+        }
+        continue
+      }
+
+      const sym = (r.ticker ?? '').trim()
+      const q = sym ? bySymbol.get(sym) : null
+      const lastPrice = q?.price ?? null
+      if (lastPrice == null) continue
       const mv = qty * lastPrice
       total += mv
       unrealizedPl += qty * (lastPrice - avg)

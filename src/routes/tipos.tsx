@@ -37,10 +37,12 @@ function TiposPage() {
   const { data: session, isPending: sessionPending } = authClient.useSession()
   const types = Route.useLoaderData()
   const [name, setName] = useState('')
+  const [newFixedIncome, setNewFixedIncome] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [editId, setEditId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editOrder, setEditOrder] = useState(0)
+  const [editFixedIncome, setEditFixedIncome] = useState(false)
 
   if (sessionPending) {
     return (
@@ -78,6 +80,7 @@ function TiposPage() {
     setEditId(row.id)
     setEditName(row.name)
     setEditOrder(row.sortOrder)
+    setEditFixedIncome(row.fixedIncome ?? false)
   }
 
   const cancelEdit = () => setEditId(null)
@@ -87,7 +90,12 @@ function TiposPage() {
     setBusy(editId)
     try {
       await updateInvestmentTypeFn({
-        data: { id: editId, name: editName.trim(), sortOrder: editOrder },
+        data: {
+          id: editId,
+          name: editName.trim(),
+          sortOrder: editOrder,
+          fixedIncome: editFixedIncome,
+        },
       })
       setEditId(null)
       await refresh()
@@ -161,6 +169,18 @@ function TiposPage() {
             className="border-none bg-surface-container-highest"
           />
         </div>
+        <label
+          className="flex cursor-pointer items-center gap-2 self-end rounded-lg pb-1 font-body text-sm text-on-surface"
+          title={m.types.labelFixedIncomeHint}
+        >
+          <input
+            type="checkbox"
+            checked={newFixedIncome}
+            onChange={(e) => setNewFixedIncome(e.target.checked)}
+            className="h-4 w-4 shrink-0 rounded border border-outline-variant/40 accent-primary"
+          />
+          <span>{m.types.labelFixedIncome}</span>
+        </label>
         <Button
           type="submit"
           disabled={busy === 'create'}
@@ -209,6 +229,15 @@ function TiposPage() {
                     className="h-10 max-w-[8rem] border-outline-variant/30 bg-surface-container-high"
                   />
                 </div>
+                <label className="flex cursor-pointer items-center gap-2 pt-1 font-body text-sm text-on-surface">
+                  <input
+                    type="checkbox"
+                    checked={editFixedIncome}
+                    onChange={(e) => setEditFixedIncome(e.target.checked)}
+                    className="h-4 w-4 shrink-0 rounded border border-outline-variant/40 accent-primary"
+                  />
+                  <span>{m.types.labelFixedIncome}</span>
+                </label>
                 <div className="flex gap-2 pt-1">
                   <Button
                     type="button"
@@ -308,6 +337,7 @@ function TiposPage() {
               <tr className="fa-th">
                 <th className="min-w-[12rem] text-left">{m.types.thNome}</th>
                 <th className="text-left">{m.types.thOrdem}</th>
+                <th className="text-left">{m.types.labelFixedIncome}</th>
                 <th className="text-left">{m.types.thNumPerguntas}</th>
                 <th className="text-right">{m.common.labelAcoes}</th>
               </tr>
@@ -316,7 +346,7 @@ function TiposPage() {
               {types.length === 0 && (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="py-12 text-center text-on-surface-variant"
                   >
                     {m.types.emptyMobile}
@@ -355,6 +385,22 @@ function TiposPage() {
                       />
                     ) : (
                       String(row.sortOrder).padStart(2, '0')
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap text-on-surface-variant">
+                    {editId === row.id ? (
+                      <label className="inline-flex cursor-pointer items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={editFixedIncome}
+                          onChange={(e) => setEditFixedIncome(e.target.checked)}
+                          className="h-4 w-4 accent-primary"
+                        />
+                      </label>
+                    ) : row.fixedIncome ? (
+                      <span className="font-medium text-on-surface">Sim</span>
+                    ) : (
+                      '—'
                     )}
                   </td>
                   <td className="whitespace-nowrap">

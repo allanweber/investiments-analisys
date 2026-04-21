@@ -241,6 +241,9 @@ const core = {
       'Ainda sem tipos. Adicione acima ou cadastre-se para receber tipos sugeridos.',
     thNome: 'Nome',
     thOrdem: 'Ordem',
+    labelFixedIncome: 'Renda fixa',
+    labelFixedIncomeHint:
+      'Sem cotação de mercado na carteira; posição pelo custo médio. Também não buscamos moeda do ticker ao salvar.',
     thNumPerguntas: 'Nº de perguntas',
     questionCount: (n: number) => `${n} perguntas`,
     mobilePerguntas: 'Perguntas',

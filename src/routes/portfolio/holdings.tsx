@@ -131,6 +131,10 @@ const HOLDING_CURRENCY_OPTIONS = ['BRL', 'USD', 'EUR'] as const
  * Associa ticker digitado a um investimento cadastrado (nome = ticker ou contém o ticker).
  * Retorna null se não houver candidato claro.
  */
+function isRendaFixaTipo(name: string | null | undefined): boolean {
+  return (name ?? '').trim() === 'Renda fixa'
+}
+
 function findInvestmentIdForTicker(
   ticker: string,
   rows: { id: string; name: string }[],
@@ -208,6 +212,7 @@ function SharedHoldingFormFields({
   setAvgCostDraft,
   avgCostPointerDownBeforeFocusRef,
   avgCostSuppressNextMouseUpRef,
+  avgCostLabel,
 }: {
   form: PortfolioHoldingForm
   setForm: Dispatch<SetStateAction<PortfolioHoldingForm>>
@@ -220,6 +225,7 @@ function SharedHoldingFormFields({
   setAvgCostDraft: (v: string) => void
   avgCostPointerDownBeforeFocusRef: MutableRefObject<boolean>
   avgCostSuppressNextMouseUpRef: MutableRefObject<boolean>
+  avgCostLabel: string
 }) {
   return (
     <>
@@ -258,7 +264,7 @@ function SharedHoldingFormFields({
       </div>
 
       <label className="block text-[10px] font-bold uppercase tracking-widest text-outline">
-        Preço médio
+        {avgCostLabel}
         <input
           type="text"
           inputMode="decimal"
@@ -384,12 +390,7 @@ function DonutAllocation({
   const grad = `conic-gradient(${parts.join(', ')})`
   return (
     <div className="rounded-2xl bg-surface p-6 shadow-md ring-1 ring-outline-variant/10">
-      <div className="flex items-center justify-between">
-        <h3 className="font-headline text-base font-extrabold text-on-surface">Alocação atual</h3>
-        <span className="material-symbols-outlined text-outline" aria-hidden>
-          more_vert
-        </span>
-      </div>
+      <h3 className="font-headline text-base font-extrabold text-on-surface">Alocação atual</h3>
       <div className="relative mx-auto mt-6 flex h-52 w-52 max-w-full items-center justify-center">
         <div
           className="absolute inset-0 rounded-full"
@@ -459,7 +460,9 @@ function HoldingsPage() {
   /** Evita que o primeiro mouseup após o foco desfaça a seleção de todo o valor (só se o foco veio de clique). */
   const addUnitSuppressNextMouseUpRef = useRef(false)
   const addUnitPointerDownBeforeFocusRef = useRef(false)
-  const [invOptions, setInvOptions] = useState<Array<{ id: string; name: string }> | null>(null)
+  const [invOptions, setInvOptions] = useState<
+    Array<{ id: string; name: string; fixedIncome: boolean; typeName: string }> | null
+  >(null)
   const [form, setForm] = useState({
     investmentId: '',
     ticker: '',
@@ -486,11 +489,18 @@ function HoldingsPage() {
   const avgCostSuppressNextMouseUpRef = useRef(false)
   const avgCostPointerDownBeforeFocusRef = useRef(false)
   async function ensureInvOptions() {
-    if (invOptions || loadingInvs.current) return
+    if (loadingInvs.current) return
     loadingInvs.current = true
     try {
       const list = await listInvestmentsOverviewFn()
-      setInvOptions(list.map((x) => ({ id: x.id, name: x.name })))
+      setInvOptions(
+        list.map((x) => ({
+          id: x.id,
+          name: x.name,
+          fixedIncome: Boolean(x.fixedIncome),
+          typeName: x.typeName,
+        })),
+      )
     } finally {
       loadingInvs.current = false
     }
@@ -1155,19 +1165,23 @@ function HoldingsPage() {
             <div className="mt-5 space-y-3 md:hidden">
               {pageRows.map((r) => {
                 const statusLabel =
-                  r.quoteStatus === 'OK'
-                    ? data?.quotesStale
-                      ? 'ATRASADO'
-                      : 'OK'
-                    : r.quoteStatus === 'MISSING_QUOTE'
-                      ? 'AUSENTE'
-                      : 'INCOMPLETO'
+                  r.quoteStatus === 'BOOK_VALUE'
+                    ? 'Fixa'
+                    : r.quoteStatus === 'OK'
+                      ? data?.quotesStale
+                        ? 'ATRASADO'
+                        : 'OK'
+                      : r.quoteStatus === 'MISSING_QUOTE'
+                        ? 'AUSENTE'
+                        : 'INCOMPLETO'
                 const statusClass =
-                  statusLabel === 'OK'
+                  r.quoteStatus === 'BOOK_VALUE'
                     ? 'text-tertiary-fixed-dim'
-                    : statusLabel === 'AUSENTE'
-                      ? 'text-outline'
-                      : 'text-error'
+                    : statusLabel === 'OK'
+                      ? 'text-tertiary-fixed-dim'
+                      : statusLabel === 'AUSENTE'
+                        ? 'text-outline'
+                        : 'text-error'
                 const varPct =
                   r.lastPrice != null && r.avgCost > 0
                     ? `${(((r.lastPrice - r.avgCost) / r.avgCost) * 100).toFixed(1)}%`
@@ -1270,17 +1284,21 @@ function HoldingsPage() {
                 <tbody className="divide-y divide-outline-variant/10">
                   {pageRows.map((r) => {
                       const statusLabel =
-                        r.quoteStatus === 'OK'
-                          ? data?.quotesStale
-                            ? 'ATRASADO'
-                            : 'OK'
-                          : r.quoteStatus === 'MISSING_QUOTE'
-                            ? 'AUSENTE'
-                            : 'INCOMPLETO'
+                        r.quoteStatus === 'BOOK_VALUE'
+                          ? 'Fixa'
+                          : r.quoteStatus === 'OK'
+                            ? data?.quotesStale
+                              ? 'ATRASADO'
+                              : 'OK'
+                            : r.quoteStatus === 'MISSING_QUOTE'
+                              ? 'AUSENTE'
+                              : 'INCOMPLETO'
                       const statusPillClass =
-                        statusLabel === 'OK'
+                        r.quoteStatus === 'BOOK_VALUE'
                           ? 'bg-tertiary-fixed-dim/25 text-on-tertiary-container'
-                          : 'bg-error-container/55 text-error'
+                          : statusLabel === 'OK'
+                            ? 'bg-tertiary-fixed-dim/25 text-on-tertiary-container'
+                            : 'bg-error-container/55 text-error'
                       return (
                       <tr
                         key={r.investmentId}
@@ -1425,6 +1443,20 @@ function HoldingsPage() {
       {(holdingModal.kind === 'add' || holdingModal.kind === 'edit') &&
         (() => {
           const isEdit = holdingModal.kind === 'edit'
+          const selectedOpt = invOptions?.find((o) => o.id === form.investmentId)
+          const holdingSameInv = data?.rows?.find((r) => r.investmentId === form.investmentId)
+          const holdingIsFixedIncome = isEdit
+            ? Boolean(
+                holdingModal.row.fixedIncome ||
+                  isRendaFixaTipo(holdingModal.row.investmentTypeName),
+              )
+            : Boolean(
+                selectedOpt?.fixedIncome ||
+                  isRendaFixaTipo(selectedOpt?.typeName) ||
+                  holdingSameInv?.fixedIncome ||
+                  isRendaFixaTipo(holdingSameInv?.investmentTypeName),
+              )
+          const avgCostFieldLabel = holdingIsFixedIncome ? 'Valor atual' : 'Preço médio'
           return (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:px-4 sm:py-10"
@@ -1541,6 +1573,7 @@ function HoldingsPage() {
                 setAvgCostDraft={setAvgCostDraft}
                 avgCostPointerDownBeforeFocusRef={avgCostPointerDownBeforeFocusRef}
                 avgCostSuppressNextMouseUpRef={avgCostSuppressNextMouseUpRef}
+                avgCostLabel={avgCostFieldLabel}
               />
             </div>
 

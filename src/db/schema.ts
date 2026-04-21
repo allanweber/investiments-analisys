@@ -69,6 +69,8 @@ export const investmentType = pgTable('investment_type', {
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  /** CDB, LCI, tesouro, etc.: sem cotação de mercado (brapi/yfinance). */
+  fixedIncome: boolean('fixed_income').notNull().default(false),
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

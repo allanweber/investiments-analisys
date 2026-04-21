@@ -3,6 +3,7 @@ CREATE TABLE "market_quote" (
 	"provider" text NOT NULL,
 	"market" text,
 	"currency" text,
+	"logo_url" text,
 	"price" numeric(24, 8),
 	"as_of" timestamp with time zone,
 	"fetched_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -29,6 +30,7 @@ CREATE TABLE "user_allocation_profile" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "investment_type" ADD COLUMN "fixed_income" boolean DEFAULT false NOT NULL;--> statement-breakpoint
 ALTER TABLE "portfolio_holding" ADD CONSTRAINT "portfolio_holding_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "portfolio_holding" ADD CONSTRAINT "portfolio_holding_investment_id_investment_id_fk" FOREIGN KEY ("investment_id") REFERENCES "public"."investment"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_allocation_profile" ADD CONSTRAINT "user_allocation_profile_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;

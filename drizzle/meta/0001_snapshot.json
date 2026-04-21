@@ -1,5 +1,5 @@
 {
-  "id": "ccdac048-5cc5-41a9-b9a5-872fc0b79ad0",
+  "id": "81496bbc-7247-48ea-b3bb-58144cacdab7",
   "prevId": "43266b0c-3e4a-4a86-8c90-6dc58359e0fc",
   "version": "7",
   "dialect": "postgresql",
@@ -293,6 +293,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "fixed_income": {
+          "name": "fixed_income",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "sort_order": {
           "name": "sort_order",
           "type": "integer",
@@ -361,6 +368,12 @@
         },
         "currency": {
           "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "logo_url": {
+          "name": "logo_url",
           "type": "text",
           "primaryKey": false,
           "notNull": false
