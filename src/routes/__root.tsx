@@ -22,7 +22,7 @@ function RootNotFound() {
         <div className="flex flex-wrap gap-3">
           <Link
             to="/dashboard"
-            className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary"
+            className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
           >
             {m.notFound.ctaDashboard}
           </Link>

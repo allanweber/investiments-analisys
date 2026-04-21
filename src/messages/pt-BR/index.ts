@@ -60,6 +60,7 @@ const core = {
     navInvestimentosShort: 'Invest',
     navTiposLong: 'Tipos de Investimento',
     navTiposShort: 'Tipos',
+    navCarteira: 'Carteira',
     newInvestment: 'Novo investimento',
   },
   theme: {

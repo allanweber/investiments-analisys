@@ -10,11 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TiposRouteImport } from './routes/tipos'
+import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as InvestimentosRouteImport } from './routes/investimentos'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PortfolioHoldingsRouteImport } from './routes/portfolio/holdings'
 import { Route as TiposTypeIdPerguntasRouteImport } from './routes/tipos/$typeId/perguntas'
 import { Route as InvestimentosIdPontuacaoRouteImport } from './routes/investimentos/$id/pontuacao'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -22,6 +24,11 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 const TiposRoute = TiposRouteImport.update({
   id: '/tipos',
   path: '/tipos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortfolioRoute = PortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -49,6 +56,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortfolioHoldingsRoute = PortfolioHoldingsRouteImport.update({
+  id: '/holdings',
+  path: '/holdings',
+  getParentRoute: () => PortfolioRoute,
+} as any)
 const TiposTypeIdPerguntasRoute = TiposTypeIdPerguntasRouteImport.update({
   id: '/$typeId/perguntas',
   path: '/$typeId/perguntas',
@@ -72,7 +84,9 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/investimentos': typeof InvestimentosRouteWithChildren
   '/login': typeof LoginRoute
+  '/portfolio': typeof PortfolioRouteWithChildren
   '/tipos': typeof TiposRouteWithChildren
+  '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
   '/tipos/$typeId/perguntas': typeof TiposTypeIdPerguntasRoute
@@ -83,7 +97,9 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/investimentos': typeof InvestimentosRouteWithChildren
   '/login': typeof LoginRoute
+  '/portfolio': typeof PortfolioRouteWithChildren
   '/tipos': typeof TiposRouteWithChildren
+  '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
   '/tipos/$typeId/perguntas': typeof TiposTypeIdPerguntasRoute
@@ -95,7 +111,9 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/investimentos': typeof InvestimentosRouteWithChildren
   '/login': typeof LoginRoute
+  '/portfolio': typeof PortfolioRouteWithChildren
   '/tipos': typeof TiposRouteWithChildren
+  '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
   '/tipos/$typeId/perguntas': typeof TiposTypeIdPerguntasRoute
@@ -108,7 +126,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/investimentos'
     | '/login'
+    | '/portfolio'
     | '/tipos'
+    | '/portfolio/holdings'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
     | '/tipos/$typeId/perguntas'
@@ -119,7 +139,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/investimentos'
     | '/login'
+    | '/portfolio'
     | '/tipos'
+    | '/portfolio/holdings'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
     | '/tipos/$typeId/perguntas'
@@ -130,7 +152,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/investimentos'
     | '/login'
+    | '/portfolio'
     | '/tipos'
+    | '/portfolio/holdings'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
     | '/tipos/$typeId/perguntas'
@@ -142,6 +166,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   InvestimentosRoute: typeof InvestimentosRouteWithChildren
   LoginRoute: typeof LoginRoute
+  PortfolioRoute: typeof PortfolioRouteWithChildren
   TiposRoute: typeof TiposRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -153,6 +178,13 @@ declare module '@tanstack/react-router' {
       path: '/tipos'
       fullPath: '/tipos'
       preLoaderRoute: typeof TiposRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portfolio': {
+      id: '/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof PortfolioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -190,6 +222,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portfolio/holdings': {
+      id: '/portfolio/holdings'
+      path: '/holdings'
+      fullPath: '/portfolio/holdings'
+      preLoaderRoute: typeof PortfolioHoldingsRouteImport
+      parentRoute: typeof PortfolioRoute
+    }
     '/tipos/$typeId/perguntas': {
       id: '/tipos/$typeId/perguntas'
       path: '/$typeId/perguntas'
@@ -226,6 +265,18 @@ const InvestimentosRouteWithChildren = InvestimentosRoute._addFileChildren(
   InvestimentosRouteChildren,
 )
 
+interface PortfolioRouteChildren {
+  PortfolioHoldingsRoute: typeof PortfolioHoldingsRoute
+}
+
+const PortfolioRouteChildren: PortfolioRouteChildren = {
+  PortfolioHoldingsRoute: PortfolioHoldingsRoute,
+}
+
+const PortfolioRouteWithChildren = PortfolioRoute._addFileChildren(
+  PortfolioRouteChildren,
+)
+
 interface TiposRouteChildren {
   TiposTypeIdPerguntasRoute: typeof TiposTypeIdPerguntasRoute
 }
@@ -242,6 +293,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   InvestimentosRoute: InvestimentosRouteWithChildren,
   LoginRoute: LoginRoute,
+  PortfolioRoute: PortfolioRouteWithChildren,
   TiposRoute: TiposRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

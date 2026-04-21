@@ -16,8 +16,14 @@ import {
   investment,
   investmentAnswer,
   investmentType,
+  marketQuote,
+  portfolioHolding,
   question,
+  userAllocationProfile,
 } from '#/db/schema'
+import type { UserAllocationTargetsJson } from '#/db/schema'
+import { getQuoteProvider } from '#/lib/market-data'
+import type { MarketQuote, MarketQuoteInput, QuoteFetchResult } from '#/lib/market-data'
 
 /** Avoid top-level `#/db` / `auth` imports so client chunks do not bundle `pg`. */
 async function getDb() {
@@ -35,6 +41,372 @@ async function requireUserId(): Promise<string> {
 }
 
 const uuid = z.string().uuid()
+const currencyCode = z.string().min(1).max(10)
+const pct = z.number().min(0).max(100)
+
+function requireBrapiToken(): string {
+  const token = process.env.BRAPI_TOKEN
+  if (!token || !token.trim()) {
+    throw new Error('BRAPI_TOKEN is required (non-empty).')
+  }
+  return token
+}
+
+function normalizeHoldingCurrency(c: string | null | undefined): string | null {
+  const t = (c ?? '').trim().toUpperCase()
+  return t.length ? t : null
+}
+
+/**
+ * If the same symbol appears with mixed `holdingCurrency` values, **any** `BRL`
+ * row routes that symbol to brapi-first for this refresh.
+ */
+function symbolPreferBrapiFirst(inputs: readonly MarketQuoteInput[], normalizedSymbol: string): boolean {
+  for (const inp of inputs) {
+    if (inp.symbol.trim() !== normalizedSymbol) continue
+    if (normalizeHoldingCurrency(inp.holdingCurrency) === 'BRL') return true
+  }
+  return false
+}
+
+function clampPct(v: number): number {
+  if (!Number.isFinite(v)) return 0
+  return Math.max(0, Math.min(100, v))
+}
+
+function parseTargetsJson(raw: unknown): UserAllocationTargetsJson {
+  if (!raw || typeof raw !== 'object') return {}
+  const out: UserAllocationTargetsJson = {}
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof v === 'number' && Number.isFinite(v)) {
+      out[k] = { targetPct: clampPct(v) }
+      continue
+    }
+    if (v && typeof v === 'object' && 'targetPct' in (v as object)) {
+      const t = v as { targetPct?: unknown; minPct?: unknown; maxPct?: unknown }
+      out[k] = {
+        targetPct: clampPct(num(t.targetPct)),
+        minPct: t.minPct == null ? null : clampPct(num(t.minPct)),
+        maxPct: t.maxPct == null ? null : clampPct(num(t.maxPct)),
+      }
+    }
+  }
+  return out
+}
+
+function num(n: unknown): number {
+  if (typeof n === 'number' && Number.isFinite(n)) return n
+  if (typeof n === 'string') {
+    const v = Number(n)
+    return Number.isFinite(v) ? v : 0
+  }
+  return 0
+}
+
+function toMoney(n: number): number {
+  // Keep as JS number for UI; DB stores numerics as strings.
+  return Number.isFinite(n) ? n : 0
+}
+
+function marketQuoteTtlMsFromEnv(): number {
+  const raw = (process.env.MARKET_QUOTE_TTL_HOURS ?? '').trim()
+  const h = raw ? Number(raw) : 12
+  const hours = Number.isFinite(h) && h > 0 ? h : 12
+  return hours * 60 * 60_000
+}
+
+function logMarketDataEvent(event: Record<string, unknown>) {
+  const payload = {
+    ts: new Date().toISOString(),
+    scope: 'marketData',
+    ...event,
+  }
+  // Keep logs greppable and structured.
+  const line = JSON.stringify(payload)
+  const level = typeof event.level === 'string' ? event.level : 'info'
+  if (level === 'error') console.error(line)
+  else if (level === 'warn') console.warn(line)
+  else console.info(line)
+}
+
+function isMarketDataLogEnabled(): boolean {
+  // Boolean toggle. Default: off.
+  const v = (process.env.MARKET_DATA_LOG ?? '').trim().toLowerCase()
+  if (v === '1' || v === 'true' || v === 'yes' || v === 'on') return true
+  return false
+}
+
+async function loadQuotesWithCache(params: {
+  userId: string
+  inputs: MarketQuoteInput[]
+  maxAgeMs?: number
+}): Promise<{
+  bySymbol: Map<
+    string,
+    { price: number | null; currency: string | null; fetchedAt: Date | null; logoUrl: string | null }
+  >
+  stale: boolean
+}> {
+  // Strict boot-time requirement (validated on first server invocation).
+  // We keep the check here (not at module top-level) to avoid leaking server-only env access into client stubs.
+  requireBrapiToken()
+
+  const logEnabled = isMarketDataLogEnabled()
+
+  const db = await getDb()
+  const maxAgeMs = params.maxAgeMs ?? marketQuoteTtlMsFromEnv()
+  const now = Date.now()
+
+  const symbols = [...new Set(params.inputs.map((i) => i.symbol.trim()).filter(Boolean))]
+  if (symbols.length === 0) {
+    return { bySymbol: new Map(), stale: false }
+  }
+
+  const cached = await db
+    .select()
+    .from(marketQuote)
+    .where(inArray(marketQuote.symbol, symbols))
+    .orderBy(asc(marketQuote.fetchedAt))
+
+  // Pick the freshest cache entry per symbol (any provider) for now.
+  const cacheBySymbol = new Map<string, (typeof cached)[number]>()
+  for (const row of cached) {
+    const prev = cacheBySymbol.get(row.symbol)
+    if (!prev) {
+      cacheBySymbol.set(row.symbol, row)
+      continue
+    }
+    const prevAt = prev.fetchedAt instanceof Date ? prev.fetchedAt.getTime() : 0
+    const at = row.fetchedAt instanceof Date ? row.fetchedAt.getTime() : 0
+    if (at >= prevAt) cacheBySymbol.set(row.symbol, row)
+  }
+
+  const freshEnough = (row: any) => {
+    const at = row?.fetchedAt instanceof Date ? row.fetchedAt.getTime() : 0
+    return at > 0 && now - at <= maxAgeMs
+  }
+
+  const needFetch = symbols.filter((s) => {
+    const row = cacheBySymbol.get(s)
+    return !row || !freshEnough(row)
+  })
+
+  let stale = false
+  if (needFetch.length > 0) {
+    const brapi = getQuoteProvider('brapi')
+    const yfinance = getQuoteProvider('yfinance')
+
+    const brlPrimary = needFetch.filter((s) => symbolPreferBrapiFirst(params.inputs, s))
+    const nonBrl = needFetch.filter((s) => !symbolPreferBrapiFirst(params.inputs, s))
+
+    const brlInputs = brlPrimary.map((s) => ({ symbol: s, holdingCurrency: 'BRL' as const }))
+    let brlResults: QuoteFetchResult[] = []
+    const brapiStart = Date.now()
+    if (logEnabled) {
+      logMarketDataEvent({
+        level: 'info',
+        msg: 'brapi -> triggered',
+        provider: 'brapi',
+        phase: 'triggered',
+        userId: params.userId,
+        request: { symbols: brlPrimary, n: brlPrimary.length, holdingCurrency: 'BRL' },
+      })
+    }
+    try {
+      brlResults = await brapi.fetchQuotes(brlInputs)
+      // brapi provider logs the real request/response when MARKET_DATA_LOG=true
+    } catch (e: any) {
+      stale = true
+      // Provider errors must always be logged (regardless of MARKET_DATA_LOG_MODE).
+      logMarketDataEvent({
+        level: 'error',
+        msg: 'brapi -> error',
+        provider: 'brapi',
+        phase: 'error',
+        userId: params.userId,
+        elapsedMs: Date.now() - brapiStart,
+        request: { symbols: brlPrimary, n: brlPrimary.length, holdingCurrency: 'BRL' },
+        error: {
+          message: typeof e?.message === 'string' ? e.message : 'Provider error',
+          stack: typeof e?.stack === 'string' ? e?.stack : undefined,
+        },
+      })
+      brlResults = brlPrimary.map(() => ({
+        ok: false as const,
+        code: 'PROVIDER_ERROR' as const,
+        message: typeof e?.message === 'string' ? e.message : 'Provider error',
+      }))
+    }
+    const brlBySymbol = new Map<string, QuoteFetchResult>()
+    for (let i = 0; i < brlPrimary.length; i++) {
+      brlBySymbol.set(brlPrimary[i]!, brlResults[i]!)
+    }
+
+    const symbolsForYahoo = new Set<string>(nonBrl)
+    for (const s of brlPrimary) {
+      const r = brlBySymbol.get(s)
+      if (!r?.ok) symbolsForYahoo.add(s)
+    }
+    const yahooList = [...symbolsForYahoo]
+
+    const yahooInputs = yahooList.map((s) => ({ symbol: s }))
+    let yahooResults: QuoteFetchResult[] = []
+    if (yahooList.length > 0) {
+      const yStart = Date.now()
+      if (logEnabled) {
+        logMarketDataEvent({
+          level: 'info',
+          msg: 'yfinance -> triggered',
+          provider: 'yfinance',
+          phase: 'triggered',
+          userId: params.userId,
+          request: { symbols: yahooList, n: yahooList.length },
+        })
+      }
+      try {
+        yahooResults = await yfinance.fetchQuotes(yahooInputs)
+        // yfinance provider logs the real request/response when MARKET_DATA_LOG=true
+      } catch (e: any) {
+        stale = true
+        // Provider errors must always be logged (regardless of MARKET_DATA_LOG_MODE).
+        logMarketDataEvent({
+          level: 'error',
+          msg: 'yfinance -> error',
+          provider: 'yfinance',
+          phase: 'error',
+          userId: params.userId,
+          elapsedMs: Date.now() - yStart,
+          request: { symbols: yahooList, n: yahooList.length },
+          error: {
+            message: typeof e?.message === 'string' ? e.message : 'Provider error',
+            stack: typeof e?.stack === 'string' ? e?.stack : undefined,
+          },
+        })
+        yahooResults = yahooList.map(() => ({
+          ok: false as const,
+          code: 'PROVIDER_ERROR' as const,
+          message: typeof e?.message === 'string' ? e.message : 'Provider error',
+        }))
+      }
+    }
+    const yahooBySymbol = new Map<string, QuoteFetchResult>()
+    for (let i = 0; i < yahooList.length; i++) {
+      yahooBySymbol.set(yahooList[i]!, yahooResults[i]!)
+    }
+
+    const toSave = new Map<string, MarketQuote>()
+
+    for (const s of brlPrimary) {
+      const br = brlBySymbol.get(s)!
+      if (!br.ok && br.code === 'PROVIDER_ERROR') stale = true
+      if (br.ok) toSave.set(s, br.quote)
+    }
+
+    for (const s of nonBrl) {
+      const yr = yahooBySymbol.get(s)!
+      if (!yr.ok && yr.code === 'PROVIDER_ERROR') stale = true
+      if (yr.ok) toSave.set(s, yr.quote)
+    }
+
+    // Yahoo fallback for BRL-primary failures.
+    for (const s of brlPrimary) {
+      if (toSave.has(s)) continue
+      const yr = yahooBySymbol.get(s)!
+      if (!yr.ok && yr.code === 'PROVIDER_ERROR') stale = true
+      if (yr.ok) toSave.set(s, yr.quote)
+    }
+
+    // Fetch missing logos for yfinance quotes immediately after quote,
+    // but only when market_quote doesn't already have a cached logo for the symbol.
+    const needLogo: string[] = []
+    for (const [symbol, q] of toSave.entries()) {
+      if (q.provider !== 'yfinance') continue
+      if (q.logoUrl) continue
+      const cachedLogo = (cacheBySymbol.get(symbol) as any)?.logoUrl ?? null
+      if (!cachedLogo) needLogo.push(symbol)
+    }
+    if (needLogo.length > 0) {
+      const { fetchYahooLogoUrls } = await import('#/lib/market-data/providers/yfinance')
+      const logos = await fetchYahooLogoUrls(needLogo)
+      for (const sym of needLogo) {
+        const logoUrl = logos.get(sym) ?? null
+        if (!logoUrl) continue
+        const q = toSave.get(sym)
+        if (!q) continue
+        if (q.provider !== 'yfinance') continue
+        toSave.set(sym, { ...q, logoUrl })
+      }
+    }
+
+    const saveSymbols = [...toSave.keys()]
+    if (saveSymbols.length > 0) {
+      for (const s of saveSymbols) {
+        const q = toSave.get(s)!
+        await db
+          .insert(marketQuote)
+          .values({
+            provider: q.provider,
+            symbol: q.symbol,
+            market: q.market ?? null,
+            currency: q.currency ?? null,
+            logoUrl: q.logoUrl ?? null,
+            price: q.price == null ? null : String(q.price),
+            asOf: q.asOf ?? null,
+            fetchedAt: sql`now()`,
+          })
+          .onConflictDoUpdate({
+            target: marketQuote.symbol,
+            set: {
+              provider: q.provider,
+              market: q.market ?? null,
+              currency: q.currency ?? null,
+              logoUrl: q.logoUrl ?? null,
+              price: q.price == null ? null : String(q.price),
+              asOf: q.asOf ?? null,
+              fetchedAt: sql`now()`,
+            },
+          })
+      }
+    }
+
+    const refreshed = await db
+      .select()
+      .from(marketQuote)
+      .where(inArray(marketQuote.symbol, needFetch))
+      .orderBy(asc(marketQuote.fetchedAt))
+
+    for (const row of refreshed) {
+      const prev = cacheBySymbol.get(row.symbol)
+      if (!prev) {
+        cacheBySymbol.set(row.symbol, row)
+        continue
+      }
+      const prevAt = prev.fetchedAt instanceof Date ? prev.fetchedAt.getTime() : 0
+      const at = row.fetchedAt instanceof Date ? row.fetchedAt.getTime() : 0
+      if (at >= prevAt) cacheBySymbol.set(row.symbol, row)
+    }
+  }
+
+  const bySymbol = new Map<
+    string,
+    { price: number | null; currency: string | null; fetchedAt: Date | null; logoUrl: string | null }
+  >()
+  for (const s of symbols) {
+    const row = cacheBySymbol.get(s)
+    bySymbol.set(s, {
+      price: row?.price == null ? null : toMoney(num(row.price)),
+      currency: row?.currency ?? null,
+      fetchedAt: row?.fetchedAt ?? null,
+      logoUrl: (row as any)?.logoUrl ?? null,
+    })
+  }
+  return { bySymbol, stale }
+}
+
+function computePct(part: number, total: number): number {
+  if (total <= 0) return 0
+  return (part / total) * 100
+}
 
 export const listInvestmentTypesWithCounts = createServerFn({ method: 'GET' }).handler(
   async () => {
@@ -792,3 +1164,445 @@ export const getDashboardSummaryFn = createServerFn({ method: 'GET' }).handler(
     }
   },
 )
+
+// —— Phase 1: Portfolio / holdings / targets ——
+
+export const listPortfolioCurrenciesFn = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    const db = await getDb()
+    const userId = await requireUserId()
+    const rows = await db
+      .select({ currency: portfolioHolding.currency })
+      .from(portfolioHolding)
+      .where(eq(portfolioHolding.userId, userId))
+    const uniq = [...new Set(rows.map((r) => r.currency).filter(Boolean))].sort((a, b) =>
+      a.localeCompare(b),
+    )
+    return uniq
+  },
+)
+
+const upsertHoldingInput = z.object({
+  investmentId: uuid,
+  ticker: z.string().trim().min(1).max(32).optional().nullable(),
+  quantity: z.number().positive(),
+  avgCost: z.number().nonnegative(),
+  currency: currencyCode,
+  broker: z.string().trim().max(200).optional().nullable(),
+  lastOperationAt: z.string().datetime().optional().nullable(),
+})
+
+export const upsertPortfolioHoldingFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => upsertHoldingInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = await getDb()
+    const userId = await requireUserId()
+
+    const [inv] = await db
+      .select({ id: investment.id })
+      .from(investment)
+      .where(and(eq(investment.id, data.investmentId), eq(investment.userId, userId)))
+      .limit(1)
+    if (!inv) return { ok: false as const, code: 'NOT_FOUND' as const }
+
+    await db
+      .insert(portfolioHolding)
+      .values({
+        userId,
+        investmentId: data.investmentId,
+        ticker: data.ticker?.trim() ? data.ticker.trim() : null,
+        quantity: String(data.quantity),
+        avgCost: String(data.avgCost),
+        currency: data.currency.trim().toUpperCase(),
+        broker: data.broker?.trim() ? data.broker.trim() : null,
+        lastOperationAt: data.lastOperationAt ? new Date(data.lastOperationAt) : null,
+      })
+      .onConflictDoUpdate({
+        target: [portfolioHolding.userId, portfolioHolding.investmentId],
+        set: {
+          ticker: data.ticker?.trim() ? data.ticker.trim() : null,
+          quantity: String(data.quantity),
+          avgCost: String(data.avgCost),
+          currency: data.currency.trim().toUpperCase(),
+          broker: data.broker?.trim() ? data.broker.trim() : null,
+          lastOperationAt: data.lastOperationAt ? new Date(data.lastOperationAt) : null,
+          updatedAt: sql`now()`,
+        },
+      })
+
+    return { ok: true as const }
+  })
+
+export const deletePortfolioHoldingFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => idInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = await getDb()
+    const userId = await requireUserId()
+    await db
+      .delete(portfolioHolding)
+      .where(and(eq(portfolioHolding.userId, userId), eq(portfolioHolding.investmentId, data.id)))
+    return { ok: true as const }
+  })
+
+export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) =>
+    z.object({ currency: currencyCode.optional().nullable() }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    const db = await getDb()
+    const userId = await requireUserId()
+
+    const whereCurrency = data.currency ? eq(portfolioHolding.currency, data.currency) : undefined
+
+    const rows = await db
+      .select({
+        investmentId: portfolioHolding.investmentId,
+        ticker: portfolioHolding.ticker,
+        quantity: portfolioHolding.quantity,
+        avgCost: portfolioHolding.avgCost,
+        currency: portfolioHolding.currency,
+        broker: portfolioHolding.broker,
+        lastOperationAt: portfolioHolding.lastOperationAt,
+        investmentName: investment.name,
+        investmentTypeId: investmentType.id,
+        investmentTypeName: investmentType.name,
+        typeSortOrder: investmentType.sortOrder,
+      })
+      .from(portfolioHolding)
+      .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
+      .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
+      .where(
+        and(
+          eq(portfolioHolding.userId, userId),
+          eq(investment.userId, userId),
+          whereCurrency ?? sql`true`,
+        ),
+      )
+      .orderBy(asc(investmentType.sortOrder), asc(investment.name))
+
+    const tickers: MarketQuoteInput[] = rows
+      .map((r) => ({
+        symbol: (r.ticker ?? '').trim(),
+        holdingCurrency: r.currency ?? null,
+      }))
+      .filter((i) => i.symbol.length > 0)
+    const { bySymbol, stale } = await loadQuotesWithCache({ userId, inputs: tickers })
+
+    const enriched = rows.map((r) => {
+      const q = (r.ticker ?? '').trim() ? bySymbol.get((r.ticker ?? '').trim()) : null
+      const lastPrice = q?.price ?? null
+      const qty = toMoney(num(r.quantity))
+      const avg = toMoney(num(r.avgCost))
+      const marketValue = lastPrice == null ? null : qty * lastPrice
+      const pl = lastPrice == null ? null : qty * (lastPrice - avg)
+      return {
+        ...r,
+        quantity: qty,
+        avgCost: avg,
+        lastPrice,
+        marketValue,
+        unrealizedPl: pl,
+        quoteFetchedAt: q?.fetchedAt ?? null,
+        quoteCurrency: q?.currency ?? null,
+        quoteLogoUrl: q?.logoUrl ?? null,
+        quoteStatus:
+          !r.ticker || !r.ticker.trim()
+            ? ('MISSING_TICKER' as const)
+            : lastPrice == null
+              ? ('MISSING_QUOTE' as const)
+              : ('OK' as const),
+      }
+    })
+
+    return { rows: enriched, quotesStale: stale }
+  })
+
+export const listAllocationTargetsFn = createServerFn({ method: 'GET' }).handler(async () => {
+  const db = await getDb()
+  const userId = await requireUserId()
+  const rowsList = await db
+    .select({ targets: userAllocationProfile.targets })
+    .from(userAllocationProfile)
+    .where(eq(userAllocationProfile.userId, userId))
+  if (rowsList.length === 0) {
+    return []
+  }
+  const map = parseTargetsJson(rowsList[0].targets)
+  return Object.entries(map).map(([investmentTypeId, ent]) => ({
+    investmentTypeId,
+    targetPct: clampPct(num(ent.targetPct)),
+    minPct: ent.minPct == null ? null : clampPct(num(ent.minPct)),
+    maxPct: ent.maxPct == null ? null : clampPct(num(ent.maxPct)),
+  }))
+})
+
+const upsertTargetInput = z.object({
+  investmentTypeId: uuid,
+  targetPct: pct,
+  minPct: pct.optional().nullable(),
+  maxPct: pct.optional().nullable(),
+})
+
+export const upsertAllocationTargetFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => upsertTargetInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = await getDb()
+    const userId = await requireUserId()
+
+    const profileRows = await db
+      .select({ targets: userAllocationProfile.targets })
+      .from(userAllocationProfile)
+      .where(eq(userAllocationProfile.userId, userId))
+
+    let next: UserAllocationTargetsJson =
+      profileRows.length > 0 ? { ...parseTargetsJson(profileRows[0].targets) } : {}
+    next[data.investmentTypeId] = {
+      targetPct: clampPct(data.targetPct),
+      minPct: data.minPct == null ? null : clampPct(data.minPct),
+      maxPct: data.maxPct == null ? null : clampPct(data.maxPct),
+    }
+
+    await db
+      .insert(userAllocationProfile)
+      .values({ userId, targets: next })
+      .onConflictDoUpdate({
+        target: [userAllocationProfile.userId],
+        set: { targets: next, updatedAt: sql`now()` },
+      })
+    return { ok: true as const }
+  })
+
+const bulkTargetsInput = z.object({
+  targets: z
+    .array(
+      z.object({
+        investmentTypeId: uuid,
+        targetPct: pct,
+      }),
+    )
+    .max(200),
+})
+
+export const saveAllocationTargetsBulkFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => bulkTargetsInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = await getDb()
+    const userId = await requireUserId()
+
+    const sum = data.targets.reduce((acc, t) => acc + clampPct(t.targetPct), 0)
+    if (Math.abs(sum - 100) > 0.02) {
+      throw new Error('INVALID_ALLOCATION_SUM')
+    }
+
+    const targets: UserAllocationTargetsJson = {}
+    for (const t of data.targets) {
+      targets[t.investmentTypeId] = { targetPct: clampPct(t.targetPct) }
+    }
+
+    await db
+      .insert(userAllocationProfile)
+      .values({ userId, targets })
+      .onConflictDoUpdate({
+        target: [userAllocationProfile.userId],
+        set: { targets, updatedAt: sql`now()` },
+      })
+
+    return { ok: true as const }
+  })
+
+const portfolioOverviewInput = z.object({ currency: currencyCode.optional().nullable() })
+
+export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => portfolioOverviewInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = await getDb()
+    const userId = await requireUserId()
+
+    const holdings = await db
+      .select({
+        currency: portfolioHolding.currency,
+        ticker: portfolioHolding.ticker,
+        quantity: portfolioHolding.quantity,
+        avgCost: portfolioHolding.avgCost,
+        investmentId: portfolioHolding.investmentId,
+        investmentName: investment.name,
+        investmentTypeId: investmentType.id,
+        investmentTypeName: investmentType.name,
+        typeSortOrder: investmentType.sortOrder,
+      })
+      .from(portfolioHolding)
+      .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
+      .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
+      .where(and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)))
+
+    const currencies = [...new Set(holdings.map((h) => h.currency))].sort((a, b) =>
+      a.localeCompare(b),
+    )
+    const selected =
+      data.currency && currencies.includes(data.currency) ? data.currency : currencies[0] ?? null
+
+    const scoped = selected ? holdings.filter((h) => h.currency === selected) : []
+
+    const inputs: MarketQuoteInput[] = scoped
+      .map((r) => ({
+        symbol: (r.ticker ?? '').trim(),
+        holdingCurrency: r.currency ?? null,
+      }))
+      .filter((i) => i.symbol.length > 0)
+
+    const { bySymbol, stale } = await loadQuotesWithCache({ userId, inputs })
+
+    const byType = new Map<
+      string,
+      {
+        investmentTypeId: string
+        investmentTypeName: string
+        typeSortOrder: number
+        marketValue: number
+      }
+    >()
+
+    let total = 0
+    let unrealizedPl = 0
+    for (const r of scoped) {
+      const q = (r.ticker ?? '').trim() ? bySymbol.get((r.ticker ?? '').trim()) : null
+      const lastPrice = q?.price ?? null
+      if (lastPrice == null) continue
+      const qty = toMoney(num(r.quantity))
+      const avg = toMoney(num(r.avgCost))
+      const mv = qty * lastPrice
+      total += mv
+      unrealizedPl += qty * (lastPrice - avg)
+      const prev = byType.get(r.investmentTypeId)
+      if (!prev) {
+        byType.set(r.investmentTypeId, {
+          investmentTypeId: r.investmentTypeId,
+          investmentTypeName: r.investmentTypeName,
+          typeSortOrder: r.typeSortOrder,
+          marketValue: mv,
+        })
+      } else {
+        prev.marketValue += mv
+      }
+    }
+
+    const profileSelect = await db
+      .select({ targets: userAllocationProfile.targets })
+      .from(userAllocationProfile)
+      .where(eq(userAllocationProfile.userId, userId))
+
+    const targetsMap: UserAllocationTargetsJson =
+      profileSelect.length > 0 ? parseTargetsJson(profileSelect[0].targets) : {}
+
+    const targetsRows = await db
+      .select({
+        investmentTypeId: investmentType.id,
+        investmentTypeName: investmentType.name,
+        typeSortOrder: investmentType.sortOrder,
+      })
+      .from(investmentType)
+      .where(eq(investmentType.userId, userId))
+      .orderBy(asc(investmentType.sortOrder), asc(investmentType.name))
+
+    const targets = targetsRows.map((t) => {
+      const entry = targetsMap[t.investmentTypeId]
+      const rawPct = entry === undefined ? 0 : entry.targetPct
+      return {
+        investmentTypeId: t.investmentTypeId,
+        investmentTypeName: t.investmentTypeName,
+        typeSortOrder: t.typeSortOrder,
+        targetPct: clampPct(num(rawPct)),
+      }
+    })
+
+    const allocation = [...byType.values()]
+      .sort((a, b) => a.typeSortOrder - b.typeSortOrder || a.investmentTypeName.localeCompare(b.investmentTypeName))
+      .map((t) => ({
+        investmentTypeId: t.investmentTypeId,
+        investmentTypeName: t.investmentTypeName,
+        marketValue: t.marketValue,
+        currentPct: clampPct(computePct(t.marketValue, total)),
+      }))
+
+    const allocByTypeId = new Map(allocation.map((a) => [a.investmentTypeId, a]))
+    const drift = targets
+      .map((t) => {
+        const current = allocByTypeId.get(t.investmentTypeId)?.currentPct ?? 0
+        const delta = current - t.targetPct
+        return {
+          investmentTypeId: t.investmentTypeId,
+          investmentTypeName: t.investmentTypeName,
+          currentPct: current,
+          targetPct: t.targetPct,
+          delta,
+          status:
+            t.targetPct <= 0
+              ? ('SEM_META' as const)
+              : delta > 0.5
+                ? ('ACIMA' as const)
+                : delta < -0.5
+                  ? ('ABAIXO' as const)
+                  : ('EM_ALVO' as const),
+        }
+      })
+      .sort((a, b) => {
+        const sa = targets.find((t) => t.investmentTypeId === a.investmentTypeId)?.typeSortOrder ?? 0
+        const sb = targets.find((t) => t.investmentTypeId === b.investmentTypeId)?.typeSortOrder ?? 0
+        return sa - sb
+      })
+
+    const overviewRows = await loadInvestmentOverviewRows(userId)
+    const byTypeId = new Map<string, InvestmentOverviewRow[]>()
+    for (const r of overviewRows) {
+      const list = byTypeId.get(r.investmentTypeId) ?? []
+      list.push(r)
+      byTypeId.set(r.investmentTypeId, list)
+    }
+
+    const suggestions = drift
+      .filter((d) => d.targetPct > 0 && d.currentPct < d.targetPct)
+      .map((d) => {
+        const list = byTypeId.get(d.investmentTypeId) ?? []
+        if (list.length === 0) return null
+        const best = [...list].sort(compareInvestmentsByRank)[0]
+        return {
+          investmentTypeId: d.investmentTypeId,
+          investmentTypeName: d.investmentTypeName,
+          deltaPct: d.targetPct - d.currentPct,
+          investmentId: best.id,
+          investmentName: best.name,
+          score: best.score,
+        }
+      })
+      .filter(Boolean) as Array<{
+      investmentTypeId: string
+      investmentTypeName: string
+      deltaPct: number
+      investmentId: string
+      investmentName: string
+      score: number
+    }>
+
+    const targetTotal = targets.reduce((acc, t) => acc + t.targetPct, 0)
+    const quoteFetchedAts = inputs
+      .map((i) => bySymbol.get(i.symbol)?.fetchedAt?.getTime?.() ?? 0)
+      .filter((t) => t > 0)
+    const lastUpdatedAt =
+      quoteFetchedAts.length === 0 ? null : new Date(Math.max(...quoteFetchedAts))
+
+    return {
+      currencies,
+      currency: selected,
+      quotesStale: stale,
+      lastUpdatedAt,
+      totals: {
+        marketValue: total,
+        targetTotalPct: clampPct(targetTotal),
+        unrealizedPl,
+      },
+      allocation,
+      targets,
+      drift,
+      suggestions,
+    }
+  })

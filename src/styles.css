@@ -55,6 +55,23 @@
   --fa-surface-tint: #545f73;
   --fa-tertiary-fixed: #6ffbbe;
   --fa-on-secondary: #ffffff;
+
+  /**
+   * Carteira — pares 1–2, 3–4 … 11–12 = mesmo matiz (faixa para dicas de nome PT);
+   * índice final = `allocSwatchIndexForType` (hash do id).
+   */
+  --fa-alloc-1: #1e3a8a;
+  --fa-alloc-2: #2563eb;
+  --fa-alloc-3: #065f46;
+  --fa-alloc-4: #059669;
+  --fa-alloc-5: #075985;
+  --fa-alloc-6: #0284c7;
+  --fa-alloc-7: #5b21b6;
+  --fa-alloc-8: #7c3aed;
+  --fa-alloc-9: #9f1239;
+  --fa-alloc-10: #be123c;
+  --fa-alloc-11: #0f766e;
+  --fa-alloc-12: #14b8a6;
 }
 
 html.dark {
@@ -104,6 +121,19 @@ html.dark {
   --fa-surface-tint: #6b7f99;
   --fa-tertiary-fixed: #5ee9b8;
   --fa-on-secondary: #101418;
+
+  --fa-alloc-1: #60a5fa;
+  --fa-alloc-2: #93c5fd;
+  --fa-alloc-3: #34d399;
+  --fa-alloc-4: #6ee7b7;
+  --fa-alloc-5: #38bdf8;
+  --fa-alloc-6: #7dd3fc;
+  --fa-alloc-7: #a78bfa;
+  --fa-alloc-8: #c4b5fd;
+  --fa-alloc-9: #fb7185;
+  --fa-alloc-10: #fda4af;
+  --fa-alloc-11: #2dd4bf;
+  --fa-alloc-12: #5eead4;
 }
 
 :root {
@@ -132,8 +162,9 @@ html.dark {
 .dark {
   --background: #101418;
   --foreground: #eff1f3;
-  --primary: #eff1f3;
-  --primary-foreground: #111c2d;
+  /* shadcn `bg-primary`: tom sóbrio; parear sempre com `text-primary-foreground` (não `text-on-primary`, que é FA p/ navy). */
+  --primary: #c4ced9;
+  --primary-foreground: #0f1419;
   --card: #161c22;
   --card-foreground: #eff1f3;
   --popover: #161c22;

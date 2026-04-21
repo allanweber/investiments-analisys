@@ -1,0 +1,1 @@
+ALTER TABLE "market_quote" ADD COLUMN "logo_url" text;

@@ -44,7 +44,7 @@ isProject: false
 - **Targets & rebalancing helper**
   - Add per-type target allocation % (sum to 100) and optional max/min bands.
   - Show drift vs target, and suggest where to deploy new capital (e.g., “allocate next $X to top-ranked items in underweight types”).
-  - Store targets in a new `allocation_target` table keyed by `user_id` and `investment_type_id`.
+  - Store targets in `user_allocation_profile` (one JSON row per `user_id`, map by `investment_type_id`).
 
 ### Phase 2 (high leverage): make scoring more “decision-grade”
 
