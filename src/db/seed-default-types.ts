@@ -8,6 +8,7 @@ const DEFAULT_TYPE_NAMES = [
   'Renda fixa',
   'Ações',
   'Ações internacionais',
+  'ETF',
   'FIIs',
   'Cripto',
   'REITs',

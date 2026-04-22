@@ -3,6 +3,19 @@
  * Keys must match exactly `investment_type.name` after signup seed.
  */
 
+export const DEFAULT_QUESTIONS_ETF = [
+  'O ETF indica de forma clara o índice de referência e a política de replicação (física ou sintética) no material oficial?',
+  'A taxa de gestão (e custos totais) é baixa em comparação com ETFs do mesmo universo na mesma bolsa?',
+  'A liquidez média e o spread na negociação são compatíveis com o tamanho da sua posição e com a possibilidade de sair com agilidade?',
+  'O tracking error histórico em relação ao benchmark é aceitável para o seu padrão?',
+  'A carteira (número de ativos e pesos) oferece a diversificação que você busca, sem concentração exagerada em poucos papéis?',
+  'Tema, região ou fator (ex.: emergentes, S&P, small caps) alinha-se à sua estratégia de alocação, e não só a um modismo de curto prazo?',
+  'A exposição cambial do fundo, se existir, corresponde ao que você intencionalmente assumiu (hedge ou não)?',
+  'Você consegue explicar em uma frase o papel deste ETF na sua carteira (não é só "comprei porque subiu")?',
+  'A política de dividendos (distribuição x acumulação) e o tratamento de IR no seu caso estão claros para você?',
+  'A reguladora, a administradora e o local de cotação são reconhecidos e acessíveis (ex.: CVM, B3, ou equivalente no exterior)?',
+] as const
+
 export const DEFAULT_QUESTIONS_ACOES = [
   'ROE historicamente maior que 5%? (Considere anos anteriores).',
   'Tem um crescimento de receitas (Ou lucro) superior a 5% nos últimos 5 anos?',
@@ -56,6 +69,7 @@ export const DEFAULT_QUESTIONS_RESERVA_VALOR = [
 const PACK_BY_TYPE_NAME: Record<string, readonly string[]> = {
   Ações: DEFAULT_QUESTIONS_ACOES,
   'Ações internacionais': DEFAULT_QUESTIONS_ACOES,
+  ETF: DEFAULT_QUESTIONS_ETF,
   FIIs: DEFAULT_QUESTIONS_FII_REIT,
   REITs: DEFAULT_QUESTIONS_FII_REIT,
   'Renda fixa': DEFAULT_QUESTIONS_RENDA_FIXA,
