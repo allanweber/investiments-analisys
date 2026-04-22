@@ -1095,7 +1095,13 @@ function HoldingsPage() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <span className="material-symbols-outlined text-outline">show_chart</span>
-                      <span className="rounded-full bg-surface-container-high px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-outline">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                          data?.quotesStale
+                            ? 'bg-error-container/55 text-error'
+                            : 'bg-tertiary-fixed-dim/25 text-on-tertiary-container'
+                        }`}
+                      >
                         {data?.quotesStale ? 'Atrasado' : 'OK'}
                       </span>
                     </div>
@@ -1186,6 +1192,12 @@ function HoldingsPage() {
                   r.lastPrice != null && r.avgCost > 0
                     ? `${(((r.lastPrice - r.avgCost) / r.avgCost) * 100).toFixed(1)}%`
                     : '—'
+                const varDir =
+                  r.lastPrice != null && r.avgCost > 0
+                    ? (r.lastPrice - r.avgCost) / r.avgCost >= 0
+                      ? ('up' as const)
+                      : ('down' as const)
+                    : null
                 return (
                   <div
                     key={r.investmentId}
@@ -1227,7 +1239,14 @@ function HoldingsPage() {
                                 : 'text-on-surface'
                           }`}
                         >
-                          {varPct}
+                          <span className="inline-flex items-center gap-0.5">
+                            {varDir ? (
+                              <span className="material-symbols-outlined text-[10px] leading-none">
+                                {varDir === 'up' ? 'north_east' : 'south_east'}
+                              </span>
+                            ) : null}
+                            <span>{varPct}</span>
+                          </span>
                         </span>
                       </div>
                       <div className="mt-1 flex justify-between text-sm">
@@ -1272,9 +1291,9 @@ function HoldingsPage() {
                   <tr>
                     <th className="py-2 text-left">Ativo</th>
                     <th className="py-2 text-right">Quantidade</th>
-                    <th className="py-2 text-right">Preço atual</th>
-                    <th className="py-2 text-right">Variação</th>
                     <th className="py-2 text-right">Posição</th>
+                    <th className="py-2 text-right">Variação</th>
+                    <th className="py-2 text-right">Preço atual</th>
                     <th className="py-2 text-right">Status</th>
                     <th className="min-w-[7rem] py-2 text-right">
                       <span className="sr-only">Ações</span>
@@ -1341,8 +1360,8 @@ function HoldingsPage() {
                           </div>
                         </td>
                         <td className="py-3 text-right tabular-nums text-on-surface">{fmtQuantity(r.quantity)}</td>
-                        <td className="py-3 text-right text-on-surface">
-                          {r.lastPrice == null ? '—' : fmtMoney(r.lastPrice, currency ?? 'BRL')}
+                        <td className="py-3 text-right font-semibold text-on-surface">
+                          {r.marketValue == null ? '—' : fmtMoney(r.marketValue, currency ?? 'BRL')}
                         </td>
                         <td
                           className={`py-3 text-right font-semibold ${
@@ -1353,12 +1372,21 @@ function HoldingsPage() {
                                 : 'text-on-surface'
                           }`}
                         >
-                          {r.lastPrice != null && r.avgCost > 0
-                            ? `${(((r.lastPrice - r.avgCost) / r.avgCost) * 100).toFixed(1)}%`
-                            : '—'}
+                          <span className="inline-flex items-center justify-end gap-1">
+                            {r.lastPrice != null && r.avgCost > 0 ? (
+                              <span className="material-symbols-outlined text-[13px] leading-none">
+                                {(r.lastPrice - r.avgCost) / r.avgCost >= 0 ? 'north_east' : 'south_east'}
+                              </span>
+                            ) : null}
+                            <span>
+                              {r.lastPrice != null && r.avgCost > 0
+                                ? `${(((r.lastPrice - r.avgCost) / r.avgCost) * 100).toFixed(1)}%`
+                                : '—'}
+                            </span>
+                          </span>
                         </td>
-                        <td className="py-3 text-right font-semibold text-on-surface">
-                          {r.marketValue == null ? '—' : fmtMoney(r.marketValue, currency ?? 'BRL')}
+                        <td className="py-3 text-right text-on-surface">
+                          {r.lastPrice == null ? '—' : fmtMoney(r.lastPrice, currency ?? 'BRL')}
                         </td>
                         <td className="py-3 text-right">
                           <span

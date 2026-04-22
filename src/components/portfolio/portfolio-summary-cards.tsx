@@ -30,7 +30,7 @@ export function PortfolioSummaryCards({
           <p className="mt-2 flex items-center gap-1 text-sm font-semibold text-tertiary-fixed-dim">
             <span className="material-symbols-outlined text-base">trending_up</span>
             {plSharePct >= 0 ? '+' : ''}
-            {plSharePct.toFixed(1)}% s/ patrimônio
+            {plSharePct.toFixed(1)}%
           </p>
         )}
         {lastUpdatedAt && (

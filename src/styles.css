@@ -21,7 +21,8 @@
   --fa-on-secondary-container: #54647a;
   --fa-tertiary: #000000;
   --fa-on-primary-fixed: #111c2d;
-  --fa-tertiary-fixed-dim: #4edea3;
+  /* Slightly deeper mint for better light-mode contrast (used by `text/bg-tertiary-fixed-dim`). */
+  --fa-tertiary-fixed-dim: #28d08e;
   --fa-secondary-fixed: #d3e4fe;
   --fa-on-secondary-fixed: #0b1c30;
   --fa-secondary-fixed-dim: #b7c8e1;
