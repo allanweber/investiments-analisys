@@ -19,15 +19,8 @@
     {
       "idx": 2,
       "version": "7",
-      "when": 1775993462901,
-      "tag": "0001_etf_backfill",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1776791311565,
-      "tag": "0001_absurd_donald_blake",
+      "when": 1776879345599,
+      "tag": "0002_cute_rhino",
       "breakpoints": true
     }
   ]
