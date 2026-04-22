@@ -22,8 +22,8 @@ import {
   userAllocationProfile,
 } from '#/db/schema'
 import type { UserAllocationTargetsJson } from '#/db/schema'
-import { getQuoteProvider } from '#/lib/market-data'
-import type { MarketQuote, MarketQuoteInput, QuoteFetchResult } from '#/lib/market-data'
+import { refreshMarketQuotesForInputs } from '#/lib/market-data/quote-refresh'
+import type { MarketQuoteInput } from '#/lib/market-data'
 
 /** Avoid top-level `#/db` / `auth` imports so client chunks do not bundle `pg`. */
 async function getDb() {
@@ -44,14 +44,6 @@ const uuid = z.string().uuid()
 const currencyCode = z.string().min(1).max(10)
 const pct = z.number().min(0).max(100)
 
-function requireBrapiToken(): string {
-  const token = process.env.BRAPI_TOKEN
-  if (!token || !token.trim()) {
-    throw new Error('BRAPI_TOKEN is required (non-empty).')
-  }
-  return token
-}
-
 function normalizeHoldingCurrency(c: string | null | undefined): string | null {
   const t = (c ?? '').trim().toUpperCase()
   return t.length ? t : null
@@ -61,18 +53,6 @@ function normalizeHoldingCurrency(c: string | null | undefined): string | null {
 function isFixedIncomeTipo(fixedIncome: boolean, typeName: string | null | undefined): boolean {
   if (fixedIncome) return true
   return (typeName ?? '').trim().toLowerCase() === 'renda fixa'
-}
-
-/**
- * If the same symbol appears with mixed `holdingCurrency` values, **any** `BRL`
- * row routes that symbol to brapi-first for this refresh.
- */
-function symbolPreferBrapiFirst(inputs: readonly MarketQuoteInput[], normalizedSymbol: string): boolean {
-  for (const inp of inputs) {
-    if (inp.symbol.trim() !== normalizedSymbol) continue
-    if (normalizeHoldingCurrency(inp.holdingCurrency) === 'BRL') return true
-  }
-  return false
 }
 
 function clampPct(v: number): number {
@@ -121,29 +101,7 @@ function marketQuoteTtlMsFromEnv(): number {
   return hours * 60 * 60_000
 }
 
-function logMarketDataEvent(event: Record<string, unknown>) {
-  const payload = {
-    ts: new Date().toISOString(),
-    scope: 'marketData',
-    ...event,
-  }
-  // Keep logs greppable and structured.
-  const line = JSON.stringify(payload)
-  const level = typeof event.level === 'string' ? event.level : 'info'
-  if (level === 'error') console.error(line)
-  else if (level === 'warn') console.warn(line)
-  else console.info(line)
-}
-
-function isMarketDataLogEnabled(): boolean {
-  // Boolean toggle. Default: off.
-  const v = (process.env.MARKET_DATA_LOG ?? '').trim().toLowerCase()
-  if (v === '1' || v === 'true' || v === 'yes' || v === 'on') return true
-  return false
-}
-
-async function loadQuotesWithCache(params: {
-  userId: string
+async function loadQuotesFromDb(params: {
   inputs: MarketQuoteInput[]
   maxAgeMs?: number
 }): Promise<{
@@ -153,16 +111,12 @@ async function loadQuotesWithCache(params: {
   >
   stale: boolean
 }> {
-  const logEnabled = isMarketDataLogEnabled()
-
   const db = await getDb()
   const maxAgeMs = params.maxAgeMs ?? marketQuoteTtlMsFromEnv()
   const now = Date.now()
 
   const symbols = [...new Set(params.inputs.map((i) => i.symbol.trim()).filter(Boolean))]
-  if (symbols.length === 0) {
-    return { bySymbol: new Map(), stale: false }
-  }
+  if (symbols.length === 0) return { bySymbol: new Map(), stale: false }
 
   const cached = await db
     .select()
@@ -170,7 +124,6 @@ async function loadQuotesWithCache(params: {
     .where(inArray(marketQuote.symbol, symbols))
     .orderBy(asc(marketQuote.fetchedAt))
 
-  // Pick the freshest cache entry per symbol (any provider) for now.
   const cacheBySymbol = new Map<string, (typeof cached)[number]>()
   for (const row of cached) {
     const prev = cacheBySymbol.get(row.symbol)
@@ -188,208 +141,10 @@ async function loadQuotesWithCache(params: {
     return at > 0 && now - at <= maxAgeMs
   }
 
-  const needFetch = symbols.filter((s) => {
+  const anyStale = symbols.some((s) => {
     const row = cacheBySymbol.get(s)
     return !row || !freshEnough(row)
   })
-
-  let stale = false
-  if (needFetch.length > 0) {
-    const brapi = getQuoteProvider('brapi')
-    const yfinance = getQuoteProvider('yfinance')
-
-    const brlPrimary = needFetch.filter((s) => symbolPreferBrapiFirst(params.inputs, s))
-    const nonBrl = needFetch.filter((s) => !symbolPreferBrapiFirst(params.inputs, s))
-
-    if (brlPrimary.length > 0) requireBrapiToken()
-
-    const brlInputs = brlPrimary.map((s) => ({ symbol: s, holdingCurrency: 'BRL' as const }))
-    let brlResults: QuoteFetchResult[] = []
-    const brapiStart = Date.now()
-    if (logEnabled && brlPrimary.length > 0) {
-      logMarketDataEvent({
-        level: 'info',
-        msg: 'brapi -> triggered',
-        provider: 'brapi',
-        phase: 'triggered',
-        userId: params.userId,
-        request: { symbols: brlPrimary, n: brlPrimary.length, holdingCurrency: 'BRL' },
-      })
-    }
-    try {
-      brlResults = brlPrimary.length > 0 ? await brapi.fetchQuotes(brlInputs) : []
-      // brapi provider logs the real request/response when MARKET_DATA_LOG=true
-    } catch (e: any) {
-      stale = true
-      // Provider errors must always be logged (regardless of MARKET_DATA_LOG_MODE).
-      logMarketDataEvent({
-        level: 'error',
-        msg: 'brapi -> error',
-        provider: 'brapi',
-        phase: 'error',
-        userId: params.userId,
-        elapsedMs: Date.now() - brapiStart,
-        request: { symbols: brlPrimary, n: brlPrimary.length, holdingCurrency: 'BRL' },
-        error: {
-          message: typeof e?.message === 'string' ? e.message : 'Provider error',
-          stack: typeof e?.stack === 'string' ? e?.stack : undefined,
-        },
-      })
-      brlResults = brlPrimary.map(() => ({
-        ok: false as const,
-        code: 'PROVIDER_ERROR' as const,
-        message: typeof e?.message === 'string' ? e.message : 'Provider error',
-      }))
-    }
-    const brlBySymbol = new Map<string, QuoteFetchResult>()
-    for (let i = 0; i < brlPrimary.length; i++) {
-      brlBySymbol.set(brlPrimary[i]!, brlResults[i]!)
-    }
-
-    const symbolsForYahoo = new Set<string>(nonBrl)
-    for (const s of brlPrimary) {
-      const r = brlBySymbol.get(s)
-      if (!r?.ok) symbolsForYahoo.add(s)
-    }
-    const yahooList = [...symbolsForYahoo]
-
-    const yahooInputs = yahooList.map((s) => ({ symbol: s }))
-    let yahooResults: QuoteFetchResult[] = []
-    if (yahooList.length > 0) {
-      const yStart = Date.now()
-      if (logEnabled) {
-        logMarketDataEvent({
-          level: 'info',
-          msg: 'yfinance -> triggered',
-          provider: 'yfinance',
-          phase: 'triggered',
-          userId: params.userId,
-          request: { symbols: yahooList, n: yahooList.length },
-        })
-      }
-      try {
-        yahooResults = await yfinance.fetchQuotes(yahooInputs)
-        // yfinance provider logs the real request/response when MARKET_DATA_LOG=true
-      } catch (e: any) {
-        stale = true
-        // Provider errors must always be logged (regardless of MARKET_DATA_LOG_MODE).
-        logMarketDataEvent({
-          level: 'error',
-          msg: 'yfinance -> error',
-          provider: 'yfinance',
-          phase: 'error',
-          userId: params.userId,
-          elapsedMs: Date.now() - yStart,
-          request: { symbols: yahooList, n: yahooList.length },
-          error: {
-            message: typeof e?.message === 'string' ? e.message : 'Provider error',
-            stack: typeof e?.stack === 'string' ? e?.stack : undefined,
-          },
-        })
-        yahooResults = yahooList.map(() => ({
-          ok: false as const,
-          code: 'PROVIDER_ERROR' as const,
-          message: typeof e?.message === 'string' ? e.message : 'Provider error',
-        }))
-      }
-    }
-    const yahooBySymbol = new Map<string, QuoteFetchResult>()
-    for (let i = 0; i < yahooList.length; i++) {
-      yahooBySymbol.set(yahooList[i]!, yahooResults[i]!)
-    }
-
-    const toSave = new Map<string, MarketQuote>()
-
-    for (const s of brlPrimary) {
-      const br = brlBySymbol.get(s)!
-      if (!br.ok && br.code === 'PROVIDER_ERROR') stale = true
-      if (br.ok) toSave.set(s, br.quote)
-    }
-
-    for (const s of nonBrl) {
-      const yr = yahooBySymbol.get(s)!
-      if (!yr.ok && yr.code === 'PROVIDER_ERROR') stale = true
-      if (yr.ok) toSave.set(s, yr.quote)
-    }
-
-    // Yahoo fallback for BRL-primary failures.
-    for (const s of brlPrimary) {
-      if (toSave.has(s)) continue
-      const yr = yahooBySymbol.get(s)!
-      if (!yr.ok && yr.code === 'PROVIDER_ERROR') stale = true
-      if (yr.ok) toSave.set(s, yr.quote)
-    }
-
-    // Fetch missing logos for yfinance quotes immediately after quote,
-    // but only when market_quote doesn't already have a cached logo for the symbol.
-    const needLogo: string[] = []
-    for (const [symbol, q] of toSave.entries()) {
-      if (q.provider !== 'yfinance') continue
-      if (q.logoUrl) continue
-      const cachedLogo = (cacheBySymbol.get(symbol) as any)?.logoUrl ?? null
-      if (!cachedLogo) needLogo.push(symbol)
-    }
-    if (needLogo.length > 0) {
-      const { fetchYahooLogoUrls } = await import('#/lib/market-data/providers/yfinance')
-      const logos = await fetchYahooLogoUrls(needLogo)
-      for (const sym of needLogo) {
-        const logoUrl = logos.get(sym) ?? null
-        if (!logoUrl) continue
-        const q = toSave.get(sym)
-        if (!q) continue
-        if (q.provider !== 'yfinance') continue
-        toSave.set(sym, { ...q, logoUrl })
-      }
-    }
-
-    const saveSymbols = [...toSave.keys()]
-    if (saveSymbols.length > 0) {
-      for (const s of saveSymbols) {
-        const q = toSave.get(s)!
-        await db
-          .insert(marketQuote)
-          .values({
-            provider: q.provider,
-            symbol: q.symbol,
-            market: q.market ?? null,
-            currency: q.currency ?? null,
-            logoUrl: q.logoUrl ?? null,
-            price: q.price == null ? null : String(q.price),
-            asOf: q.asOf ?? null,
-            fetchedAt: sql`now()`,
-          })
-          .onConflictDoUpdate({
-            target: marketQuote.symbol,
-            set: {
-              provider: q.provider,
-              market: q.market ?? null,
-              currency: q.currency ?? null,
-              logoUrl: q.logoUrl ?? null,
-              price: q.price == null ? null : String(q.price),
-              asOf: q.asOf ?? null,
-              fetchedAt: sql`now()`,
-            },
-          })
-      }
-    }
-
-    const refreshed = await db
-      .select()
-      .from(marketQuote)
-      .where(inArray(marketQuote.symbol, needFetch))
-      .orderBy(asc(marketQuote.fetchedAt))
-
-    for (const row of refreshed) {
-      const prev = cacheBySymbol.get(row.symbol)
-      if (!prev) {
-        cacheBySymbol.set(row.symbol, row)
-        continue
-      }
-      const prevAt = prev.fetchedAt instanceof Date ? prev.fetchedAt.getTime() : 0
-      const at = row.fetchedAt instanceof Date ? row.fetchedAt.getTime() : 0
-      if (at >= prevAt) cacheBySymbol.set(row.symbol, row)
-    }
-  }
 
   const bySymbol = new Map<
     string,
@@ -404,7 +159,7 @@ async function loadQuotesWithCache(params: {
       logoUrl: (row as any)?.logoUrl ?? null,
     })
   }
-  return { bySymbol, stale }
+  return { bySymbol, stale: anyStale }
 }
 
 function computePct(part: number, total: number): number {
@@ -1225,20 +980,20 @@ export const upsertPortfolioHoldingFn = createServerFn({ method: 'POST' })
 
     const ticker = data.ticker?.trim() ? data.ticker.trim() : null
 
-    // Authoritative holding currency: infer from the ticker quote currency when possible.
-    // This prevents saving e.g. ASML as BRL just because the user selected BRL in the modal.
     // Renda fixa e similares: sem provedores de mercado.
     let holdingCurrency = data.currency.trim().toUpperCase()
     if (ticker && !isFixedIncomeTipo(inv.fixedIncome, inv.investmentTypeName)) {
+      const normalizedUserCurrency = normalizeHoldingCurrency(holdingCurrency)
       try {
-        const yfinance = getQuoteProvider('yfinance')
-        const [res] = await yfinance.fetchQuotes([{ symbol: ticker }])
-        if (res?.ok) {
-          const inferred = normalizeHoldingCurrency(res.quote.currency)
-          if (inferred) holdingCurrency = inferred
-        }
+        const { bySymbol } = await refreshMarketQuotesForInputs({
+          actorId: userId,
+          reason: 'immediate',
+          inputs: [{ symbol: ticker, holdingCurrency: normalizedUserCurrency }],
+        })
+        const inferred = normalizeHoldingCurrency(bySymbol.get(ticker)?.quote?.currency ?? null)
+        if (inferred) holdingCurrency = inferred
       } catch {
-        // If inference fails, fall back to user-provided currency.
+        // If immediate refresh fails, still save the holding (worker will retry later).
       }
     }
 
@@ -1325,7 +1080,7 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
         holdingCurrency: r.currency ?? null,
       }))
       .filter((i) => i.symbol.length > 0)
-    const { bySymbol, stale } = await loadQuotesWithCache({ userId, inputs: tickers })
+    const { bySymbol, stale } = await loadQuotesFromDb({ inputs: tickers })
 
     const enriched = rows.map((r) => {
       const sym = (r.ticker ?? '').trim()
@@ -1509,7 +1264,7 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
       }))
       .filter((i) => i.symbol.length > 0)
 
-    const { bySymbol, stale } = await loadQuotesWithCache({ userId, inputs })
+    const { bySymbol, stale } = await loadQuotesFromDb({ inputs })
 
     const byType = new Map<
       string,
