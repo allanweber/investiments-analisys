@@ -22,6 +22,13 @@
       "when": 1776879345599,
       "tag": "0002_cute_rhino",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779124518764,
+      "tag": "0003_oval_magik",
+      "breakpoints": true
     }
   ]
 }

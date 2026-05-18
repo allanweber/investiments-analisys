@@ -24,6 +24,14 @@ import {
 import type { UserAllocationTargetsJson } from '#/db/schema'
 import { refreshMarketQuotesForInputs } from '#/lib/market-data/quote-refresh'
 import type { MarketQuoteInput } from '#/lib/market-data'
+import {
+  convertMoney,
+  findMissingFxPairs,
+  isFxCacheStale,
+  loadFxRatesFromDb,
+  type FxRateMatrix,
+} from '#/lib/fx'
+import { isFixedIncomeTipo, valueHolding } from '#/lib/portfolio-valuation'
 
 /** Avoid top-level `#/db` / `auth` imports so client chunks do not bundle `pg`. */
 async function getDb() {
@@ -47,12 +55,6 @@ const pct = z.number().min(0).max(100)
 function normalizeHoldingCurrency(c: string | null | undefined): string | null {
   const t = (c ?? '').trim().toUpperCase()
   return t.length ? t : null
-}
-
-/** DB flag and/or legacy tipos só identificáveis pelo nome (pt-BR seed: «Renda fixa»). */
-function isFixedIncomeTipo(fixedIncome: boolean, typeName: string | null | undefined): boolean {
-  if (fixedIncome) return true
-  return (typeName ?? '').trim().toLowerCase() === 'renda fixa'
 }
 
 function clampPct(v: number): number {
@@ -165,6 +167,35 @@ async function loadQuotesFromDb(params: {
 function computePct(part: number, total: number): number {
   if (total <= 0) return 0
   return (part / total) * 100
+}
+
+function applyFxToNativeAmounts(params: {
+  marketValueNative: number | null
+  unrealizedPlNative: number | null
+  nativeCurrency: string
+  displayCurrency: string
+  matrix: FxRateMatrix
+}): {
+  marketValueDisplay: number | null
+  unrealizedPlDisplay: number | null
+  fxRateUsed: number | null
+  fxUnavailable: boolean
+} {
+  const { marketValueNative, unrealizedPlNative, nativeCurrency, displayCurrency, matrix } = params
+  const mv =
+    marketValueNative == null
+      ? { value: null as number | null, rate: null as number | null }
+      : convertMoney(marketValueNative, nativeCurrency, displayCurrency, matrix)
+  const pl =
+    unrealizedPlNative == null
+      ? { value: null as number | null, rate: null as number | null }
+      : convertMoney(unrealizedPlNative, nativeCurrency, displayCurrency, matrix)
+  return {
+    marketValueDisplay: mv.value,
+    unrealizedPlDisplay: pl.value,
+    fxRateUsed: mv.rate,
+    fxUnavailable: marketValueNative != null && mv.value == null,
+  }
 }
 
 export const listInvestmentTypesWithCounts = createServerFn({ method: 'GET' }).handler(
@@ -1038,13 +1069,14 @@ export const deletePortfolioHoldingFn = createServerFn({ method: 'POST' })
 
 export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) =>
-    z.object({ currency: currencyCode.optional().nullable() }).parse(data),
+    z.object({ displayCurrency: currencyCode }).parse(data),
   )
   .handler(async ({ data }) => {
     const db = await getDb()
     const userId = await requireUserId()
-
-    const whereCurrency = data.currency ? eq(portfolioHolding.currency, data.currency) : undefined
+    const displayCurrency = normalizeHoldingCurrency(data.displayCurrency) ?? 'BRL'
+    const { matrix, newestFetchedAt, oldestFetchedAt } = await loadFxRatesFromDb(db)
+    const fxStale = isFxCacheStale(oldestFetchedAt)
 
     const rows = await db
       .select({
@@ -1064,13 +1096,7 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
       .from(portfolioHolding)
       .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
       .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
-      .where(
-        and(
-          eq(portfolioHolding.userId, userId),
-          eq(investment.userId, userId),
-          whereCurrency ?? sql`true`,
-        ),
-      )
+      .where(and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)))
       .orderBy(asc(investmentType.sortOrder), asc(investment.name))
 
     const tickers: MarketQuoteInput[] = rows
@@ -1082,51 +1108,64 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
       .filter((i) => i.symbol.length > 0)
     const { bySymbol, stale } = await loadQuotesFromDb({ inputs: tickers })
 
+    const nativeCurrencies = [...new Set(rows.map((r) => r.currency).filter(Boolean))]
+    const fxMissingPairs = findMissingFxPairs(nativeCurrencies, displayCurrency, matrix)
+
     const enriched = rows.map((r) => {
       const sym = (r.ticker ?? '').trim()
       const qty = toMoney(num(r.quantity))
       const avg = toMoney(num(r.avgCost))
-
-      if (isFixedIncomeTipo(r.fixedIncome, r.investmentTypeName)) {
-        const book = qty * avg
-        return {
-          ...r,
-          quantity: qty,
-          avgCost: avg,
-          lastPrice: null as number | null,
-          marketValue: book,
-          unrealizedPl: 0,
-          quoteFetchedAt: null as Date | null,
-          quoteCurrency: null as string | null,
-          quoteLogoUrl: null as string | null,
-          quoteStatus: 'BOOK_VALUE' as const,
-        }
-      }
+      const nativeCurrency = r.currency
 
       const q = sym ? bySymbol.get(sym) : null
-      const lastPrice = q?.price ?? null
-      const marketValue = lastPrice == null ? null : qty * lastPrice
-      const pl = lastPrice == null ? null : qty * (lastPrice - avg)
+      const valued = valueHolding(
+        {
+          ticker: r.ticker,
+          quantity: qty,
+          avgCost: avg,
+          currency: nativeCurrency,
+          fixedIncome: r.fixedIncome,
+          investmentTypeName: r.investmentTypeName,
+        },
+        q,
+      )
+
+      const fx = applyFxToNativeAmounts({
+        marketValueNative: valued.marketValueNative,
+        unrealizedPlNative: valued.unrealizedPlNative,
+        nativeCurrency,
+        displayCurrency,
+        matrix,
+      })
+
       return {
         ...r,
         quantity: qty,
         avgCost: avg,
-        lastPrice,
-        marketValue,
-        unrealizedPl: pl,
-        quoteFetchedAt: q?.fetchedAt ?? null,
-        quoteCurrency: q?.currency ?? null,
-        quoteLogoUrl: q?.logoUrl ?? null,
-        quoteStatus:
-          !r.ticker || !r.ticker.trim()
-            ? ('MISSING_TICKER' as const)
-            : lastPrice == null
-              ? ('MISSING_QUOTE' as const)
-              : ('OK' as const),
+        lastPrice: valued.lastPrice,
+        marketValueNative: valued.marketValueNative,
+        marketValueDisplay: fx.marketValueDisplay,
+        unrealizedPlNative: valued.unrealizedPlNative,
+        unrealizedPlDisplay: fx.unrealizedPlDisplay,
+        marketValue: fx.marketValueDisplay,
+        unrealizedPl: fx.unrealizedPlDisplay,
+        quoteFetchedAt: valued.quoteFetchedAt,
+        quoteCurrency: valued.quoteCurrency,
+        quoteLogoUrl: valued.quoteLogoUrl,
+        quoteStatus: valued.quoteStatus,
+        fxRateUsed: fx.fxRateUsed,
+        fxUnavailable: fx.fxUnavailable,
       }
     })
 
-    return { rows: enriched, quotesStale: stale }
+    return {
+      rows: enriched,
+      quotesStale: stale,
+      displayCurrency,
+      fxAsOf: newestFetchedAt,
+      fxStale,
+      fxMissingPairs,
+    }
   })
 
 export const listAllocationTargetsFn = createServerFn({ method: 'GET' }).handler(async () => {
@@ -1222,13 +1261,16 @@ export const saveAllocationTargetsBulkFn = createServerFn({ method: 'POST' })
     return { ok: true as const }
   })
 
-const portfolioOverviewInput = z.object({ currency: currencyCode.optional().nullable() })
+const portfolioOverviewInput = z.object({ displayCurrency: currencyCode })
 
 export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => portfolioOverviewInput.parse(data))
   .handler(async ({ data }) => {
     const db = await getDb()
     const userId = await requireUserId()
+    const displayCurrency = normalizeHoldingCurrency(data.displayCurrency) ?? 'BRL'
+    const { matrix, newestFetchedAt, oldestFetchedAt } = await loadFxRatesFromDb(db)
+    const fxStale = isFxCacheStale(oldestFetchedAt)
 
     const holdings = await db
       .select({
@@ -1251,12 +1293,9 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
     const currencies = [...new Set(holdings.map((h) => h.currency))].sort((a, b) =>
       a.localeCompare(b),
     )
-    const selected =
-      data.currency && currencies.includes(data.currency) ? data.currency : currencies[0] ?? null
+    const fxMissingPairs = findMissingFxPairs(currencies, displayCurrency, matrix)
 
-    const scoped = selected ? holdings.filter((h) => h.currency === selected) : []
-
-    const inputs: MarketQuoteInput[] = scoped
+    const inputs: MarketQuoteInput[] = holdings
       .filter((r) => !isFixedIncomeTipo(r.fixedIncome, r.investmentTypeName))
       .map((r) => ({
         symbol: (r.ticker ?? '').trim(),
@@ -1276,48 +1315,74 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
       }
     >()
 
+    const byNativeMap = new Map<
+      string,
+      { marketValueNative: number; marketValueDisplay: number; holdingCount: number }
+    >()
+
     let total = 0
     let unrealizedPl = 0
-    for (const r of scoped) {
+    for (const r of holdings) {
       const qty = toMoney(num(r.quantity))
       const avg = toMoney(num(r.avgCost))
-
-      if (isFixedIncomeTipo(r.fixedIncome, r.investmentTypeName)) {
-        const mv = qty * avg
-        total += mv
-        const prev = byType.get(r.investmentTypeId)
-        if (!prev) {
-          byType.set(r.investmentTypeId, {
-            investmentTypeId: r.investmentTypeId,
-            investmentTypeName: r.investmentTypeName,
-            typeSortOrder: r.typeSortOrder,
-            marketValue: mv,
-          })
-        } else {
-          prev.marketValue += mv
-        }
-        continue
-      }
-
       const sym = (r.ticker ?? '').trim()
       const q = sym ? bySymbol.get(sym) : null
-      const lastPrice = q?.price ?? null
-      if (lastPrice == null) continue
-      const mv = qty * lastPrice
-      total += mv
-      unrealizedPl += qty * (lastPrice - avg)
+      const valued = valueHolding(
+        {
+          ticker: r.ticker,
+          quantity: qty,
+          avgCost: avg,
+          currency: r.currency,
+          fixedIncome: r.fixedIncome,
+          investmentTypeName: r.investmentTypeName,
+        },
+        q,
+      )
+      if (valued.marketValueNative == null) continue
+
+      const fx = applyFxToNativeAmounts({
+        marketValueNative: valued.marketValueNative,
+        unrealizedPlNative: valued.unrealizedPlNative,
+        nativeCurrency: r.currency,
+        displayCurrency,
+        matrix,
+      })
+      const mvDisplay = fx.marketValueDisplay ?? 0
+      total += mvDisplay
+      unrealizedPl += fx.unrealizedPlDisplay ?? 0
+
+      const nativeBucket = byNativeMap.get(r.currency) ?? {
+        marketValueNative: 0,
+        marketValueDisplay: 0,
+        holdingCount: 0,
+      }
+      nativeBucket.marketValueNative += valued.marketValueNative
+      nativeBucket.marketValueDisplay += mvDisplay
+      nativeBucket.holdingCount += 1
+      byNativeMap.set(r.currency, nativeBucket)
+
       const prev = byType.get(r.investmentTypeId)
       if (!prev) {
         byType.set(r.investmentTypeId, {
           investmentTypeId: r.investmentTypeId,
           investmentTypeName: r.investmentTypeName,
           typeSortOrder: r.typeSortOrder,
-          marketValue: mv,
+          marketValue: mvDisplay,
         })
       } else {
-        prev.marketValue += mv
+        prev.marketValue += mvDisplay
       }
     }
+
+    const byNativeCurrency = [...byNativeMap.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([currency, bucket]) => ({
+        currency,
+        marketValueNative: bucket.marketValueNative,
+        marketValueDisplay: bucket.marketValueDisplay,
+        holdingCount: bucket.holdingCount,
+        pctOfPortfolio: clampPct(computePct(bucket.marketValueDisplay, total)),
+      }))
 
     const profileSelect = await db
       .select({ targets: userAllocationProfile.targets })
@@ -1425,14 +1490,18 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
 
     return {
       currencies,
-      currency: selected,
+      displayCurrency,
       quotesStale: stale,
+      fxAsOf: newestFetchedAt,
+      fxStale,
+      fxMissingPairs,
       lastUpdatedAt,
       totals: {
         marketValue: total,
         targetTotalPct: clampPct(targetTotal),
         unrealizedPl,
       },
+      byNativeCurrency,
       allocation,
       targets,
       drift,

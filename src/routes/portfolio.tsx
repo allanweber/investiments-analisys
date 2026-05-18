@@ -2,10 +2,13 @@ import { Link, Navigate, Outlet, createFileRoute, useRouterState } from '@tansta
 import { useEffect, useMemo, useState } from 'react'
 
 import { AllocationTargetsByCategory } from '#/components/portfolio/allocation-targets-by-category'
+import { DisplayCurrencySelector } from '#/components/portfolio/display-currency-selector'
 import { PortfolioAllocationCurrentVsTarget } from '#/components/portfolio/portfolio-allocation-current-vs-target'
+import { PortfolioByCurrency } from '#/components/portfolio/portfolio-by-currency'
 import { PortfolioContributionSuggestions } from '#/components/portfolio/portfolio-contribution-suggestions'
 import { PortfolioDriftAnalysis } from '#/components/portfolio/portfolio-drift-analysis'
 import { PortfolioSummaryCards } from '#/components/portfolio/portfolio-summary-cards'
+import { useDisplayCurrency } from '#/hooks/use-display-currency'
 import { authClient } from '#/lib/auth-client'
 import {
   listPortfolioCurrenciesFn,
@@ -22,8 +25,8 @@ function PortfolioPage() {
   const { data: session, isPending } = authClient.useSession()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const isPortfolioIndex = pathname === '/portfolio' || pathname === '/portfolio/'
-  const [currencies, setCurrencies] = useState<string[] | null>(null)
-  const [currency, setCurrency] = useState<string | null>(null)
+  const { displayCurrency, setDisplayCurrency, displayCurrencyOptions } = useDisplayCurrency()
+  const [hasHoldingsKnown, setHasHoldingsKnown] = useState<boolean | null>(null)
   const [overview, setOverview] = useState<Awaited<ReturnType<typeof loadPortfolioOverviewFn>> | null>(
     null,
   )
@@ -35,25 +38,15 @@ function PortfolioPage() {
     if (!isPortfolioIndex) return
     setOverview(null)
     listPortfolioCurrenciesFn()
-      .then((cs) => {
-        setCurrencies(cs)
-        setCurrency((prev) => {
-          if (cs.length === 0) return null
-          if (prev && cs.includes(prev)) return prev
-          return cs[0] ?? null
-        })
-      })
-      .catch(() => {
-        setCurrencies([])
-        setCurrency(null)
-      })
+      .then((cs) => setHasHoldingsKnown(cs.length > 0))
+      .catch(() => setHasHoldingsKnown(false))
   }, [session?.user, isPortfolioIndex])
 
   useEffect(() => {
     if (!session?.user) return
-    if (!currencies) return
-    void loadPortfolioOverviewFn({ data: { currency } }).then((o) => setOverview(o))
-  }, [session?.user, currencies, currency])
+    if (hasHoldingsKnown !== true) return
+    void loadPortfolioOverviewFn({ data: { displayCurrency } }).then((o) => setOverview(o))
+  }, [session?.user, hasHoldingsKnown, displayCurrency])
 
   const targetSegments = useMemo(() => {
     const t = overview?.targets ?? []
@@ -70,7 +63,7 @@ function PortfolioPage() {
     setAllocationSaving(true)
     try {
       await saveAllocationTargetsBulkFn({ data: { targets } })
-      const o = await loadPortfolioOverviewFn({ data: { currency } })
+      const o = await loadPortfolioOverviewFn({ data: { displayCurrency } })
       setOverview(o)
     } catch {
       // keep local state; user can retry
@@ -98,10 +91,8 @@ function PortfolioPage() {
     return <Navigate to="/login" />
   }
 
-  const currenciesLoaded = currencies !== null
-  const hasHoldings = (currencies?.length ?? 0) > 0
-  /** Avoid empty state before we know currencies; avoid dashboard before overview when user has positions. */
-  const portfolioLoading = !currenciesLoaded || (hasHoldings && overview === null)
+  const hasHoldings = hasHoldingsKnown === true
+  const portfolioLoading = hasHoldingsKnown === null || (hasHoldings && overview === null)
 
   const total = overview?.totals.marketValue ?? 0
   const totalTarget = overview?.totals.targetTotalPct ?? 0
@@ -131,24 +122,14 @@ function PortfolioPage() {
                   Carteira
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm italic leading-relaxed text-on-surface-variant md:not-italic">
-                  Sem conversão cambial: totais ficam separados por moeda.
+                  {m.portfolio.subtitleConverted}
                 </p>
-                {currencies && currencies.length > 0 && (
-                  <div className="mt-4 inline-flex rounded-full bg-surface-container-low p-1 shadow-inner">
-                    {currencies.map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setCurrency(c)}
-                        className={`rounded-full px-5 py-2 text-xs font-bold transition-all ${c === currency
-                            ? 'bg-surface text-on-surface shadow-sm'
-                            : 'text-outline hover:text-on-surface'
-                          }`}
-                      >
-                        {c}
-                      </button>
-                    ))}
-                  </div>
+                {hasHoldings && (
+                  <DisplayCurrencySelector
+                    value={displayCurrency}
+                    options={displayCurrencyOptions}
+                    onChange={setDisplayCurrency}
+                  />
                 )}
               </div>
               <div className="flex shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
@@ -197,20 +178,27 @@ function PortfolioPage() {
                 <span className="material-symbols-outlined text-[20px] leading-none">add</span>
                 Adicionar investimento
               </Link>
-              <p className="mx-auto mt-8 inline-flex items-center gap-2 rounded-full bg-surface-container-high px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-outline">
-                <span className="material-symbols-outlined text-sm">info</span>
-                Sem conversão cambial: totais ficam separados por moeda.
-              </p>
             </section>
           ) : (
             <>
               <PortfolioSummaryCards
                 total={total}
                 unrealized={unrealized}
-                currency={currency}
+                currency={displayCurrency}
                 plSharePct={plSharePct}
                 lastUpdatedAt={overview?.lastUpdatedAt ?? null}
+                fxAsOf={overview?.fxAsOf ?? null}
+                fxStale={overview?.fxStale}
                 totalTargetPct={totalTarget}
+              />
+
+              {(overview?.fxMissingPairs?.length ?? 0) > 0 && (
+                <p className="mb-6 text-xs text-error">{m.portfolio.fxPartialTotals}</p>
+              )}
+
+              <PortfolioByCurrency
+                rows={overview?.byNativeCurrency ?? []}
+                displayCurrency={displayCurrency}
               />
 
               {overview?.quotesStale && (

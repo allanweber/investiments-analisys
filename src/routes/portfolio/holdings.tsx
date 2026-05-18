@@ -3,11 +3,13 @@ import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { z } from 'zod'
 
+import { DisplayCurrencySelector } from '#/components/portfolio/display-currency-selector'
+import { fmtMoney } from '#/components/portfolio/format'
+import { useDisplayCurrency } from '#/hooks/use-display-currency'
 import { authClient } from '#/lib/auth-client'
 import {
   deletePortfolioHoldingFn,
   listInvestmentsOverviewFn,
-  listPortfolioCurrenciesFn,
   listPortfolioHoldingsFn,
   upsertPortfolioHoldingFn,
 } from '#/lib/investment-server'
@@ -19,14 +21,6 @@ export const Route = createFileRoute('/portfolio/holdings')({
   }),
   component: HoldingsPage,
 })
-
-function fmtMoney(v: number, currency: string) {
-  try {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(v)
-  } catch {
-    return `${v.toFixed(2)} ${currency}`
-  }
-}
 
 function localeForCurrency(currency: string): string {
   if (currency === 'BRL') return 'pt-BR'
@@ -438,10 +432,9 @@ function HoldingsPage() {
   const navigate = useNavigate()
   const search = Route.useSearch()
   const { data: session, isPending } = authClient.useSession()
-  const [currencies, setCurrencies] = useState<string[] | null>(null)
-  const [currency, setCurrency] = useState<string | null>(null)
+  const { displayCurrency, setDisplayCurrency, displayCurrencyOptions } = useDisplayCurrency()
   const [data, setData] = useState<Awaited<ReturnType<typeof listPortfolioHoldingsFn>> | null>(null)
-  const [currencySwitchLoading, setCurrencySwitchLoading] = useState(false)
+  const [displaySwitchLoading, setDisplaySwitchLoading] = useState(false)
   const [holdingModal, setHoldingModal] = useState<
     | { kind: 'closed' }
     | { kind: 'add' }
@@ -473,6 +466,7 @@ function HoldingsPage() {
     lastOpDate: '',
   })
   const [filterType, setFilterType] = useState<string>('all')
+  const [filterCurrency, setFilterCurrency] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'valor' | 'nome'>('valor')
   const [page, setPage] = useState(1)
   const [quantityError, setQuantityError] = useState(false)
@@ -515,7 +509,15 @@ function HoldingsPage() {
     handledAddSearchRef.current = true
 
     setInvestmentPickManual(false)
-    setForm((f) => ({ ...f, currency: currency ?? f.currency }))
+    setForm({
+      investmentId: '',
+      ticker: '',
+      quantity: 0,
+      avgCost: 0,
+      broker: '',
+      currency: displayCurrency,
+      lastOpDate: '',
+    })
     setHoldingModal({ kind: 'add' })
     void ensureInvOptions()
 
@@ -523,12 +525,7 @@ function HoldingsPage() {
     window.setTimeout(() => {
       void navigate({ to: '/portfolio/holdings', search: {}, replace: true })
     }, 0)
-  }, [search.add, navigate])
-
-  useEffect(() => {
-    if (holdingModal.kind === 'closed') return
-    setForm((f) => ({ ...f, currency: currency ?? f.currency }))
-  }, [currency, holdingModal.kind])
+  }, [search.add, navigate, displayCurrency])
 
   useEffect(() => {
     if (holdingModal.kind !== 'closed') return
@@ -559,78 +556,34 @@ function HoldingsPage() {
     return () => window.clearTimeout(id)
   }, [holdingModal.kind])
 
-  useEffect(() => {
-    if (!session?.user) return
-    listPortfolioCurrenciesFn()
-      .then((cs) => {
-        setCurrencies(cs)
-        setCurrency(cs[0] ?? null)
-      })
-      .catch(() => {
-        setCurrencies([])
-        setCurrency(null)
-      })
-  }, [session?.user])
-
-  async function refreshCurrenciesAndHoldings(preferredCurrency?: string | null) {
-    let cs: string[] = []
-    try {
-      cs = await listPortfolioCurrenciesFn()
-    } catch {
-      cs = []
-    }
-
-    setCurrencies(cs)
-
-    const nextCurrency =
-      preferredCurrency && cs.includes(preferredCurrency)
-        ? preferredCurrency
-        : currency && cs.includes(currency)
-          ? currency
-          : cs[0] ?? null
-
-    setCurrency(nextCurrency)
-
-    if (!nextCurrency) {
-      setData({ rows: [], quotesStale: false })
-      return
-    }
-
-    const refreshed = await listPortfolioHoldingsFn({ data: { currency: nextCurrency } })
+  async function refreshHoldings() {
+    const refreshed = await listPortfolioHoldingsFn({ data: { displayCurrency } })
     setData(refreshed)
   }
 
   useEffect(() => {
     if (!session?.user) return
-    if (!currencies) return
     let cancelled = false
-    setCurrencySwitchLoading(false)
+    setDisplaySwitchLoading(false)
     const t = window.setTimeout(() => {
-      if (!cancelled) setCurrencySwitchLoading(true)
+      if (!cancelled) setDisplaySwitchLoading(true)
     }, 500)
 
-    void listPortfolioHoldingsFn({ data: { currency } })
+    void listPortfolioHoldingsFn({ data: { displayCurrency } })
       .then((r) => {
         if (cancelled) return
         setData(r)
       })
       .finally(() => {
         window.clearTimeout(t)
-        if (!cancelled) setCurrencySwitchLoading(false)
+        if (!cancelled) setDisplaySwitchLoading(false)
       })
 
     return () => {
       cancelled = true
       window.clearTimeout(t)
     }
-  }, [session?.user, currencies, currency])
-
-  useEffect(() => {
-    setForm((f) => {
-      if ((HOLDING_CURRENCY_OPTIONS as readonly string[]).includes(f.currency)) return f
-      return { ...f, currency: currency ?? 'BRL' }
-    })
-  }, [currencies, currency])
+  }, [session?.user, displayCurrency])
 
   useEffect(() => {
     if (holdingModal.kind !== 'add' || investmentPickManual) return
@@ -667,7 +620,7 @@ function HoldingsPage() {
       quantity: 0,
       avgCost: 0,
       broker: '',
-      currency: currency ?? 'BRL',
+      currency: displayCurrency,
       lastOpDate: '',
     })
     setHoldingModal({ kind: 'add' })
@@ -751,16 +704,22 @@ function HoldingsPage() {
     return names.sort((a, b) => a.localeCompare(b))
   }, [data?.rows])
 
+  const currencyFilterOptions = useMemo(() => {
+    const codes = [...new Set((data?.rows ?? []).map((r) => r.currency).filter(Boolean))]
+    return codes.sort((a, b) => a.localeCompare(b))
+  }, [data?.rows])
+
   const processedRows = useMemo(() => {
     let rows = [...(data?.rows ?? [])]
     if (filterType !== 'all') rows = rows.filter((r) => r.investmentTypeName === filterType)
+    if (filterCurrency !== 'all') rows = rows.filter((r) => r.currency === filterCurrency)
     rows.sort((a, b) =>
       sortBy === 'valor'
         ? (b.marketValue ?? 0) - (a.marketValue ?? 0)
         : (a.ticker ?? a.investmentName).localeCompare(b.ticker ?? b.investmentName, 'pt-BR'),
     )
     return rows
-  }, [data?.rows, filterType, sortBy])
+  }, [data?.rows, filterType, filterCurrency, sortBy])
 
   const pageCount = Math.max(1, Math.ceil(processedRows.length / pageSize))
   const pageRows = processedRows.slice((page - 1) * pageSize, page * pageSize)
@@ -772,7 +731,7 @@ function HoldingsPage() {
 
   useEffect(() => {
     setPage(1)
-  }, [filterType, sortBy, currency, data?.rows])
+  }, [filterType, filterCurrency, sortBy, displayCurrency, data?.rows])
 
   async function saveHolding() {
     if (form.quantity <= 0) {
@@ -802,11 +761,10 @@ function HoldingsPage() {
       quantity: 0,
       avgCost: 0,
       broker: '',
-      currency: currency ?? 'BRL',
+      currency: displayCurrency,
       lastOpDate: '',
     })
-    // If user added a position in a different currency, switch and refresh immediately.
-    await refreshCurrenciesAndHoldings(form.currency)
+    await refreshHoldings()
   }
 
   async function saveAddToPosition() {
@@ -850,14 +808,14 @@ function HoldingsPage() {
     setAddToPos({ additionalQty: '', unitPrice: 0, lastOpDate: '' })
     setAddUnitFocused(false)
     setAddUnitDraft('')
-    await refreshCurrenciesAndHoldings(r.currency)
+    await refreshHoldings()
   }
 
   async function executeDeleteHolding(r: HoldingRow) {
     setDeletingInvestmentId(r.investmentId)
     try {
       await deletePortfolioHoldingFn({ data: { id: r.investmentId } })
-      await refreshCurrenciesAndHoldings(currency)
+      await refreshHoldings()
       setHoldingPendingDelete(null)
       if (
         (holdingModal.kind === 'addToPosition' || holdingModal.kind === 'edit') &&
@@ -897,7 +855,7 @@ function HoldingsPage() {
   if (!session?.user) return <Navigate to="/login" />
 
   /** Moedas ou holdings ainda não chegaram — não confundir com carteira vazia. */
-  const holdingsInitialLoading = currencies === null || data === null
+  const holdingsInitialLoading = data === null
 
   return (
     <main className="w-full max-w-7xl px-4 py-8 sm:p-8 lg:p-12">
@@ -919,7 +877,7 @@ function HoldingsPage() {
               type="button"
               className="inline-flex shrink-0 items-center justify-center rounded-full bg-error-container px-5 py-2.5 text-xs font-bold text-on-error-container shadow-sm hover:opacity-95"
               onClick={async () => {
-                const refreshed = await listPortfolioHoldingsFn({ data: { currency } })
+                const refreshed = await listPortfolioHoldingsFn({ data: { displayCurrency } })
                 setData(refreshed)
               }}
             >
@@ -936,34 +894,21 @@ function HoldingsPage() {
               Posições
             </h1>
             <p className="mt-3 text-sm text-on-surface-variant">
-              Gestão detalhada de ativos e participações.
+              {m.portfolio.holdingsRecordingNote}
             </p>
-            {currencies && currencies.length > 0 && (
-              <div className="mt-4 inline-flex items-center gap-2">
-                <div className="inline-flex rounded-full bg-surface-container-low p-1 shadow-inner">
-                {currencies.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCurrency(c)}
-                    className={`rounded-full px-5 py-2 text-xs font-bold transition-all ${
-                      c === currency
-                        ? 'bg-primary-container text-on-primary shadow-md'
-                        : 'text-outline hover:text-on-surface'
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
-                </div>
-                {currencySwitchLoading && !holdingsInitialLoading && (
-                  <span
-                    className="inline-flex h-4 w-4 animate-spin rounded-full border-2 border-outline-variant border-t-primary"
-                    aria-label="Carregando moeda"
-                  />
-                )}
-              </div>
-            )}
+            <div className="mt-2 flex flex-wrap items-end gap-3">
+              <DisplayCurrencySelector
+                value={displayCurrency}
+                options={displayCurrencyOptions}
+                onChange={setDisplayCurrency}
+              />
+              {displaySwitchLoading && !holdingsInitialLoading && (
+                <span
+                  className="inline-flex h-4 w-4 animate-spin rounded-full border-2 border-outline-variant border-t-primary"
+                  aria-label="Carregando moeda"
+                />
+              )}
+            </div>
           </div>
           <button
             type="button"
@@ -1072,7 +1017,7 @@ function HoldingsPage() {
                   )}
                 </div>
                 <p className="mt-2 font-headline text-4xl font-extrabold text-on-surface sm:text-5xl">
-                  {fmtMoney(totals.marketValue, currency ?? 'BRL')}
+                  {fmtMoney(totals.marketValue, displayCurrency)}
                 </p>
                 {totals.lastUpdatedAt && (
                   <p className="mt-2 flex items-center gap-1 text-xs text-outline">
@@ -1109,7 +1054,7 @@ function HoldingsPage() {
                     <p className="mt-1 font-headline text-xl font-extrabold text-on-surface">
                       {new Intl.NumberFormat('pt-BR', {
                         style: 'currency',
-                        currency: currency ?? 'BRL',
+                        currency: 'BRL',
                         notation: 'compact',
                         maximumFractionDigits: 1,
                       }).format(t.mv)}
@@ -1150,6 +1095,21 @@ function HoldingsPage() {
                     {typeFilterOptions.map((n) => (
                       <option key={n} value={n}>
                         {n}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 rounded-full bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface">
+                  <span className="text-outline">Moeda</span>
+                  <select
+                    value={filterCurrency}
+                    onChange={(e) => setFilterCurrency(e.target.value)}
+                    className="max-w-[6rem] border-0 bg-transparent text-xs font-bold text-on-surface outline-none"
+                  >
+                    <option value="all">Todas</option>
+                    {currencyFilterOptions.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
                       </option>
                     ))}
                   </select>
@@ -1250,9 +1210,17 @@ function HoldingsPage() {
                         </span>
                       </div>
                       <div className="mt-1 flex justify-between text-sm">
-                        <span className="text-outline">Posição</span>
+                        <span className="text-outline">{m.portfolio.holdingsNativeValue}</span>
                         <span className="font-bold text-on-surface">
-                          {r.marketValue == null ? '—' : fmtMoney(r.marketValue, currency ?? 'BRL')}
+                          {r.marketValueNative == null ? '—' : fmtMoney(r.marketValueNative, r.currency)}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex justify-between text-sm">
+                        <span className="text-outline">{m.portfolio.holdingsDisplayValue(displayCurrency)}</span>
+                        <span className="font-bold text-on-surface">
+                          {r.fxUnavailable || r.marketValueDisplay == null
+                            ? '—'
+                            : fmtMoney(r.marketValueDisplay, displayCurrency)}
                         </span>
                       </div>
                     </div>
@@ -1291,7 +1259,8 @@ function HoldingsPage() {
                   <tr>
                     <th className="py-2 text-left">Ativo</th>
                     <th className="py-2 text-right">Quantidade</th>
-                    <th className="py-2 text-right">Posição</th>
+                    <th className="py-2 text-right">{m.portfolio.holdingsNativeValue}</th>
+                    <th className="py-2 text-right">{m.portfolio.holdingsDisplayValue(displayCurrency)}</th>
                     <th className="py-2 text-right">Variação</th>
                     <th className="py-2 text-right">Preço atual</th>
                     <th className="py-2 text-right">Status</th>
@@ -1361,7 +1330,12 @@ function HoldingsPage() {
                         </td>
                         <td className="py-3 text-right tabular-nums text-on-surface">{fmtQuantity(r.quantity)}</td>
                         <td className="py-3 text-right font-semibold text-on-surface">
-                          {r.marketValue == null ? '—' : fmtMoney(r.marketValue, currency ?? 'BRL')}
+                          {r.marketValueNative == null ? '—' : fmtMoney(r.marketValueNative, r.currency)}
+                        </td>
+                        <td className="py-3 text-right font-semibold text-on-surface">
+                          {r.fxUnavailable || r.marketValueDisplay == null
+                            ? '—'
+                            : fmtMoney(r.marketValueDisplay, displayCurrency)}
                         </td>
                         <td
                           className={`py-3 text-right font-semibold ${
@@ -1386,7 +1360,7 @@ function HoldingsPage() {
                           </span>
                         </td>
                         <td className="py-3 text-right text-on-surface">
-                          {r.lastPrice == null ? '—' : fmtMoney(r.lastPrice, currency ?? 'BRL')}
+                          {r.lastPrice == null ? '—' : fmtMoney(r.lastPrice, r.currency)}
                         </td>
                         <td className="py-3 text-right">
                           <span
@@ -1497,7 +1471,7 @@ function HoldingsPage() {
                   {isEdit ? 'Editar posição' : 'Adicionar posição'}
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-outline">
-                  Sem conversão cambial automática; preço médio e posição ficam na moeda do ativo.
+                  {m.portfolio.holdingsRecordingNote}
                 </p>
               </div>
               <button

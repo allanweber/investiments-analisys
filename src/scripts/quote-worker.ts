@@ -8,6 +8,7 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 
 import { investment, investmentType, marketQuote, portfolioHolding } from '../db/schema'
+import { refreshFxRatesIfStale } from '../lib/market-data/fx-refresh'
 import { refreshMarketQuotesForInputs } from '../lib/market-data/quote-refresh'
 
 function loadEnvFiles() {
@@ -304,6 +305,26 @@ async function main() {
       })
 
       lastSweepAt = new Date().toISOString()
+
+      try {
+        const fxResult = await refreshFxRatesIfStale()
+        logWorkerEvent({
+          level: fxResult.error ? 'warn' : 'info',
+          msg: 'fx -> sweep',
+          phase: 'fx',
+          refreshed: fxResult.refreshed,
+          skipped: fxResult.skipped,
+          pairsUpserted: fxResult.pairsUpserted,
+          error: fxResult.error ?? null,
+        })
+      } catch (e) {
+        logWorkerEvent({
+          level: 'warn',
+          msg: 'fx -> sweep_error',
+          phase: 'fx',
+          error: errorToJson(e),
+        })
+      }
 
       if (staleOrder.length === 0) {
         logWorkerEvent({

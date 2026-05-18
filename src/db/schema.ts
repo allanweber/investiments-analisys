@@ -171,6 +171,21 @@ export const marketQuote = pgTable(
   () => [],
 )
 
+/** Global FX cache (no user_id). Worker refreshes; app reads only. */
+export const fxRate = pgTable(
+  'fx_rate',
+  {
+    baseCurrency: text('base_currency').notNull(),
+    quoteCurrency: text('quote_currency').notNull(),
+    provider: text('provider').notNull(),
+    yahooSymbol: text('yahoo_symbol').notNull(),
+    rate: numeric('rate', { precision: 24, scale: 8 }).notNull(),
+    asOf: timestamp('as_of', { withTimezone: true }),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.baseCurrency, t.quoteCurrency] })],
+)
+
 export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),

@@ -1,4 +1,5 @@
 import { fmtMoney, fmtPct, fmtSignedMoney } from '#/components/portfolio/format'
+import { messages as m } from '#/messages'
 
 type Props = {
   total: number
@@ -7,6 +8,8 @@ type Props = {
   /** Share of P/L vs portfolio (for subtitle). */
   plSharePct: number
   lastUpdatedAt: Date | null
+  fxAsOf?: Date | null
+  fxStale?: boolean
   /** Sum of target % (expect 100 when targets configured). */
   totalTargetPct: number
 }
@@ -17,6 +20,8 @@ export function PortfolioSummaryCards({
   currency,
   plSharePct,
   lastUpdatedAt,
+  fxAsOf,
+  fxStale,
   totalTargetPct,
 }: Props) {
   return (
@@ -36,6 +41,11 @@ export function PortfolioSummaryCards({
         {lastUpdatedAt && (
           <p className="mt-2 text-xs text-outline">
             Última atualização: {lastUpdatedAt.toLocaleString('pt-BR')}
+          </p>
+        )}
+        {fxAsOf && (
+          <p className={`mt-1 text-xs ${fxStale ? 'text-error' : 'text-outline'}`}>
+            {fxStale ? m.portfolio.fxStaleWarning : m.portfolio.fxFootnote(fxAsOf.toLocaleString('pt-BR'))}
           </p>
         )}
       </div>

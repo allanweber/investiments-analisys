@@ -9,7 +9,7 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "vite dev --port 3001",
+    "dev": "vite dev",
     "build": "vite build",
     "build:worker": "esbuild src/scripts/quote-worker.ts --bundle --platform=node --format=esm --target=node22 --packages=external --outfile=.output/worker/quote-worker.mjs --sourcemap",
     "start": "node .output/server/index.mjs",
