@@ -45,16 +45,15 @@ export function PortfolioSummaryCards({
         )}
         {fxAsOf && (
           <p className={`mt-1 text-xs ${fxStale ? 'text-error' : 'text-outline'}`}>
-            {fxStale ? m.portfolio.fxStaleWarning : m.portfolio.fxFootnote(fxAsOf.toLocaleString('pt-BR'))}
+            {fxStale ? m.portfolio.fxStaleWarning : ''}
           </p>
         )}
       </div>
       <div className="min-w-[min(100%,280px)] shrink-0 rounded-2xl bg-surface p-6 shadow-md ring-1 ring-outline-variant/10 md:min-w-0">
         <p className="font-label text-[10px] font-bold uppercase tracking-widest text-outline">P/L não realizado</p>
         <p
-          className={`mt-2 font-headline text-3xl font-extrabold ${
-            unrealized >= 0 ? 'text-tertiary-fixed-dim' : 'text-error'
-          }`}
+          className={`mt-2 font-headline text-3xl font-extrabold ${unrealized >= 0 ? 'text-tertiary-fixed-dim' : 'text-error'
+            }`}
         >
           {fmtSignedMoney(unrealized, currency)}
         </p>

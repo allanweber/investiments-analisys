@@ -282,8 +282,6 @@ const core = {
     displayCurrencyLabel: 'Moeda de exibição',
     subtitleConverted:
       'Totais convertidos para a moeda selecionada. Veja o detalhamento por moeda do ativo abaixo.',
-    fxFootnote: (asOf: string) =>
-      `Câmbio: Yahoo Finance, atualizado em ${asOf} (atualização diária).`,
     fxStaleWarning: 'Taxas de câmbio desatualizadas; exibindo última cotação disponível.',
     fxPartialTotals: 'Alguns valores não puderam ser convertidos por falta de taxa.',
     byCurrencyTitle: 'Por moeda',
