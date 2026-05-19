@@ -1,6 +1,8 @@
 import {
   boolean,
   integer,
+  jsonb,
+  numeric,
   pgTable,
   primaryKey,
   text,
@@ -67,6 +69,8 @@ export const investmentType = pgTable('investment_type', {
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  /** CDB, LCI, tesouro, etc.: sem cotação de mercado (brapi/yfinance). */
+  fixedIncome: boolean('fixed_income').notNull().default(false),
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -116,12 +120,83 @@ export const investmentAnswer = pgTable(
   (t) => [primaryKey({ columns: [t.investmentId, t.questionId] })],
 )
 
-export const userRelations = relations(user, ({ many }) => ({
+export const portfolioHolding = pgTable(
+  'portfolio_holding',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    investmentId: uuid('investment_id')
+      .notNull()
+      .references(() => investment.id, { onDelete: 'cascade' }),
+    ticker: text('ticker'),
+    quantity: numeric('quantity', { precision: 24, scale: 8 }).notNull(),
+    avgCost: numeric('avg_cost', { precision: 24, scale: 8 }).notNull(),
+    currency: text('currency').notNull(),
+    broker: text('broker'),
+    lastOperationAt: timestamp('last_operation_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.investmentId] })],
+)
+
+/** Per–investment-type targets for a user (keys = investment_type UUID strings). */
+export type UserAllocationTargetsJson = Record<
+  string,
+  { targetPct: number; minPct?: number | null; maxPct?: number | null }
+>
+
+export const userAllocationProfile = pgTable('user_allocation_profile', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  targets: jsonb('targets').$type<UserAllocationTargetsJson>().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const marketQuote = pgTable(
+  'market_quote',
+  {
+    symbol: text('symbol').primaryKey(),
+    provider: text('provider').notNull(),
+    market: text('market'),
+    currency: text('currency'),
+    logoUrl: text('logo_url'),
+    price: numeric('price', { precision: 24, scale: 8 }),
+    asOf: timestamp('as_of', { withTimezone: true }),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  () => [],
+)
+
+/** Global FX cache (no user_id). Worker refreshes; app reads only. */
+export const fxRate = pgTable(
+  'fx_rate',
+  {
+    baseCurrency: text('base_currency').notNull(),
+    quoteCurrency: text('quote_currency').notNull(),
+    provider: text('provider').notNull(),
+    yahooSymbol: text('yahoo_symbol').notNull(),
+    rate: numeric('rate', { precision: 24, scale: 8 }).notNull(),
+    asOf: timestamp('as_of', { withTimezone: true }),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.baseCurrency, t.quoteCurrency] })],
+)
+
+export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
   investmentTypes: many(investmentType),
   questions: many(question),
   investments: many(investment),
+  holdings: many(portfolioHolding),
+  allocationProfile: one(userAllocationProfile, {
+    fields: [user.id],
+    references: [userAllocationProfile.userId],
+  }),
 }))
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -154,6 +229,7 @@ export const investmentRelations = relations(investment, ({ one, many }) => ({
     references: [investmentType.id],
   }),
   answers: many(investmentAnswer),
+  holding: many(portfolioHolding),
 }))
 
 export const investmentAnswerRelations = relations(investmentAnswer, ({ one }) => ({
@@ -165,4 +241,16 @@ export const investmentAnswerRelations = relations(investmentAnswer, ({ one }) =
     fields: [investmentAnswer.questionId],
     references: [question.id],
   }),
+}))
+
+export const portfolioHoldingRelations = relations(portfolioHolding, ({ one }) => ({
+  user: one(user, { fields: [portfolioHolding.userId], references: [user.id] }),
+  investment: one(investment, {
+    fields: [portfolioHolding.investmentId],
+    references: [investment.id],
+  }),
+}))
+
+export const userAllocationProfileRelations = relations(userAllocationProfile, ({ one }) => ({
+  user: one(user, { fields: [userAllocationProfile.userId], references: [user.id] }),
 }))

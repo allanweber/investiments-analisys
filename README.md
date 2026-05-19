@@ -25,6 +25,46 @@ This project uses [Vitest](https://vitest.dev/) for testing. You can run the tes
 pnpm test
 ```
 
+## Market quotes: background refresh worker (Dokploy)
+
+This app caches quotes in PostgreSQL (`market_quote`) and refreshes them via a **separate worker process**. Portfolio screens **do not** call external quote providers; they only read from `market_quote`.
+
+### Dokploy: recommended setup (2 services, same image)
+
+- **Web service (Nitro)**:
+  - Use the default entrypoint (`/entrypoint.sh`).
+  - This runs migrations and starts the web server.
+
+- **Worker service (quote refresh)**:
+  - Use the **same Docker image** as the web service.
+  - Override the command/entrypoint to run:
+
+```bash
+node /app/.output/worker/quote-worker.mjs
+```
+
+Copy the same environment variables from the web service:
+- **Required**: `DATABASE_URL`
+- **If you have BRL tickers**: `BRAPI_TOKEN`
+- **Optional**:
+  - `MARKET_QUOTE_TTL_HOURS` (default: 12)
+  - `QUOTE_WORKER_STAGGER_MS` (default: 1000)
+  - `QUOTE_WORKER_IDLE_MS` (default: 60000)
+  - `QUOTE_WORKER_HEALTH_PORT` (optional; if set, worker serves `GET /health`)
+  - `MARKET_DATA_LOG` (optional; verbose provider request/response logging)
+
+### Dokploy: single container (not recommended)
+
+You *can* run web + worker in one container, but it’s harder to manage and isolate resources. If you still want it, set the container command to start both processes:
+
+```bash
+sh -lc "/entrypoint.sh & node /app/.output/worker/quote-worker.mjs & wait -n"
+```
+
+Notes:
+- `/entrypoint.sh` runs DB migrations; running multiple replicas with this “single container” approach can cause duplicate migration attempts.
+- Prefer the 2-service approach above for predictable behavior on low-end machines.
+
 ## Styling
 
 This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.

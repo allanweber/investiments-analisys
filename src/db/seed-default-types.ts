@@ -4,16 +4,16 @@ import { getDefaultQuestionsForTypeName } from '#/db/default-question-bank'
 import * as schema from '#/db/schema'
 
 /** Types suggested after signup (pt-BR labels). Idempotent per user. */
-const DEFAULT_TYPE_NAMES = [
-  'Renda fixa',
-  'Ações',
-  'Ações internacionais',
-  'ETF',
-  'FIIs',
-  'Cripto',
-  'REITs',
-  'Reserva de valor',
-] as const
+const DEFAULT_TYPES: { name: string; fixedIncome: boolean }[] = [
+  { name: 'Renda fixa', fixedIncome: true },
+  { name: 'Ações', fixedIncome: false },
+  { name: 'Ações internacionais', fixedIncome: false },
+  { name: 'ETF', fixedIncome: false },
+  { name: 'FIIs', fixedIncome: false },
+  { name: 'Cripto', fixedIncome: false },
+  { name: 'REITs', fixedIncome: false },
+  { name: 'Reserva de valor', fixedIncome: false },
+]
 
 export async function seedDefaultInvestmentTypesForUser(userId: string) {
   const { db } = await import('#/db')
@@ -28,9 +28,10 @@ export async function seedDefaultInvestmentTypesForUser(userId: string) {
   const inserted = await db
     .insert(schema.investmentType)
     .values(
-      DEFAULT_TYPE_NAMES.map((name, i) => ({
+      DEFAULT_TYPES.map((row, i) => ({
         userId,
-        name,
+        name: row.name,
+        fixedIncome: row.fixedIncome,
         sortOrder: i,
       })),
     )

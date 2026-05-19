@@ -60,6 +60,7 @@ const core = {
     navInvestimentosShort: 'Invest',
     navTiposLong: 'Tipos de Investimento',
     navTiposShort: 'Tipos',
+    navCarteira: 'Carteira',
     newInvestment: 'Novo investimento',
   },
   theme: {
@@ -240,6 +241,9 @@ const core = {
       'Ainda sem tipos. Adicione acima ou cadastre-se para receber tipos sugeridos.',
     thNome: 'Nome',
     thOrdem: 'Ordem',
+    labelFixedIncome: 'Renda fixa',
+    labelFixedIncomeHint:
+      'Sem cotação de mercado na carteira; posição pelo custo médio. Também não buscamos moeda do ticker ao salvar.',
     thNumPerguntas: 'Nº de perguntas',
     questionCount: (n: number) => `${n} perguntas`,
     mobilePerguntas: 'Perguntas',
@@ -273,6 +277,25 @@ const core = {
   scoring: {
     legend:
       'Sim = +1 · Não = −1 · Não respondida = 0 (não entra na soma)',
+  },
+  portfolio: {
+    displayCurrencyLabel: 'Moeda de exibição',
+    subtitleConverted:
+      'Totais convertidos para a moeda selecionada. Veja o detalhamento por moeda do ativo abaixo.',
+    fxFootnote: (asOf: string) =>
+      `Câmbio: Yahoo Finance, atualizado em ${asOf} (atualização diária).`,
+    fxStaleWarning: 'Taxas de câmbio desatualizadas; exibindo última cotação disponível.',
+    fxPartialTotals: 'Alguns valores não puderam ser convertidos por falta de taxa.',
+    byCurrencyTitle: 'Por moeda',
+    byCurrencySubtitle:
+      'Totais na moeda original de cada posição, sem misturar denominações entre cartões.',
+    byCurrencyHoldings: (n: number) =>
+      `${n} posição${n === 1 ? '' : 'ões'}`,
+    byCurrencyPctLabel: (display: string) => `da carteira em ${display}`,
+    holdingsNativeValue: 'Valor (moeda do ativo)',
+    holdingsDisplayValue: (currency: string) => `Valor (${currency})`,
+    holdingsRecordingNote:
+      'Novas posições são registradas na moeda do ativo; a tabela abaixo converte para exibição.',
   },
 } as const
 
