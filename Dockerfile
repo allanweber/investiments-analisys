@@ -30,7 +30,8 @@ COPY src/db/schema.ts ./src/db/schema.ts
 COPY --from=builder /app/.output ./.output
 
 COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY docker/worker-entrypoint.sh /worker-entrypoint.sh
+RUN chmod +x /entrypoint.sh /worker-entrypoint.sh
 
 EXPOSE 3000
 
