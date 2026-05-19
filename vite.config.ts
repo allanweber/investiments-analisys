@@ -60,7 +60,10 @@ export default defineConfig({
     viteDbClientStub(),
     devtools(),
     nitro({
-      rollupConfig: { external: [/^@sentry\//] },
+      // yahoo-finance2 pulls @deno/shim-deno (CJS require shim). Bundling it breaks Node ESM at runtime.
+      rollupConfig: {
+        external: [/^@sentry\//, 'yahoo-finance2', /^@deno\//],
+      },
       // Avoid edge/CDN caching HTML that still points at old hashed `/assets/*` after a deploy.
       // `/assets/**` stays long-cache immutable (Nitro default); listed last so it wins over `/**`.
       routeRules: {
