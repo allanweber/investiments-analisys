@@ -25,45 +25,38 @@ This project uses [Vitest](https://vitest.dev/) for testing. You can run the tes
 pnpm test
 ```
 
-## Market quotes: background refresh worker (Dokploy)
+## Docker: app + quote worker
 
-This app caches quotes in PostgreSQL (`market_quote`) and refreshes them via a **separate worker process**. Portfolio screens **do not** call external quote providers; they only read from `market_quote`.
+The production image runs **migrations**, the **web app**, and the **quote/FX worker** from `/entrypoint.sh` (default). Portfolio screens only read `market_quote` and `fx_rate`; the worker refreshes them in the background.
 
-### Dokploy: recommended setup (2 services, same image)
-
-- **Web service (Nitro)**:
-  - Use the default entrypoint (`/entrypoint.sh`).
-  - This runs migrations and starts the web server.
-
-- **Worker service (quote refresh)**:
-  - Use the **same Docker image** as the web service.
-  - Override the command/entrypoint to run:
+### Local full stack
 
 ```bash
-node /app/.output/worker/quote-worker.mjs
+docker compose up -d postgres   # if not already running
+docker compose up --build app   # http://localhost:3000
 ```
 
-Copy the same environment variables from the web service:
+Put secrets in `.env.local` (optional `env_file` for the `app` service): `BRAPI_TOKEN`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, etc. `DATABASE_URL` is set by compose for the `app` → `postgres` link.
+
+### Environment (web + worker in one container)
+
 - **Required**: `DATABASE_URL`
 - **If you have BRL tickers**: `BRAPI_TOKEN`
 - **Optional**:
+  - `RUN_QUOTE_WORKER` (default: `true`) — set `false` on web if you use a dedicated worker container
   - `MARKET_QUOTE_TTL_HOURS` (default: 12)
+  - `FX_REFRESH_HOURS` (default: 24)
   - `QUOTE_WORKER_STAGGER_MS` (default: 1000)
   - `QUOTE_WORKER_IDLE_MS` (default: 60000)
-  - `QUOTE_WORKER_HEALTH_PORT` (optional; if set, worker serves `GET /health`)
-  - `MARKET_DATA_LOG` (optional; verbose provider request/response logging)
+  - `QUOTE_WORKER_HEALTH_PORT` (default: unset; compose sets `8081` for health checks)
+  - `MARKET_DATA_LOG` (optional; verbose provider logging)
 
-### Dokploy: single container (not recommended)
+### Dokploy / Coolify: optional second worker service
 
-You *can* run web + worker in one container, but it’s harder to manage and isolate resources. If you still want it, set the container command to start both processes:
+Default: one service with `/entrypoint.sh` (web + worker). To scale the worker separately:
 
-```bash
-sh -lc "/entrypoint.sh & node /app/.output/worker/quote-worker.mjs & wait -n"
-```
-
-Notes:
-- `/entrypoint.sh` runs DB migrations; running multiple replicas with this “single container” approach can cause duplicate migration attempts.
-- Prefer the 2-service approach above for predictable behavior on low-end machines.
+- **Web**: `RUN_QUOTE_WORKER=false`, entrypoint `/entrypoint.sh`
+- **Worker**: entrypoint `/worker-entrypoint.sh` (same image, same env except auth vars not needed)
 
 ## Styling
 
