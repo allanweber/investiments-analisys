@@ -22,15 +22,10 @@ import {
   userAllocationProfile,
 } from '#/db/schema'
 import type { UserAllocationTargetsJson } from '#/db/schema'
+import { ensureFxRatesForDisplay } from '#/lib/market-data/fx-refresh'
 import { refreshMarketQuotesForInputs } from '#/lib/market-data/quote-refresh'
 import type { MarketQuoteInput } from '#/lib/market-data'
-import {
-  convertMoney,
-  findMissingFxPairs,
-  isFxCacheStale,
-  loadFxRatesFromDb,
-  type FxRateMatrix,
-} from '#/lib/fx'
+import { convertMoney, isFxCacheStale, type FxRateMatrix } from '#/lib/fx'
 import { isFixedIncomeTipo, valueHolding } from '#/lib/portfolio-valuation'
 
 /** Avoid top-level `#/db` / `auth` imports so client chunks do not bundle `pg`. */
@@ -1075,8 +1070,6 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
     const db = await getDb()
     const userId = await requireUserId()
     const displayCurrency = normalizeHoldingCurrency(data.displayCurrency) ?? 'BRL'
-    const { matrix, newestFetchedAt, oldestFetchedAt } = await loadFxRatesFromDb(db)
-    const fxStale = isFxCacheStale(oldestFetchedAt)
 
     const rows = await db
       .select({
@@ -1109,7 +1102,13 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
     const { bySymbol, stale } = await loadQuotesFromDb({ inputs: tickers })
 
     const nativeCurrencies = [...new Set(rows.map((r) => r.currency).filter(Boolean))]
-    const fxMissingPairs = findMissingFxPairs(nativeCurrencies, displayCurrency, matrix)
+    const {
+      matrix,
+      newestFetchedAt,
+      oldestFetchedAt,
+      fxMissingPairs,
+    } = await ensureFxRatesForDisplay(db, nativeCurrencies, displayCurrency)
+    const fxStale = isFxCacheStale(oldestFetchedAt)
 
     const enriched = rows.map((r) => {
       const sym = (r.ticker ?? '').trim()
@@ -1269,8 +1268,6 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
     const db = await getDb()
     const userId = await requireUserId()
     const displayCurrency = normalizeHoldingCurrency(data.displayCurrency) ?? 'BRL'
-    const { matrix, newestFetchedAt, oldestFetchedAt } = await loadFxRatesFromDb(db)
-    const fxStale = isFxCacheStale(oldestFetchedAt)
 
     const holdings = await db
       .select({
@@ -1293,7 +1290,13 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
     const currencies = [...new Set(holdings.map((h) => h.currency))].sort((a, b) =>
       a.localeCompare(b),
     )
-    const fxMissingPairs = findMissingFxPairs(currencies, displayCurrency, matrix)
+    const {
+      matrix,
+      newestFetchedAt,
+      oldestFetchedAt,
+      fxMissingPairs,
+    } = await ensureFxRatesForDisplay(db, currencies, displayCurrency)
+    const fxStale = isFxCacheStale(oldestFetchedAt)
 
     const inputs: MarketQuoteInput[] = holdings
       .filter((r) => !isFixedIncomeTipo(r.fixedIncome, r.investmentTypeName))
