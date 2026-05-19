@@ -80,6 +80,7 @@ Dokploy uses **Docker Swarm** and **Traefik** on ports **80** and **443**; the p
    - `BETTER_AUTH_URL=https://invest.allanweber.dev` (after HTTPS works end-to-end)
    - `BETTER_AUTH_SECRET` (strong random)
    - `BETTER_AUTH_TRUSTED_ORIGINS` including `https://invest.allanweber.dev`
+   - `RESEND_API_KEY` and `EMAIL_FROM` (verified domain in Resend; e.g. `The Financial Architect <noreply@yourdomain.com>`) for signup OTP and password-reset emails
 5. **Deploy**; fix build logs until green.
 6. **Migrations:** run `pnpm db:migrate` once against production (Dokploy **Advanced → Run Command** or from your laptop with production URL — pick one documented workflow).
 

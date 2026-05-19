@@ -44,10 +44,23 @@ function navLabels() {
   }
 }
 
+const PUBLIC_AUTH_PATHS = [
+  '/login',
+  '/verify-email',
+  '/forgot-password',
+  '/reset-password',
+] as const
+
+function isPublicAuthPath(pathname: string) {
+  return PUBLIC_AUTH_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  )
+}
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { data: session, isPending } = authClient.useSession()
-  const isLogin = pathname === '/login'
+  const isPublicAuth = isPublicAuthPath(pathname)
   const L = navLabels()
   const NAV = NAV_CONFIG.map((c) => ({
     ...c,
@@ -55,7 +68,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     shortLabel: L[c.shortKey],
   }))
 
-  if (isLogin) {
+  if (isPublicAuth) {
     return <>{children}</>
   }
 
@@ -65,6 +78,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   if (!session?.user) {
     return <Navigate to="/login" replace />
+  }
+
+  if (!session.user.emailVerified) {
+    return (
+      <Navigate
+        to="/verify-email"
+        search={{ email: session.user.email }}
+        replace
+      />
+    )
   }
 
   return (

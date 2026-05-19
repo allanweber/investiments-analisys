@@ -101,7 +101,9 @@ const core = {
     placeholderEmail: 'nome@exemplo.com',
     placeholderPassword: '••••••••',
     errorSignUp: 'Falha no cadastro',
-    errorSignIn: 'Falha no login',
+    errorEmailAlreadyRegistered:
+      'Este e-mail já está cadastrado. Entre com sua senha ou use “Esqueci a senha”.',
+    errorSignIn: 'E-mail ou senha inválidos.',
     errorUnexpected: 'Ocorreu um erro inesperado.',
     submitSignUp: 'Criar conta',
     submitSignIn: 'Entrar',
@@ -117,6 +119,53 @@ const core = {
     legalSupport: 'Suporte',
     passwordMinLengthTitle: 'Mínimo de 8 caracteres.',
     passwordTooShort: 'A senha deve ter pelo menos 8 caracteres.',
+    linkForgotPassword: 'Esqueci a senha',
+    errorEmailNotVerified:
+      'Confirme seu e-mail antes de entrar. Enviamos um código de verificação.',
+    errorSignInVerifyFirst: 'Verifique seu e-mail para continuar.',
+    errorInvalidOtp: 'Código inválido ou expirado.',
+    errorTooManyOtpAttempts:
+      'Muitas tentativas. Solicite um novo código e tente de novo.',
+    errorRateLimit: 'Aguarde um momento antes de solicitar outro código.',
+    errorPasswordMismatch: 'As senhas não coincidem.',
+    verifyEmailTitle: 'Confirme seu e-mail',
+    verifyEmailSubtitle: (email: string) =>
+      `Enviamos um código de 6 dígitos para ${email}.`,
+    verifyEmailNoEmail: 'Informe o e-mail usado no cadastro.',
+    labelOtp: 'Código de verificação',
+    placeholderOtp: '000000',
+    submitVerifyEmail: 'Confirmar e entrar',
+    resendOtp: 'Reenviar código',
+    resendOtpCooldown: (seconds: number) =>
+      `Aguarde ${seconds}s para reenviar`,
+    verifyEmailSuccess: 'E-mail confirmado. Faça login para continuar.',
+    linkChangeEmail: 'Usar outro e-mail',
+    forgotPasswordTitle: 'Recuperar senha',
+    forgotPasswordSubtitle:
+      'Informe seu e-mail. Se existir uma conta, enviaremos um código.',
+    submitForgotPassword: 'Enviar código',
+    forgotPasswordSuccess:
+      'Se existir uma conta com este e-mail, você receberá um código em breve.',
+    resetPasswordTitle: 'Nova senha',
+    resetPasswordSubtitle: 'Digite o código recebido e escolha uma nova senha.',
+    labelNewPassword: 'Nova senha',
+    labelConfirmPassword: 'Confirmar senha',
+    submitResetPassword: 'Redefinir senha',
+    resetPasswordSuccess:
+      'Senha redefinida. Entre com sua nova senha.',
+    loginAfterResetHint: 'Sua senha foi atualizada.',
+    emailOtpSubjectVerify: 'Confirme seu e-mail — The Financial Architect',
+    emailOtpBodyVerify: (otp: string) =>
+      `Seu código de verificação é: ${otp}\n\nEle expira em 10 minutos. Se você não criou uma conta, ignore este e-mail.`,
+    emailOtpSubjectReset: 'Redefinir senha — The Financial Architect',
+    emailOtpBodyReset: (otp: string) =>
+      `Seu código para redefinir a senha é: ${otp}\n\nEle expira em 10 minutos. Se você não solicitou isso, ignore este e-mail.`,
+    emailOtpSubjectSignIn: 'Código de acesso — The Financial Architect',
+    emailOtpBodySignIn: (otp: string) =>
+      `Seu código de acesso é: ${otp}\n\nEle expira em 10 minutos.`,
+    emailOtpSubjectChangeEmail: 'Confirmar e-mail — The Financial Architect',
+    emailOtpBodyChangeEmail: (otp: string) =>
+      `Seu código de confirmação é: ${otp}\n\nEle expira em 10 minutos.`,
   },
   dashboard: {
     kickerOverview: 'Visão geral',

@@ -290,7 +290,7 @@ Comportamentos a **implementar explicitamente** (evitam ambiguidade na pontuaç�
 - **Layout do repo**: aplicação TanStack Start na **raiz** do workspace (mesmo nível que `DESIGN.md`, `design/`, `plans/`).
 - **Gestor de pacotes**: **pnpm** (scaffold, scripts, lockfile).
 - **Navegação inicial**: **`/` → redirect para `/dashboard`**; hub pós-login = `/dashboard`.
-- **Registo e login**: Better Auth com **email/palavra-passe (obligatório no fluxo)** e **Google** no MVP; GitHub fora do MVP imediato. Configurar `BETTER_AUTH_SECRET`, URL base da app, e credenciais OAuth Google no ambiente VPS/Docker.
+- **Registo e login**: Better Auth com **email/palavra-passe (obligatório no fluxo)** e **Google** no MVP; GitHub fora do MVP imediato. Configurar `BETTER_AUTH_SECRET`, URL base da app, e credenciais OAuth Google no ambiente VPS/Docker. **Email/password**: verificação obrigatória por **OTP** (plugin `emailOTP`); envio via **Resend** (`RESEND_API_KEY`, `EMAIL_FROM`); reset de palavra-passe por OTP; Google entra sem OTP.
 - **Seeds**: **auto-seed** dos tipos predefinidos **após signup** (ver secção Seeds).
 - **Eliminação de dados**: prioridade **não perder dados por acidente** — **bloquear** remoção de **tipo** se existirem perguntas ou investimentos; **bloquear** remoção de **pergunta** se existirem respostas (usar **inativar**). Ver tabela de edge cases para detalhe.
 - **Nomes de investimento**: **permitir duplicados** no mesmo tipo para o mesmo utilizador (sem unicidade composta em nome).

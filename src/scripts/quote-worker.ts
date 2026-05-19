@@ -34,11 +34,6 @@ function envNumber(name: string, fallback: number): number {
   return Number.isFinite(n) && n >= 0 ? n : fallback
 }
 
-function envString(name: string): string | null {
-  const raw = (process.env[name] ?? '').trim()
-  return raw ? raw : null
-}
-
 function marketQuoteTtlMsFromEnv(): number {
   const raw = (process.env.MARKET_QUOTE_TTL_HOURS ?? '').trim()
   const h = raw ? Number(raw) : 12

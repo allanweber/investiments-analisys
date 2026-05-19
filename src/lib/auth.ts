@@ -2,23 +2,19 @@ import { betterAuth } from 'better-auth'
 
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 
+import { emailOTP } from 'better-auth/plugins'
+
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
-
-
 
 import * as schema from '#/db/schema'
 
-
+import { sendAuthOtpEmail } from '#/lib/email/send-auth-otp'
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID
 
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
 
-
-
 const authBaseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3002'
-
-
 
 const extraTrustedOrigins =
 
@@ -27,8 +23,6 @@ const extraTrustedOrigins =
     .map((o) => o.trim())
 
     .filter(Boolean) ?? []
-
-
 
 /** Origins allowed for cookie / CSRF checks (must include the URL users open in the browser). */
 
@@ -56,11 +50,7 @@ const trustedOrigins = [
 
 ]
 
-
-
 let authInstance: ReturnType<typeof betterAuth> | undefined
-
-
 
 /**
 
@@ -102,6 +92,22 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
 
       enabled: true,
 
+      requireEmailVerification: true,
+
+      autoSignIn: false,
+
+      minPasswordLength: 8,
+
+      revokeSessionsOnPasswordReset: true,
+
+    },
+
+    emailVerification: {
+
+      sendOnSignUp: true,
+
+      autoSignInAfterVerification: true,
+
     },
 
     socialProviders:
@@ -121,7 +127,7 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
               mapProfileToUser: (profile) => {
                 if (!profile || typeof profile !== 'object') return {}
 
-                const p = profile as Record<string, unknown>
+                const p = profile as unknown as Record<string, unknown>
                 const image =
                   (typeof p.picture === 'string' && p.picture) ||
                   (typeof p.avatar_url === 'string' && p.avatar_url) ||
@@ -155,7 +161,35 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
 
     },
 
-    plugins: [tanstackStartCookies()],
+    plugins: [
+
+      emailOTP({
+
+        overrideDefaultEmailVerification: true,
+
+        sendVerificationOnSignUp: true,
+
+        otpLength: 6,
+
+        expiresIn: 600,
+
+        allowedAttempts: 5,
+
+        resendStrategy: 'reuse',
+
+        rateLimit: { window: 60, max: 3 },
+
+        async sendVerificationOTP({ email, otp, type }) {
+
+          void sendAuthOtpEmail({ email, otp, type })
+
+        },
+
+      }),
+
+      tanstackStartCookies(),
+
+    ],
 
   })
 
@@ -164,4 +198,3 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
   return authInstance
 
 }
-

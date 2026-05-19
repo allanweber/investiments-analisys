@@ -4,7 +4,7 @@ import { Pool } from 'pg'
 
 import { marketQuote } from '../../db/schema'
 import { getQuoteProvider } from './index'
-import type { MarketQuote, MarketQuoteInput, QuoteFetchResult, QuoteProviderId } from './types'
+import type { MarketQuote, MarketQuoteInput, QuoteFetchResult } from './types'
 
 async function getDb() {
   // Prefer `#/db` when available (SSR/server graph); fall back for the worker entry.

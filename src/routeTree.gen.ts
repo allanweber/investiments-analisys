@@ -9,10 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as TiposRouteImport } from './routes/tipos'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as InvestimentosRouteImport } from './routes/investimentos'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -21,9 +24,19 @@ import { Route as TiposTypeIdPerguntasRouteImport } from './routes/tipos/$typeId
 import { Route as InvestimentosIdPontuacaoRouteImport } from './routes/investimentos/$id/pontuacao'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TiposRoute = TiposRouteImport.update({
   id: '/tipos',
   path: '/tipos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PortfolioRoute = PortfolioRouteImport.update({
@@ -39,6 +52,11 @@ const LoginRoute = LoginRouteImport.update({
 const InvestimentosRoute = InvestimentosRouteImport.update({
   id: '/investimentos',
   path: '/investimentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -82,10 +100,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/dashboard': typeof DashboardRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/investimentos': typeof InvestimentosRouteWithChildren
   '/login': typeof LoginRoute
   '/portfolio': typeof PortfolioRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/tipos': typeof TiposRouteWithChildren
+  '/verify-email': typeof VerifyEmailRoute
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
@@ -95,10 +116,13 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/dashboard': typeof DashboardRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/investimentos': typeof InvestimentosRouteWithChildren
   '/login': typeof LoginRoute
   '/portfolio': typeof PortfolioRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/tipos': typeof TiposRouteWithChildren
+  '/verify-email': typeof VerifyEmailRoute
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
@@ -109,10 +133,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/dashboard': typeof DashboardRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/investimentos': typeof InvestimentosRouteWithChildren
   '/login': typeof LoginRoute
   '/portfolio': typeof PortfolioRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/tipos': typeof TiposRouteWithChildren
+  '/verify-email': typeof VerifyEmailRoute
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
@@ -124,10 +151,13 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/dashboard'
+    | '/forgot-password'
     | '/investimentos'
     | '/login'
     | '/portfolio'
+    | '/reset-password'
     | '/tipos'
+    | '/verify-email'
     | '/portfolio/holdings'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
@@ -137,10 +167,13 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/dashboard'
+    | '/forgot-password'
     | '/investimentos'
     | '/login'
     | '/portfolio'
+    | '/reset-password'
     | '/tipos'
+    | '/verify-email'
     | '/portfolio/holdings'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
@@ -150,10 +183,13 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/dashboard'
+    | '/forgot-password'
     | '/investimentos'
     | '/login'
     | '/portfolio'
+    | '/reset-password'
     | '/tipos'
+    | '/verify-email'
     | '/portfolio/holdings'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
@@ -164,20 +200,37 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   DashboardRoute: typeof DashboardRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   InvestimentosRoute: typeof InvestimentosRouteWithChildren
   LoginRoute: typeof LoginRoute
   PortfolioRoute: typeof PortfolioRouteWithChildren
+  ResetPasswordRoute: typeof ResetPasswordRoute
   TiposRoute: typeof TiposRouteWithChildren
+  VerifyEmailRoute: typeof VerifyEmailRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tipos': {
       id: '/tipos'
       path: '/tipos'
       fullPath: '/tipos'
       preLoaderRoute: typeof TiposRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/portfolio': {
@@ -199,6 +252,13 @@ declare module '@tanstack/react-router' {
       path: '/investimentos'
       fullPath: '/investimentos'
       preLoaderRoute: typeof InvestimentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -291,10 +351,13 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   DashboardRoute: DashboardRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   InvestimentosRoute: InvestimentosRouteWithChildren,
   LoginRoute: LoginRoute,
   PortfolioRoute: PortfolioRouteWithChildren,
+  ResetPasswordRoute: ResetPasswordRoute,
   TiposRoute: TiposRouteWithChildren,
+  VerifyEmailRoute: VerifyEmailRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

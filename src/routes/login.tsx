@@ -4,18 +4,31 @@ import {
   createFileRoute,
   useRouter,
 } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { z } from 'zod'
 
+import { AuthSuccessAlert } from '#/components/auth/auth-alert'
 import ThemeToggle from '#/components/ThemeToggle'
 import { authClient } from '#/lib/auth-client'
+import {
+  isEmailNotVerifiedError,
+  isInvalidCredentialsError,
+} from '#/lib/auth-errors'
+
+import { stashVerifyPassword } from '#/lib/auth-verify-storage'
 import { messages as m } from '#/messages'
 
 export const Route = createFileRoute('/login')({
+  validateSearch: z.object({
+    reset: z.enum(['success']).optional(),
+    verified: z.enum(['1']).optional(),
+  }),
   component: LoginPage,
 })
 
 function LoginPage() {
   const router = useRouter()
+  const search = Route.useSearch()
   const { data: session, isPending } = authClient.useSession()
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
@@ -23,6 +36,12 @@ function LoginPage() {
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const successMessage = useMemo(() => {
+    if (search.reset === 'success') return m.auth.resetPasswordSuccess
+    if (search.verified === '1') return m.auth.verifyEmailSuccess
+    return ''
+  }, [search.reset, search.verified])
 
   if (isPending) {
     return (
@@ -39,6 +58,15 @@ function LoginPage() {
   }
 
   if (session?.user) {
+    if (!session.user.emailVerified) {
+      return (
+        <Navigate
+          to="/verify-email"
+          search={{ email: session.user.email }}
+          replace
+        />
+      )
+    }
     return <Navigate to="/dashboard" replace />
   }
 
@@ -48,15 +76,53 @@ function LoginPage() {
     setLoading(true)
     try {
       if (isSignUp) {
-        const result = await authClient.signUp.email({ email, password, name })
+        const result = await authClient.signUp.email({
+          email: email.trim(),
+          password,
+          name,
+        })
         if (result.error) {
           setError(m.auth.errorSignUp)
         } else {
-          await router.navigate({ to: '/dashboard' })
+          const trimmedEmail = email.trim()
+          const probe = await authClient.signIn.email({
+            email: trimmedEmail,
+            password,
+          })
+          if (!probe.error) {
+            await router.navigate({ to: '/dashboard' })
+            return
+          }
+          if (isInvalidCredentialsError(probe.error)) {
+            setError(m.auth.errorEmailAlreadyRegistered)
+            return
+          }
+          if (!isEmailNotVerifiedError(probe.error)) {
+            setError(m.auth.errorSignUp)
+            return
+          }
+          stashVerifyPassword(password)
+          await router.navigate({
+            to: '/verify-email',
+            search: { email: trimmedEmail },
+            state: { password, fromSignUp: true },
+            replace: true,
+          })
         }
       } else {
-        const result = await authClient.signIn.email({ email, password })
+        const result = await authClient.signIn.email({
+          email: email.trim(),
+          password,
+        })
         if (result.error) {
+          if (isEmailNotVerifiedError(result.error)) {
+            setError(m.auth.errorEmailNotVerified)
+            await router.navigate({
+              to: '/verify-email',
+              search: { email: email.trim() },
+            })
+            return
+          }
           setError(m.auth.errorSignIn)
         } else {
           await router.navigate({ to: '/dashboard' })
@@ -211,12 +277,22 @@ function LoginPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label
-                  htmlFor="password"
-                  className="font-label block text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
-                >
-                  {m.auth.labelPassword}
-                </label>
+                <div className="flex items-center justify-between gap-2">
+                  <label
+                    htmlFor="password"
+                    className="font-label block text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
+                  >
+                    {m.auth.labelPassword}
+                  </label>
+                  {!isSignUp && (
+                    <Link
+                      to="/forgot-password"
+                      className="font-body text-xs font-semibold text-primary no-underline hover:underline"
+                    >
+                      {m.auth.linkForgotPassword}
+                    </Link>
+                  )}
+                </div>
                 <div className="relative">
                   <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-outline">
                     lock
@@ -243,6 +319,8 @@ function LoginPage() {
                   />
                 </div>
               </div>
+
+              <AuthSuccessAlert message={successMessage} />
 
               {error && (
                 <div
