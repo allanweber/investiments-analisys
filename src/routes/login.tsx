@@ -116,10 +116,13 @@ function LoginPage() {
         })
         if (result.error) {
           if (isEmailNotVerifiedError(result.error)) {
-            setError(m.auth.errorEmailNotVerified)
+            const trimmedEmail = email.trim()
+            stashVerifyPassword(password)
             await router.navigate({
               to: '/verify-email',
-              search: { email: email.trim() },
+              search: { email: trimmedEmail },
+              state: { password },
+              replace: true,
             })
             return
           }

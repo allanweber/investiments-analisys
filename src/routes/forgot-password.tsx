@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { AuthAlert } from '#/components/auth/auth-alert'
 import { AuthPageShell } from '#/components/auth/auth-page-shell'
 import { authClient } from '#/lib/auth-client'
+import { mapOtpError } from '#/lib/auth-errors'
 import { messages as m } from '#/messages'
 
 export const Route = createFileRoute('/forgot-password')({
@@ -39,7 +40,13 @@ function ForgotPasswordPage() {
     setError('')
     setLoading(true)
     try {
-      await authClient.emailOtp.requestPasswordReset({ email: email.trim() })
+      const result = await authClient.emailOtp.requestPasswordReset({
+        email: email.trim(),
+      })
+      if (result.error) {
+        setError(mapOtpError(result.error))
+        return
+      }
       await router.navigate({
         to: '/reset-password',
         search: { email: email.trim() },
