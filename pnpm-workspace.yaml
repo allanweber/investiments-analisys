@@ -1,0 +1,9 @@
+packages:
+  - "."
+
+# pnpm v10+ blocks dependency build scripts unless explicitly allowed.
+# Docker builds for this repo require some dependencies (notably `esbuild`) to run install scripts.
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
+

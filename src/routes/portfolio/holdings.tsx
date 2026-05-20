@@ -11,6 +11,7 @@ import {
   deletePortfolioHoldingFn,
   listInvestmentsOverviewFn,
   listPortfolioHoldingsFn,
+  refreshPortfolioQuotesFn,
   upsertPortfolioHoldingFn,
 } from '#/lib/investment-server'
 import { messages as m } from '#/messages'
@@ -877,6 +878,13 @@ function HoldingsPage() {
               type="button"
               className="inline-flex shrink-0 items-center justify-center rounded-full bg-error-container px-5 py-2.5 text-xs font-bold text-on-error-container shadow-sm hover:opacity-95"
               onClick={async () => {
+                // Force-refresh quotes from providers, then reload from DB.
+                // (The worker may not be running in production, or providers may have transient errors.)
+                try {
+                  await refreshPortfolioQuotesFn({ data: { displayCurrency } })
+                } catch {
+                  // Even if provider refresh fails, retry reading cached quotes.
+                }
                 const refreshed = await listPortfolioHoldingsFn({ data: { displayCurrency } })
                 setData(refreshed)
               }}

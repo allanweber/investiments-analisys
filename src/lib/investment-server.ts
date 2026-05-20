@@ -976,6 +976,53 @@ export const listPortfolioCurrenciesFn = createServerFn({ method: 'GET' }).handl
   },
 )
 
+const refreshPortfolioQuotesInput = z.object({
+  /**
+   * Optional hint to prefer BRL-first provider routing when the user is viewing the portfolio
+   * in a given currency. This does not change the holding currency stored in DB.
+   */
+  displayCurrency: currencyCode.optional(),
+})
+
+/**
+ * Force-refreshes market quotes for all tickers in the user's holdings (non-fixed-income only).
+ * Intended for the "Tentar reconectar" UI action when cached quotes are stale.
+ */
+export const refreshPortfolioQuotesFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => refreshPortfolioQuotesInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = await getDb()
+    const userId = await requireUserId()
+
+    const holdings = await db
+      .select({
+        ticker: portfolioHolding.ticker,
+        holdingCurrency: portfolioHolding.currency,
+        fixedIncome: investmentType.fixedIncome,
+        investmentTypeName: investmentType.name,
+      })
+      .from(portfolioHolding)
+      .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
+      .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
+      .where(and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)))
+
+    const inputs: MarketQuoteInput[] = holdings
+      .filter((h) => !isFixedIncomeTipo(h.fixedIncome, h.investmentTypeName))
+      .map((h) => ({
+        symbol: (h.ticker ?? '').trim(),
+        holdingCurrency: normalizeHoldingCurrency(h.holdingCurrency),
+      }))
+      .filter((i) => i.symbol.length > 0)
+
+    const { stale } = await refreshMarketQuotesForInputs({
+      actorId: userId,
+      reason: 'immediate',
+      inputs,
+    })
+
+    return { ok: true as const, providerStale: stale, refreshedCount: inputs.length }
+  })
+
 const upsertHoldingInput = z.object({
   investmentId: uuid,
   ticker: z.string().trim().min(1).max(32).optional().nullable(),
