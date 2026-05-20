@@ -343,6 +343,31 @@ const core = {
     holdingsDisplayValue: (currency: string) => `Valor (${currency})`,
     holdingsRecordingNote:
       'Novas posições são registradas na moeda do ativo; a tabela abaixo converte para exibição.',
+    addPositionTitle: 'Adicionar posição',
+    chooseAssetClassSubtitle:
+      'Escolha a classe do ativo. O formulário de cadastro depende do tipo.',
+    chooseVariableIncome: 'Renda variável',
+    chooseVariableIncomeHint: 'Ações, FIIs, ETFs e outros ativos com cotação de mercado.',
+    chooseFixedIncome: 'Renda fixa',
+    chooseFixedIncomeHint: 'Títulos, CDBs e similares sem ticker de bolsa.',
+    fixedIncomeComingSoonTitle: 'Renda fixa em breve',
+    fixedIncomeComingSoonBody:
+      'O cadastro de posições de renda fixa na carteira será disponibilizado em uma próxima atualização.',
+    fixedIncomeComingSoonOk: 'Entendi',
+    addVariableBanner:
+      'Informe o ticker e os dados da posição. Se o investimento ainda não existir, ele será criado automaticamente para pontuação.',
+    addVariableTypeLabel: 'Tipo de investimento',
+    addVariableTypePlaceholder: 'Selecione…',
+    addVariableWillCreate: (ticker: string) =>
+      `Será criado um investimento com o nome «${ticker}» para vincular à pontuação.`,
+    addVariableSelectTypeError: 'Selecione o tipo de investimento.',
+    addVariableCreateInvestmentError:
+      'Não foi possível criar o investimento. Verifique o tipo selecionado.',
+    addMergeHint:
+      'Já existe posição neste investimento. A quantidade e o preço unitário serão somados (novo preço médio), na mesma moeda da posição.',
+    addMergeQuantityLabel: 'Quantidade adicional',
+    addMergeUnitPriceLabel: 'Preço unitário desta compra',
+    addMergeUnitPriceError: 'Informe o preço unitário desta compra.',
   },
 } as const
 

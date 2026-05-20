@@ -659,7 +659,11 @@ export const listInvestmentTypesOptionsFn = createServerFn({ method: 'GET' }).ha
     const db = await getDb()
     const userId = await requireUserId()
     return db
-      .select({ id: investmentType.id, name: investmentType.name })
+      .select({
+        id: investmentType.id,
+        name: investmentType.name,
+        fixedIncome: investmentType.fixedIncome,
+      })
       .from(investmentType)
       .where(eq(investmentType.userId, userId))
       .orderBy(asc(investmentType.sortOrder), asc(investmentType.name))
@@ -1053,9 +1057,22 @@ export const upsertPortfolioHoldingFn = createServerFn({ method: 'POST' })
 
     const ticker = data.ticker?.trim() ? data.ticker.trim() : null
 
-    // Renda fixa e similares: sem provedores de mercado.
+    const [existingHolding] = await db
+      .select({ currency: portfolioHolding.currency })
+      .from(portfolioHolding)
+      .where(
+        and(
+          eq(portfolioHolding.userId, userId),
+          eq(portfolioHolding.investmentId, data.investmentId),
+        ),
+      )
+      .limit(1)
+
+    // Posição existente: manter moeda (compras adicionais na mesma denominação).
     let holdingCurrency = data.currency.trim().toUpperCase()
-    if (ticker && !isFixedIncomeTipo(inv.fixedIncome, inv.investmentTypeName)) {
+    if (existingHolding) {
+      holdingCurrency = existingHolding.currency.trim().toUpperCase()
+    } else if (ticker && !isFixedIncomeTipo(inv.fixedIncome, inv.investmentTypeName)) {
       const normalizedUserCurrency = normalizeHoldingCurrency(holdingCurrency)
       try {
         const { bySymbol } = await refreshMarketQuotesForInputs({

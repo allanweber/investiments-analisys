@@ -4,11 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { z } from 'zod'
 
 import { DisplayCurrencySelector } from '#/components/portfolio/display-currency-selector'
-import { fmtMoney } from '#/components/portfolio/format'
+import { allocColorForType, fmtMoney } from '#/components/portfolio/format'
 import { useDisplayCurrency } from '#/hooks/use-display-currency'
 import { authClient } from '#/lib/auth-client'
 import {
+  createInvestmentFn,
   deletePortfolioHoldingFn,
+  listInvestmentTypesOptionsFn,
   listInvestmentsOverviewFn,
   listPortfolioHoldingsFn,
   refreshPortfolioQuotesFn,
@@ -130,6 +132,12 @@ function isRendaFixaTipo(name: string | null | undefined): boolean {
   return (name ?? '').trim() === 'Renda fixa'
 }
 
+function isVariableIncomeInv(
+  o: { fixedIncome: boolean; typeName: string },
+): boolean {
+  return !o.fixedIncome && !isRendaFixaTipo(o.typeName)
+}
+
 function findInvestmentIdForTicker(
   ticker: string,
   rows: { id: string; name: string }[],
@@ -156,12 +164,60 @@ function findInvestmentIdForTicker(
 
 type HoldingRow = Awaited<ReturnType<typeof listPortfolioHoldingsFn>>['rows'][number]
 
-const DONUT_COLORS = [
-  'var(--color-primary-container)',
-  'var(--color-tertiary-fixed-dim)',
-  'var(--color-secondary-container)',
-  'var(--color-outline-variant)',
-]
+function findExistingHoldingForAdd(
+  rows: HoldingRow[],
+  investmentId: string,
+  ticker: string,
+): HoldingRow | undefined {
+  if (investmentId) {
+    const byInv = rows.find((r) => r.investmentId === investmentId)
+    if (byInv) return byInv
+  }
+  const t = ticker.trim().toUpperCase()
+  if (!t) return undefined
+  return rows.find((r) => (r.ticker ?? '').trim().toUpperCase() === t)
+}
+
+type DonutSegment = {
+  investmentTypeId: string
+  label: string
+  pct: number
+  color: string
+}
+
+/** Donut slice from outer/inner radii and start/end angles (degrees, clockwise from top). */
+function donutSlicePath(
+  cx: number,
+  cy: number,
+  rOuter: number,
+  rInner: number,
+  startDeg: number,
+  endDeg: number,
+): string {
+  const sweep = endDeg - startDeg
+  if (sweep <= 0) return ''
+  if (sweep >= 360) endDeg = startDeg + 359.99
+
+  const rad = (deg: number) => ((deg - 90) * Math.PI) / 180
+  const pt = (r: number, deg: number) => ({
+    x: cx + r * Math.cos(rad(deg)),
+    y: cy + r * Math.sin(rad(deg)),
+  })
+
+  const o0 = pt(rOuter, startDeg)
+  const o1 = pt(rOuter, endDeg)
+  const i0 = pt(rInner, endDeg)
+  const i1 = pt(rInner, startDeg)
+  const large = sweep > 180 ? 1 : 0
+
+  return [
+    `M ${o0.x} ${o0.y}`,
+    `A ${rOuter} ${rOuter} 0 ${large} 1 ${o1.x} ${o1.y}`,
+    `L ${i0.x} ${i0.y}`,
+    `A ${rInner} ${rInner} 0 ${large} 0 ${i1.x} ${i1.y}`,
+    'Z',
+  ].join(' ')
+}
 
 function toDateInputValue(v: unknown): string {
   if (v == null) return ''
@@ -187,6 +243,7 @@ function parseAdditionalQty(raw: string): number {
 
 type PortfolioHoldingForm = {
   investmentId: string
+  investmentTypeId: string
   ticker: string
   quantity: number
   avgCost: number
@@ -208,6 +265,8 @@ function SharedHoldingFormFields({
   avgCostPointerDownBeforeFocusRef,
   avgCostSuppressNextMouseUpRef,
   avgCostLabel,
+  quantityLabel = 'Quantidade',
+  currencyDisabled = false,
 }: {
   form: PortfolioHoldingForm
   setForm: Dispatch<SetStateAction<PortfolioHoldingForm>>
@@ -221,12 +280,14 @@ function SharedHoldingFormFields({
   avgCostPointerDownBeforeFocusRef: MutableRefObject<boolean>
   avgCostSuppressNextMouseUpRef: MutableRefObject<boolean>
   avgCostLabel: string
+  quantityLabel?: string
+  currencyDisabled?: boolean
 }) {
   return (
     <>
       <div className="sm:col-span-1">
         <label className="block text-[10px] font-bold uppercase tracking-widest text-outline">
-          Quantidade
+          {quantityLabel}
         </label>
         <input
           type="text"
@@ -340,8 +401,8 @@ function SharedHoldingFormFields({
               avgCost: round2(f.avgCost),
             }))
           }}
-          disabled={invOptions === null}
-          className="mt-2 w-full cursor-pointer border-0 border-b-2 border-outline-variant/50 bg-transparent px-0 py-2.5 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary disabled:opacity-50"
+          disabled={invOptions === null || currencyDisabled}
+          className="mt-2 w-full cursor-pointer border-0 border-b-2 border-outline-variant/50 bg-transparent px-0 py-2.5 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-50"
         >
           {HOLDING_CURRENCY_OPTIONS.map((c) => (
             <option key={c} value={c}>
@@ -365,60 +426,67 @@ function SharedHoldingFormFields({
   )
 }
 
-function DonutAllocation({
-  segments,
-  centerPct,
-  centerLabel,
-}: {
-  segments: { label: string; pct: number; color: string }[]
-  centerPct: string
-  centerLabel: string
-}) {
+function DonutAllocation({ segments }: { segments: DonutSegment[] }) {
   const total = segments.reduce((a, s) => a + s.pct, 0) || 1
-  let start = 0
-  const parts = segments.map((s) => {
-    const p = (s.pct / total) * 100
-    const from = start
-    start += p
-    return `${s.color} ${from}% ${start}%`
+  const size = 208
+  const cx = size / 2
+  const cy = size / 2
+  const rOuter = size / 2 - 2
+  const rInner = rOuter * 0.58
+  let angle = 0
+
+  const slices = segments.map((s) => {
+    const sweep = (s.pct / total) * 360
+    const start = angle
+    const end = angle + sweep
+    angle = end
+    return {
+      ...s,
+      d: donutSlicePath(cx, cy, rOuter, rInner, start, end),
+    }
   })
-  const grad = `conic-gradient(${parts.join(', ')})`
+
   return (
     <div className="rounded-2xl bg-surface p-6 shadow-md ring-1 ring-outline-variant/10">
       <h3 className="font-headline text-base font-extrabold text-on-surface">Alocação atual</h3>
       <div className="relative mx-auto mt-6 flex h-52 w-52 max-w-full items-center justify-center">
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: grad,
-            mask: 'radial-gradient(farthest-side, transparent 58%, black 60%)',
-            WebkitMask: 'radial-gradient(farthest-side, transparent 58%, black 60%)',
-          }}
-        />
-        <div className="relative z-[1] max-w-[9rem] text-center">
-          <p className="font-headline text-2xl font-extrabold leading-tight text-on-surface">{centerPct}</p>
-          <p
-            className="mt-1 text-[10px] font-bold uppercase leading-snug tracking-widest text-outline"
-            title={centerLabel}
-            style={{
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }}
-          >
-            {centerLabel}
-          </p>
+        <svg
+          viewBox={`0 0 ${size} ${size}`}
+          className="h-full w-full"
+          role="img"
+          aria-label={`Alocação por tipo: ${segments.map((s) => `${s.label} ${s.pct.toFixed(0)}%`).join(', ')}`}
+        >
+          {slices.map((s) =>
+            s.d ? (
+              <path
+                key={s.investmentTypeId}
+                d={s.d}
+                fill={s.color}
+                className="transition-opacity hover:opacity-90"
+              />
+            ) : null,
+          )}
+        </svg>
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="max-w-[9rem] text-center">
+            <p className="font-headline text-2xl font-extrabold leading-tight text-on-surface">100%</p>
+            <p className="mt-1 text-[10px] font-bold uppercase leading-snug tracking-widest text-outline">
+              por tipo
+            </p>
+          </div>
         </div>
       </div>
       <ul className="mt-6 space-y-1">
         {segments.map((s) => (
           <li
-            key={s.label}
+            key={s.investmentTypeId}
             className="flex items-center justify-between rounded-xl px-2 py-2 text-sm transition-colors hover:bg-surface-container-low"
           >
             <span className="flex min-w-0 items-center gap-2">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: s.color }} />
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-outline-variant/20"
+                style={{ background: s.color }}
+              />
               <span className="truncate font-medium text-on-surface">{s.label}</span>
             </span>
             <span className="shrink-0 pl-2 font-bold text-on-surface">{s.pct.toFixed(0)}%</span>
@@ -438,6 +506,8 @@ function HoldingsPage() {
   const [displaySwitchLoading, setDisplaySwitchLoading] = useState(false)
   const [holdingModal, setHoldingModal] = useState<
     | { kind: 'closed' }
+    | { kind: 'chooseAssetClass' }
+    | { kind: 'fixedIncomeComingSoon' }
     | { kind: 'add' }
     | { kind: 'edit'; row: HoldingRow }
     | { kind: 'addToPosition'; row: HoldingRow }
@@ -457,8 +527,13 @@ function HoldingsPage() {
   const [invOptions, setInvOptions] = useState<
     Array<{ id: string; name: string; fixedIncome: boolean; typeName: string }> | null
   >(null)
+  const [typeOptions, setTypeOptions] = useState<
+    Array<{ id: string; name: string; fixedIncome: boolean }> | null
+  >(null)
+  const [saveHoldingError, setSaveHoldingError] = useState<string | null>(null)
   const [form, setForm] = useState({
     investmentId: '',
+    investmentTypeId: '',
     ticker: '',
     quantity: 0,
     avgCost: 0,
@@ -476,6 +551,7 @@ function HoldingsPage() {
   const [deletingInvestmentId, setDeletingInvestmentId] = useState<string | null>(null)
   const [holdingPendingDelete, setHoldingPendingDelete] = useState<HoldingRow | null>(null)
   const loadingInvs = useRef(false)
+  const loadingTypes = useRef(false)
   const handledAddSearchRef = useRef(false)
   const addModalTickerInputRef = useRef<HTMLInputElement>(null)
   const addToPositionQtyInputRef = useRef<HTMLInputElement>(null)
@@ -501,17 +577,42 @@ function HoldingsPage() {
     }
   }
 
-  useEffect(() => {
-    if (search.add !== '1') {
-      handledAddSearchRef.current = false
-      return
+  async function ensureTypeOptions() {
+    if (loadingTypes.current) return
+    loadingTypes.current = true
+    try {
+      const list = await listInvestmentTypesOptionsFn()
+      setTypeOptions(
+        list.map((t) => ({
+          id: t.id,
+          name: t.name,
+          fixedIncome: Boolean(t.fixedIncome),
+        })),
+      )
+    } finally {
+      loadingTypes.current = false
     }
-    if (handledAddSearchRef.current) return
-    handledAddSearchRef.current = true
+  }
 
+  const variableInvOptions = useMemo(
+    () => (invOptions ?? []).filter(isVariableIncomeInv),
+    [invOptions],
+  )
+
+  const variableTypeOptions = useMemo(
+    () => (typeOptions ?? []).filter((t) => !t.fixedIncome && !isRendaFixaTipo(t.name)),
+    [typeOptions],
+  )
+
+  function openVariableAddModal() {
+    setAvgCostFocused(false)
+    setAvgCostDraft('')
+    setQuantityError(false)
     setInvestmentPickManual(false)
+    setSaveHoldingError(null)
     setForm({
       investmentId: '',
+      investmentTypeId: '',
       ticker: '',
       quantity: 0,
       avgCost: 0,
@@ -521,6 +622,30 @@ function HoldingsPage() {
     })
     setHoldingModal({ kind: 'add' })
     void ensureInvOptions()
+    void ensureTypeOptions()
+  }
+
+  useEffect(() => {
+    if (search.add !== '1') {
+      handledAddSearchRef.current = false
+      return
+    }
+    if (handledAddSearchRef.current) return
+    handledAddSearchRef.current = true
+
+    setInvestmentPickManual(false)
+    setSaveHoldingError(null)
+    setForm({
+      investmentId: '',
+      investmentTypeId: '',
+      ticker: '',
+      quantity: 0,
+      avgCost: 0,
+      broker: '',
+      currency: displayCurrency,
+      lastOpDate: '',
+    })
+    setHoldingModal({ kind: 'chooseAssetClass' })
 
     // Clear the search flag so refresh/back doesn't keep reopening the modal.
     window.setTimeout(() => {
@@ -534,6 +659,7 @@ function HoldingsPage() {
     setAvgCostDraft('')
     setQuantityError(false)
     setInvestmentPickManual(false)
+    setSaveHoldingError(null)
     setAddToPosError(null)
     setAddToPos({ additionalQty: '', unitPrice: 0, lastOpDate: '' })
     setAddUnitFocused(false)
@@ -588,44 +714,52 @@ function HoldingsPage() {
 
   useEffect(() => {
     if (holdingModal.kind !== 'add' || investmentPickManual) return
-    const id = findInvestmentIdForTicker(form.ticker, invOptions ?? [])
+    const id = findInvestmentIdForTicker(form.ticker, variableInvOptions)
     setForm((f) => {
       const next = id ?? ''
-      if (f.investmentId === next) return f
-      return { ...f, investmentId: next }
+      if (f.investmentId === next && (next !== '' || f.investmentTypeId === '')) return f
+      return {
+        ...f,
+        investmentId: next,
+        investmentTypeId: next ? '' : f.investmentTypeId,
+      }
     })
-  }, [holdingModal.kind, investmentPickManual, invOptions, form.ticker])
+  }, [holdingModal.kind, investmentPickManual, variableInvOptions, form.ticker])
+
+  useEffect(() => {
+    if (holdingModal.kind !== 'add') return
+    const rows = data?.rows ?? []
+    const existing = findExistingHoldingForAdd(rows, form.investmentId, form.ticker)
+    if (!existing) return
+    setForm((f) =>
+      f.currency === existing.currency ? f : { ...f, currency: existing.currency },
+    )
+  }, [holdingModal.kind, form.investmentId, form.ticker, data?.rows])
 
   const tickerInvestHint = useMemo(() => {
     if (holdingModal.kind !== 'add' || !form.ticker.trim()) return null
     if (invOptions === null) return { type: 'loading' as const }
-    const suggested = findInvestmentIdForTicker(form.ticker, invOptions)
+    const suggested = findInvestmentIdForTicker(form.ticker, variableInvOptions)
     if (suggested && form.investmentId === suggested) {
-      const name = invOptions.find((o) => o.id === suggested)?.name ?? ''
+      const name = variableInvOptions.find((o) => o.id === suggested)?.name ?? ''
       return { type: 'matched' as const, name }
     }
     if (!form.investmentId) return { type: 'no-match' as const }
     return null
-  }, [holdingModal.kind, form.ticker, form.investmentId, invOptions])
+  }, [holdingModal.kind, form.ticker, form.investmentId, invOptions, variableInvOptions])
+
+  const canSaveAddHolding = useMemo(() => {
+    if (holdingModal.kind !== 'add') return false
+    if (invOptions === null) return false
+    if (form.investmentId) return true
+    return Boolean(form.ticker.trim() && form.investmentTypeId)
+  }, [holdingModal.kind, invOptions, form.investmentId, form.ticker, form.investmentTypeId])
 
   const pageSize = 12
 
   function openAddHoldingModal() {
-    setAvgCostFocused(false)
-    setAvgCostDraft('')
-    setQuantityError(false)
-    setInvestmentPickManual(false)
-    setForm({
-      investmentId: '',
-      ticker: '',
-      quantity: 0,
-      avgCost: 0,
-      broker: '',
-      currency: displayCurrency,
-      lastOpDate: '',
-    })
-    setHoldingModal({ kind: 'add' })
-    void ensureInvOptions()
+    setSaveHoldingError(null)
+    setHoldingModal({ kind: 'chooseAssetClass' })
   }
 
   function openAddToPositionFromRow(r: HoldingRow) {
@@ -647,6 +781,7 @@ function HoldingsPage() {
     setInvestmentPickManual(true)
     setForm({
       investmentId: r.investmentId,
+      investmentTypeId: '',
       ticker: r.ticker?.trim() ?? '',
       quantity: r.quantity,
       avgCost: round2(r.avgCost),
@@ -683,21 +818,31 @@ function HoldingsPage() {
     return [...map.values()].sort((a, b) => b.mv - a.mv)
   }, [data?.rows])
 
-  const donutSegments = useMemo(() => {
+  const donutSegments = useMemo((): DonutSegment[] => {
     const rows = data?.rows ?? []
     const total = rows.reduce((a, r) => a + (r.marketValue ?? 0), 0)
-    if (total <= 0) return [] as { label: string; pct: number; color: string }[]
-    const by = new Map<string, number>()
+    if (total <= 0) return []
+    const by = new Map<
+      string,
+      { investmentTypeId: string; label: string; mv: number }
+    >()
     for (const r of rows) {
-      const k = r.investmentTypeName
-      by.set(k, (by.get(k) ?? 0) + (r.marketValue ?? 0))
+      const prev = by.get(r.investmentTypeId) ?? {
+        investmentTypeId: r.investmentTypeId,
+        label: r.investmentTypeName,
+        mv: 0,
+      }
+      prev.mv += r.marketValue ?? 0
+      by.set(r.investmentTypeId, prev)
     }
-    const arr = [...by.entries()].sort((a, b) => b[1] - a[1])
-    return arr.map(([label, mv], i) => ({
-      label,
-      pct: (mv / total) * 100,
-      color: DONUT_COLORS[i % DONUT_COLORS.length] ?? 'var(--color-outline-variant)',
-    }))
+    return [...by.values()]
+      .sort((a, b) => b.mv - a.mv)
+      .map((entry) => ({
+        investmentTypeId: entry.investmentTypeId,
+        label: entry.label,
+        pct: (entry.mv / total) * 100,
+        color: allocColorForType(entry.investmentTypeId, entry.label),
+      }))
   }, [data?.rows])
 
   const typeFilterOptions = useMemo(() => {
@@ -740,24 +885,72 @@ function HoldingsPage() {
       return
     }
     setQuantityError(false)
+    setSaveHoldingError(null)
+
+    let investmentId = form.investmentId
+    if (!investmentId) {
+      const ticker = form.ticker.trim()
+      if (!ticker) return
+      if (!form.investmentTypeId) {
+        setSaveHoldingError(m.portfolio.addVariableSelectTypeError)
+        return
+      }
+      const created = await createInvestmentFn({
+        data: { name: ticker, investmentTypeId: form.investmentTypeId },
+      })
+      if (!created) {
+        setSaveHoldingError(m.portfolio.addVariableCreateInvestmentError)
+        return
+      }
+      investmentId = created.id
+    }
+
+    const existing =
+      holdingModal.kind === 'add'
+        ? findExistingHoldingForAdd(data?.rows ?? [], investmentId, form.ticker)
+        : undefined
+
+    let quantity = Number(form.quantity)
+    let avgCost = round2(form.avgCost)
+    let currency = form.currency
+    let broker = form.broker.trim() ? form.broker.trim() : null
+    let ticker = form.ticker.trim() ? form.ticker.trim() : null
+
+    if (existing) {
+      const addQ = quantity
+      const unit = avgCost
+      if (!(unit > 0)) {
+        setSaveHoldingError(m.portfolio.addMergeUnitPriceError)
+        return
+      }
+      const oldQ = existing.quantity
+      const oldAvg = existing.avgCost
+      quantity = oldQ + addQ
+      avgCost = round2((oldQ * oldAvg + addQ * unit) / quantity)
+      currency = existing.currency
+      if (!broker) broker = existing.broker?.trim() ? existing.broker.trim() : null
+      if (!ticker) ticker = existing.ticker?.trim() ? existing.ticker.trim() : null
+    }
+
     const lastOpIso =
       form.lastOpDate.trim() === ''
         ? null
         : new Date(`${form.lastOpDate}T12:00:00`).toISOString()
     await upsertPortfolioHoldingFn({
       data: {
-        investmentId: form.investmentId,
-        ticker: form.ticker.trim() ? form.ticker.trim() : null,
-        quantity: Number(form.quantity),
-        avgCost: round2(form.avgCost),
-        broker: form.broker.trim() ? form.broker.trim() : null,
-        currency: form.currency,
+        investmentId,
+        ticker,
+        quantity,
+        avgCost,
+        broker,
+        currency,
         lastOperationAt: lastOpIso,
       },
     })
     setHoldingModal({ kind: 'closed' })
     setForm({
       investmentId: '',
+      investmentTypeId: '',
       ticker: '',
       quantity: 0,
       avgCost: 0,
@@ -1080,11 +1273,7 @@ function HoldingsPage() {
 
           {donutSegments.length > 0 && (
             <aside className="mt-10 lg:mt-0">
-              <DonutAllocation
-                segments={donutSegments}
-                centerPct={`${(donutSegments[0]?.pct ?? 0).toFixed(0)}%`}
-                centerLabel={donutSegments[0]?.label ?? ''}
-              />
+              <DonutAllocation segments={donutSegments} />
             </aside>
           )}
 
@@ -1450,11 +1639,113 @@ function HoldingsPage() {
         </div>
       )}
 
+      {holdingModal.kind === 'chooseAssetClass' && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:px-4 sm:py-10"
+          data-holding-modal="choose-asset-class"
+        >
+          <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-surface px-6 pb-8 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-8 sm:pb-10 sm:pt-8">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h3 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
+                  {m.portfolio.addPositionTitle}
+                </h3>
+                <p className="mt-2 text-xs leading-relaxed text-outline">
+                  {m.portfolio.chooseAssetClassSubtitle}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="shrink-0 rounded-full p-2 text-outline transition-colors hover:bg-surface-container-low"
+                onClick={() => setHoldingModal({ kind: 'closed' })}
+                aria-label="Fechar"
+              >
+                <span className="material-symbols-outlined text-2xl leading-none">close</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <button
+                type="button"
+                className="flex w-full items-start gap-4 rounded-2xl bg-surface-container-low p-5 text-left shadow-md ring-1 ring-outline-variant/10 transition-colors hover:bg-surface-container-high"
+                onClick={() => openVariableAddModal()}
+              >
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-tertiary-fixed-dim/20 text-tertiary-fixed-dim">
+                  <span className="material-symbols-outlined text-2xl">candlestick_chart</span>
+                </span>
+                <span className="min-w-0">
+                  <span className="font-headline block text-base font-extrabold text-on-surface">
+                    {m.portfolio.chooseVariableIncome}
+                  </span>
+                  <span className="mt-1 block text-xs leading-relaxed text-on-surface-variant">
+                    {m.portfolio.chooseVariableIncomeHint}
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-start gap-4 rounded-2xl bg-surface-container-low p-5 text-left shadow-md ring-1 ring-outline-variant/10 transition-colors hover:bg-surface-container-high"
+                onClick={() => setHoldingModal({ kind: 'fixedIncomeComingSoon' })}
+              >
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-container/25 text-primary-container">
+                  <span className="material-symbols-outlined text-2xl">savings</span>
+                </span>
+                <span className="min-w-0">
+                  <span className="font-headline block text-base font-extrabold text-on-surface">
+                    {m.portfolio.chooseFixedIncome}
+                  </span>
+                  <span className="mt-1 block text-xs leading-relaxed text-on-surface-variant">
+                    {m.portfolio.chooseFixedIncomeHint}
+                  </span>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {holdingModal.kind === 'fixedIncomeComingSoon' && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:px-4 sm:py-10"
+          data-holding-modal="fixed-income-coming-soon"
+        >
+          <div className="w-full max-w-md rounded-t-3xl bg-surface px-6 pb-8 pt-6 shadow-2xl sm:rounded-3xl sm:px-8 sm:pb-10 sm:pt-8">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <h3 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
+                {m.portfolio.fixedIncomeComingSoonTitle}
+              </h3>
+              <button
+                type="button"
+                className="shrink-0 rounded-full p-2 text-outline transition-colors hover:bg-surface-container-low"
+                onClick={() => setHoldingModal({ kind: 'closed' })}
+                aria-label="Fechar"
+              >
+                <span className="material-symbols-outlined text-2xl leading-none">close</span>
+              </button>
+            </div>
+            <p className="text-sm leading-relaxed text-on-surface-variant">
+              {m.portfolio.fixedIncomeComingSoonBody}
+            </p>
+            <button
+              type="button"
+              className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-primary-container px-8 py-3 text-sm font-bold text-on-primary shadow-md transition-opacity hover:opacity-95"
+              onClick={() => setHoldingModal({ kind: 'closed' })}
+            >
+              {m.portfolio.fixedIncomeComingSoonOk}
+            </button>
+          </div>
+        </div>
+      )}
+
       {(holdingModal.kind === 'add' || holdingModal.kind === 'edit') &&
         (() => {
           const isEdit = holdingModal.kind === 'edit'
           const selectedOpt = invOptions?.find((o) => o.id === form.investmentId)
-          const holdingSameInv = data?.rows?.find((r) => r.investmentId === form.investmentId)
+          const existingHoldingForAdd =
+            !isEdit && data?.rows
+              ? findExistingHoldingForAdd(data.rows, form.investmentId, form.ticker)
+              : undefined
+          const holdingSameInv = existingHoldingForAdd
           const holdingIsFixedIncome = isEdit
             ? Boolean(
                 holdingModal.row.fixedIncome ||
@@ -1466,7 +1757,17 @@ function HoldingsPage() {
                   holdingSameInv?.fixedIncome ||
                   isRendaFixaTipo(holdingSameInv?.investmentTypeName),
               )
-          const avgCostFieldLabel = holdingIsFixedIncome ? 'Valor atual' : 'Preço médio'
+          const mergingAdd = !isEdit && Boolean(holdingSameInv)
+          const avgCostFieldLabel = mergingAdd
+            ? holdingIsFixedIncome
+              ? 'Valor desta aplicação'
+              : m.portfolio.addMergeUnitPriceLabel
+            : holdingIsFixedIncome
+              ? 'Valor atual'
+              : 'Preço médio'
+          const quantityFieldLabel = mergingAdd
+            ? m.portfolio.addMergeQuantityLabel
+            : 'Quantidade'
           return (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:px-4 sm:py-10"
@@ -1495,10 +1796,7 @@ function HoldingsPage() {
             {!isEdit && (
             <div className="mb-6 flex gap-3 rounded-2xl border border-tertiary-fixed-dim/30 bg-tertiary-fixed-dim/12 px-4 py-3 text-xs leading-relaxed text-on-surface">
               <span className="material-symbols-outlined shrink-0 text-lg text-tertiary-fixed-dim">info</span>
-              <p>
-                Escolha o investimento na lista e confira o ticker. A quantidade deve refletir cotas ou ações
-                em carteira — você pode ajustar depois.
-              </p>
+              <p>{m.portfolio.addVariableBanner}</p>
             </div>
             )}
 
@@ -1526,13 +1824,17 @@ function HoldingsPage() {
                   value={form.investmentId}
                   onChange={(e) => {
                     setInvestmentPickManual(true)
-                    setForm({ ...form, investmentId: e.target.value })
+                    setForm({
+                      ...form,
+                      investmentId: e.target.value,
+                      investmentTypeId: e.target.value ? '' : form.investmentTypeId,
+                    })
                   }}
                   disabled={invOptions === null || isEdit}
                   className="mt-2 w-full cursor-pointer border-0 border-b-2 border-outline-variant/50 bg-transparent px-0 py-2.5 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary disabled:opacity-50"
                 >
                   <option value="">{invOptions === null ? 'Carregando…' : 'Selecione…'}</option>
-                  {(invOptions ?? []).map((o) => (
+                  {(isEdit ? (invOptions ?? []) : variableInvOptions).map((o) => (
                     <option key={o.id} value={o.id}>
                       {o.name}
                     </option>
@@ -1554,20 +1856,44 @@ function HoldingsPage() {
                   </p>
                 </div>
               )}
-              {tickerInvestHint?.type === 'no-match' && (
-                <div className="flex gap-2 rounded-xl border border-secondary-fixed/35 bg-secondary-fixed/12 px-3 py-2 text-xs leading-relaxed text-on-surface sm:col-span-2">
-                  <span className="material-symbols-outlined shrink-0 text-base text-secondary-fixed">
-                    add_circle
+              {mergingAdd && (
+                <div className="flex gap-2 rounded-xl border border-primary-container/35 bg-primary-container/12 px-3 py-2 text-xs leading-relaxed text-on-surface sm:col-span-2">
+                  <span className="material-symbols-outlined shrink-0 text-base text-primary-container">
+                    merge
                   </span>
-                  <p>
-                    Não há investimento cadastrado com nome parecido a «{form.ticker.trim()}». A posição só
-                    pode ser salva após você{' '}
-                    <Link to="/investimentos" className="font-bold text-primary underline underline-offset-2">
-                      criar o investimento
-                    </Link>{' '}
-                    (use o mesmo nome ou inclua o ticker no nome). Nada será criado automaticamente ao salvar
-                    esta tela.
-                  </p>
+                  <p>{m.portfolio.addMergeHint}</p>
+                </div>
+              )}
+              {!isEdit && tickerInvestHint?.type === 'no-match' && (
+                <div className="flex flex-col gap-4 sm:col-span-2">
+                  <div className="flex gap-2 rounded-xl border border-secondary-fixed/35 bg-secondary-fixed/12 px-3 py-2 text-xs leading-relaxed text-on-surface">
+                    <span className="material-symbols-outlined shrink-0 text-base text-secondary-fixed">
+                      add_circle
+                    </span>
+                    <p>{m.portfolio.addVariableWillCreate(form.ticker.trim())}</p>
+                  </div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-outline">
+                    {m.portfolio.addVariableTypeLabel}
+                    <select
+                      value={form.investmentTypeId}
+                      onChange={(e) =>
+                        setForm({ ...form, investmentTypeId: e.target.value })
+                      }
+                      disabled={typeOptions === null}
+                      className="mt-2 w-full cursor-pointer border-0 border-b-2 border-outline-variant/50 bg-transparent px-0 py-2.5 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary disabled:opacity-50"
+                    >
+                      <option value="">
+                        {typeOptions === null
+                          ? 'Carregando…'
+                          : m.portfolio.addVariableTypePlaceholder}
+                      </option>
+                      {variableTypeOptions.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               )}
 
@@ -1584,20 +1910,30 @@ function HoldingsPage() {
                 avgCostPointerDownBeforeFocusRef={avgCostPointerDownBeforeFocusRef}
                 avgCostSuppressNextMouseUpRef={avgCostSuppressNextMouseUpRef}
                 avgCostLabel={avgCostFieldLabel}
+                quantityLabel={quantityFieldLabel}
+                currencyDisabled={mergingAdd}
               />
             </div>
+
+            {saveHoldingError && (
+              <p className="mt-4 text-sm font-medium text-error" role="alert">
+                {saveHoldingError}
+              </p>
+            )}
 
             <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-4">
               <button
                 type="button"
                 className="inline-flex items-center justify-center rounded-full border-2 border-outline-variant/40 px-8 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container-low"
-                onClick={() => setHoldingModal({ kind: 'closed' })}
+                onClick={() =>
+                  setHoldingModal(isEdit ? { kind: 'closed' } : { kind: 'chooseAssetClass' })
+                }
               >
-                Cancelar
+                {isEdit ? 'Cancelar' : 'Voltar'}
               </button>
               <button
                 type="button"
-                disabled={invOptions === null || !form.investmentId}
+                disabled={isEdit ? invOptions === null || !form.investmentId : !canSaveAddHolding}
                 className="inline-flex items-center justify-center rounded-full bg-primary-container px-8 py-3 text-sm font-bold text-on-primary shadow-md transition-opacity hover:opacity-95 disabled:opacity-45"
                 onClick={() => void saveHolding()}
               >
