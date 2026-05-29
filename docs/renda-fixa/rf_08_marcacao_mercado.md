@@ -112,6 +112,112 @@ CONCLUSÃO: Comprou a 13,20% bruto → realizou 13,22% líquido em metade do tem
 
 ---
 
+## POR QUE A RENTABILIDADE ACUMULADA DIFERE DA CONTRATADA
+
+```
+DEFINIÇÕES:
+  Taxa contratada  = taxa de retorno se o título for carregado ATÉ O VENCIMENTO
+                     (yield to maturity — YTM). É fixada na compra.
+  Rentabilidade    = retorno efetivo ANUALIZADO do período já decorrido,
+  acumulada        calculado sobre o valor de mercado atual do título.
+
+  Elas SÓ coincidem exatamente na data de vencimento.
+  Antes disso, a rentabilidade acumulada pode ser maior OU menor que a contratada.
+```
+
+### Mecanismo 1 — Marcação a mercado (MtM)
+
+```
+Quando as taxas de mercado CAEM após a compra:
+  → O PU do título SOBE acima do que a taxa contratada preveria
+  → A rentabilidade acumulada anualizada SUPERA a taxa contratada
+  → O investidor está "adiantando" lucro que seria realizado no vencimento
+
+Quando as taxas de mercado SOBEM após a compra:
+  → O PU CAI
+  → A rentabilidade acumulada fica ABAIXO da taxa contratada
+  → Se vender, realiza menos do que a taxa contratada promete
+
+EXEMPLO (Tesouro Prefixado 2027 — dados reais):
+  Compra:        jan/2025 a 15,66% a.a.
+  Após 508 dias: taxa de mercado caiu → título valorizado
+
+  Valor esperado pela taxa contratada em 508 dias:
+    11.995,04 × (1,1566)^(508/365) = R$ 14.686,06 bruto
+
+  Valor de mercado real após 508 dias:
+    Lucro líq = 14.775,74 - 11.995,04 = R$ 2.780,70
+    Lucro bruto = 2.780,70 / (1 - 0,175) = R$ 3.370,55
+    Valor bruto = R$ 15.365,59
+
+  Excesso sobre o esperado = 15.365,59 - 14.686,06 = R$ 679,53
+  → Ganho extra por queda de taxas (MtM)
+```
+
+### Mecanismo 2 — Efeito da anualização sobre período diferente de 365 dias
+
+```
+A anualização usa exponenciação, não proporção linear.
+Um mesmo retorno absoluto gera taxas anualizadas DIFERENTES conforme o prazo.
+
+FÓRMULA:
+  taxa_anualizada = (1 + retorno_periodo)^(365 / dias_decorridos) - 1
+
+EXEMPLO com retorno de 28,10% bruto:
+  Se em 508 dias: (1,2810)^(365/508) - 1 = 19,4% a.a.
+  Se em 730 dias: (1,2810)^(365/730) - 1 = 13,2% a.a.
+  Se em 365 dias: (1,2810)^(365/365) - 1 = 28,1% a.a.
+
+→ O mesmo valor absoluto acumulado gera taxas anualizadas muito diferentes.
+  Isso amplifica qualquer diferença entre PU contratado e PU de mercado.
+```
+
+### Mecanismo 3 — MtM do spread no Tesouro Selic
+
+```
+O Tesouro Selic tem duration quase zero (reprecia diariamente pela Selic).
+MAS o spread (ex: Selic + 0,158%) tem uma duration pequena, porém não nula.
+
+Se o mercado passou a exigir spread MENOR para títulos similares:
+  → Seu título com spread maior vale ligeiramente mais
+  → Rentabilidade acumulada do spread supera o spread contratado
+
+EXEMPLO (Tesouro Selic 2029 — dados reais):
+  Contratado:  Selic + 0,158% a.a.
+  Acumulado:   Selic + 0,280% a.a.
+  Diferença:   +0,122 p.p. — capturado pelo MtM do spread
+
+  Capital:     R$ 6.067,47  |  Valor líq: R$ 8.013,91  |  Dias: 812
+  IR: 15,0%  (acima de 720 dias)
+
+  Lucro líq.   = 8.013,91 - 6.067,47           = R$ 1.946,44
+  Lucro bruto  = 1.946,44 / (1 - 0,15)         = R$ 2.290,05
+  Valor bruto  = R$ 8.357,52
+  Retorno bruto em 812 dias = 37,74%
+  ≈ Selic acumulada em 812 dias (~36,5%) + excesso do spread
+```
+
+### Resumo dos 3 casos reais
+
+```
+TÍTULO          | CONTRATADA     | ACUMULADA      | DIFERENÇA  | CAUSA PRINCIPAL
+----------------|----------------|----------------|------------|------------------
+Prefixado 2027  | 15,66% a.a.    | 16,51% a.a.    | +0,85 p.p. | Taxa mercado caiu (MtM)
+IPCA+ 2029      | IPCA + 8,06%   | IPCA + 8,54%   | +0,48 p.p. | Taxa real caiu (MtM)
+Selic 2029      | Selic + 0,158% | Selic + 0,280% | +0,12 p.p. | MtM do spread
+
+Em todos os casos as taxas caíram após a compra → títulos valorizaram.
+O investidor realizaria um ganho ACIMA do contratado se vendesse agora.
+Se carregar até o vencimento, realizará exatamente a taxa contratada.
+
+REGRA:
+  rentabilidade_acumulada > taxa_contratada → mercado caiu, vender pode valer a pena
+  rentabilidade_acumulada < taxa_contratada → mercado subiu, melhor carregar até o fim
+  rentabilidade_acumulada = taxa_contratada → vencimento ou taxas inalteradas
+```
+
+---
+
 ## REGRA PRÁTICA
 
 ```
