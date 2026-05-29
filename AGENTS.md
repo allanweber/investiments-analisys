@@ -10,6 +10,8 @@
 
 For **human-readable** vision and MVP scope in prose: `plan.md`.
 
+**Renda fixa**: when a task involves fixed-income calculations, product rules, taxes, resgate, market marking, or data sources, read `docs/renda-fixa/rf_00_indice.md` first, then load `rf_01_core.md` plus the specific `rf_0x_*.md` files referenced by that index before implementing or answering.
+
 ---
 
 ## Mock → screen map
