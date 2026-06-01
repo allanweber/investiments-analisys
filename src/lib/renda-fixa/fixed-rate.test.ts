@@ -1,20 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  calculateFixedRateCdbInvestment,
-  calculateFixedRateCraInvestment,
-  calculateFixedRateCriInvestment,
-  calculateFixedRateEarlyRedemption,
-  calculateFixedRateInvestment,
-  calculateFixedRateLcaInvestment,
-  calculateFixedRateLciInvestment,
-  calculateTreasuryFixedRateInvestment,
-} from './fixed-rate'
+import { calculateFixedRateInvestment } from './fixed-rate'
 
 describe('fixed-rate investments', () => {
-  it('calculates a taxable CDB fixed-rate product', () => {
+  it('calculates a taxable fixed-rate product', () => {
     expect(
-      calculateFixedRateCdbInvestment({ capital: 1000, annualRate: 0.11, calendarDays: 365 }),
+      calculateFixedRateInvestment({
+        capital: 1000,
+        annualRate: 0.11,
+        calendarDays: 365,
+        hasIof: true,
+        isTaxExempt: false,
+      }),
     ).toMatchObject({
       grossAmount: 1110,
       grossProfit: 110,
@@ -26,7 +23,7 @@ describe('fixed-rate investments', () => {
   })
 
   it('calculates early redemption with IOF and IR', () => {
-    const result = calculateFixedRateEarlyRedemption({
+    const result = calculateFixedRateInvestment({
       capital: 1000,
       annualRate: 0.135,
       calendarDays: 15,
@@ -42,7 +39,13 @@ describe('fixed-rate investments', () => {
 
   it('keeps tax-exempt products free from IR and IOF', () => {
     expect(
-      calculateFixedRateLciInvestment({ capital: 1000, annualRate: 0.11, calendarDays: 365 }),
+      calculateFixedRateInvestment({
+        capital: 1000,
+        annualRate: 0.11,
+        calendarDays: 365,
+        hasIof: false,
+        isTaxExempt: true,
+      }),
     ).toMatchObject({
       grossAmount: 1110,
       iof: 0,
@@ -52,24 +55,10 @@ describe('fixed-rate investments', () => {
     })
   })
 
-  it.each([
-    ['LCA', calculateFixedRateLcaInvestment],
-    ['CRI', calculateFixedRateCriInvestment],
-    ['CRA', calculateFixedRateCraInvestment],
-  ] as const)('wraps %s as tax-exempt', (_label, fn) => {
-    expect(fn({ capital: 1000, annualRate: 0.11, calendarDays: 365 })).toMatchObject({
-      iof: 0,
-      ir: 0,
-      netAmount: 1110,
-      taxBreakdown: { hasIof: false, isTaxExempt: true },
-    })
-  })
-
-  it.each([
-    ['Treasury fixed-rate', calculateTreasuryFixedRateInvestment],
-    ['generic fixed-rate', calculateFixedRateInvestment],
-  ] as const)('keeps %s taxable', (_label, fn) => {
-    expect(fn({ capital: 1000, annualRate: 0.11, calendarDays: 365 })).toMatchObject({
+  it('keeps the generic taxable variant aligned', () => {
+    expect(
+      calculateFixedRateInvestment({ capital: 1000, annualRate: 0.11, calendarDays: 365 }),
+    ).toMatchObject({
       grossAmount: 1110,
       ir: 19.25,
       netAmount: 1090.75,

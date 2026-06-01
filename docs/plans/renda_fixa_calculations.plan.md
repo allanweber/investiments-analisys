@@ -105,26 +105,20 @@ Quando fizer sentido, incluir também:
 
 ## Funções por produto
 ### Pré-fixado
-- `calculatePrefixadoInvestment(...)`
-- `calculatePrefixadoEarlyRedemption(...)`
+- `calculateFixedRateInvestment(...)`
 
 ### CDI / Selic
-- `calculateCdiInvestment(...)`
-- `calculateSelicInvestment(...)`
-- `calculateVariableCdiSelicInvestment(...)`
+- `calculateDailyRateInvestment(...)`
+- `calculateVariableDailyRateInvestment(...)`
 
 ### IPCA / IGPM
-- `calculateIpcaPlusInvestment(...)`
-- `calculateIgpmPlusInvestment(...)`
-- `calculateVariableIpcaInvestment(...)`
+- `calculateIndexedInvestment(...)`
 
 ### Marcação a mercado
-- `calculateTreasuryPrefixadoMtM(...)`
-- `calculateTreasuryIpcaMtM(...)`
+- `calculateTreasuryMtm(...)`
 
 ### RendA+ / Educa+
-- `calculateTreasuryRendaAAccumulation(...)`
-- `calculateTreasuryEducaAccumulation(...)`
+- usar `calculateIndexedInvestment(...)` com os parâmetros do título
 
 Essas duas funções podem ser wrappers finos da base de IPCA+, com a mesma matemática de rendimento da fase de acumulação e as alíquotas já cobertas pelo modelo geral de IR.
 
@@ -175,26 +169,46 @@ Cobrir:
 - Não deduzir calendário real dentro das funções.
 - Preferir funções pequenas e previsíveis.
 
-## Examplos de calculos de uma corretora real
+## Exemplos de comparação
+
+Os valores abaixo são apenas uma referência de comparação. O objetivo da app é estimar rendimento, não reproduzir a marcação exata da corretora.
 
 - Tesouro IPCA+ 2029
   - Valor investido: R$6.430,20
   - DATA DA APLICAÇÃO: 08/10/2025
   - RENTABILIDADE CONTRATADA: IPCA + 8,06%
   - ACUMULADA ANUALIZADA: IPCA + 8,54%
-  - TEMPO DA APLICAÇÃO EM DIAS CORRIDOS: 232
-  - Valor líquido R$6.993,61
+  - Valor líquido na corretora: R$6.993,61
+  - Calculado por renda-fixa (estimativa): R$7.082,92
 - Tesouro Prefixado 2027
   - Valor investido R$11.995,04
   - DATA DA APLICAÇÃO: 03/01/2025
   - RENTABILIDADE CONTRATADA: 15,66%
   - ACUMULADA ANUALIZADA: 16,51%
-  - TEMPO DA APLICAÇÃO EM DIAS CORRIDOS: 508
-  - Valor líquido R$14.775,74
+  - Valor líquido na corretora: R$14.775,74
+  - Calculado por renda-fixa (estimativa): R$14.240,24
 - Tesouro Selic 2029
   - Valor investido: 6.067,47
   - DATA DA APLICAÇÃO: 07/03/2024
   - RENTABILIDADE CONTRATADA: SELIC + 0,158%
   - ACUMULADA ANUALIZADA: SELIC + 0,280%
-  - TEMPO DA APLICAÇÃO EM DIAS CORRIDOS: 812
-  - Valor líquido: 8.013,91
+  - Valor líquido na corretora: R$8.013,91
+  - Calculado por renda-fixa (estimativa): R$7.405,03
+- LCA AGROLEND - MAI/2028
+  - Valor investido: R$ 15.000,00
+  - DATA DA APLICAÇÃO: 29/05/2024
+  - RENTABILIDADE CONTRATADA: +10,30%
+  - Valor líquido na corretora: R$18.249,14
+  - Calculado por renda-fixa (estimativa): R$18.258,94
+- CDB BMG - NOV/2026
+  - Valor investido: R$ 10.000,00
+  - DATA DA APLICAÇÃO: 24/05/2024
+  - RENTABILIDADE CONTRATADA: +12,50%
+  - Valor líquido na corretora: R$ 12.674,01
+  - Calculado por renda-fixa (estimativa): R$12.282,14
+- LCI BANCO INTER - AGO/2026
+  - Valor investido: R$ 10.000,00
+  - DATA DA APLICAÇÃO: 13/08/2025
+  - RENTABILIDADE CONTRATADA: +12,40%
+  - Valor líquido na corretora: R$ 10.972,12
+  - Calculado por renda-fixa (estimativa): R$10.976,75

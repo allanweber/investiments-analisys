@@ -27,6 +27,11 @@ export type CompoundChainPeriod = {
   multiplier?: number
 }
 
+/** Rounds a monetary value to 2 decimal places. */
+export function roundMoney(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100
+}
+
 const IR_TABLE = [
   { min: 1, max: 180, rate: 0.225 },
   { min: 181, max: 360, rate: 0.2 },
@@ -137,24 +142,24 @@ export function buildTaxBreakdown(input: {
   isTaxExempt?: boolean
 }): TaxedReturn {
   const capital = input.capital
-  const grossAmount = input.grossAmount
+  const grossAmount = roundMoney(input.grossAmount)
   const calendarDays = input.calendarDays
   const hasIof = input.hasIof ?? true
   const isTaxExempt = input.isTaxExempt ?? false
 
-  const grossProfit = grossAmount - capital
+  const grossProfit = roundMoney(grossAmount - capital)
   const grossRate = capital !== 0 ? grossProfit / capital : 0
 
   const iofRate = hasIof ? getIofRateByDays(calendarDays) : 0
-  const iofBase = grossProfit > 0 ? grossProfit : 0
-  const iof = iofBase * iofRate
+  const iofBase = grossProfit > 0 ? roundMoney(grossProfit) : 0
+  const iof = roundMoney(iofBase * iofRate)
 
   const irRate = isTaxExempt || grossProfit <= 0 ? 0 : getIrRateByDays(calendarDays)
-  const irBase = grossProfit > 0 ? grossProfit - iof : 0
-  const ir = irBase * irRate
+  const irBase = grossProfit > 0 ? roundMoney(grossProfit - iof) : 0
+  const ir = roundMoney(irBase * irRate)
 
-  const netAmount = grossAmount - iof - ir
-  const netProfit = netAmount - capital
+  const netAmount = roundMoney(grossAmount - iof - ir)
+  const netProfit = roundMoney(netAmount - capital)
   const netRate = capital !== 0 ? netProfit / capital : 0
 
   return {

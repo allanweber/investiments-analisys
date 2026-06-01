@@ -1,155 +1,79 @@
 # Renda Fixa Calculations
 
-Pure calculations for fixed-income products.
+Pure estimate-oriented calculations for fixed-income products.
 
-## Goal
+## Recommended entry point: `calculateInvestment`
 
-Provide standalone functions to calculate:
-
-- gross return
-- net return
-- income tax
-- IOF tax
-- mark-to-market values
-- fixed-rate, CDI/Selic, and IPCA/IGPM products
-
-No API calls are performed here.
-
-## Conventions
-
-- rates are decimal values, not text percentages
-- `0.105` = 10.5% per year
-- `calendarDays` = calendar days
-- `businessDays` = business days
-- functions are pure and stateless
-
-## Files
-
-- `core.ts`: IR, IOF, compound interest, and shared helpers
-- `fixed-rate.ts`: fixed-rate products and wrappers
-- `cdi-selic.ts`: CDI, Selic, and variable-period products
-- `ipca.ts`: IPCA+, IGPM+, and variable-index products
-- `market.ts`: mark-to-market for Treasury fixed-rate and IPCA products
-- `index.ts`: public exports
-
-## Public API
-
-### Core
-
-- `getIrRateByDays(calendarDays)`
-- `getIofRateByDays(calendarDays)`
-- `compoundByAnnualRate(capital, annualRate, calendarDays)`
-- `compoundByDailyRate(capital, dailyRate, businessDays)`
-- `compoundChain(capital, periods)`
-- `buildTaxBreakdown(input)`
-
-### Fixed rate
-
-- `calculateFixedRateInvestment(input)`
-- `calculateFixedRateEarlyRedemption(input)`
-- `calculateFixedRateCdbInvestment(input)`
-- `calculateFixedRateLciInvestment(input)`
-- `calculateFixedRateLcaInvestment(input)`
-- `calculateFixedRateCriInvestment(input)`
-- `calculateFixedRateCraInvestment(input)`
-- `calculateTreasuryFixedRateInvestment(input)`
-
-### CDI / Selic
-
-- `calculateCdiInvestment(input)`
-- `calculateSelicInvestment(input)`
-- `calculateVariableCdiSelicInvestment(input)`
-- `calculateCdbFromCdiInvestment(input)`
-- `calculateLciFromCdiInvestment(input)`
-- `calculateLcaFromCdiInvestment(input)`
-- `calculateCriFromCdiInvestment(input)`
-- `calculateCraFromCdiInvestment(input)`
-- `calculateTreasurySelicInvestment(input)`
-
-### IPCA / IGPM
-
-- `calculateIpcaPlusInvestment(input)`
-- `calculateIgpmPlusInvestment(input)`
-- `calculateVariableIpcaInvestment(input)`
-- `calculateCdbFromIpcaInvestment(input)`
-- `calculateLciFromIpcaInvestment(input)`
-- `calculateLcaFromIpcaInvestment(input)`
-- `calculateCriFromIpcaInvestment(input)`
-- `calculateCraFromIpcaInvestment(input)`
-- `calculateCraFromIgpmInvestment(input)`
-- `calculateTreasuryIpcaInvestment(input)`
-- `calculateTreasuryIncomeAAccumulation(input)`
-- `calculateTreasuryEducationAccumulation(input)`
-
-### Mark-to-market
-
-- `calculateTreasuryFixedRateMtm(input)`
-- `calculateTreasuryIpcaMtm(input)`
-
-## Default return shape
-
-Functions return objects with fields such as:
-
-- `grossAmount`
-- `grossProfit`
-- `iof`
-- `ir`
-- `netAmount`
-- `netProfit`
-- `grossRate`
-- `netRate`
-
-Some functions also return:
-
-- `purchasePrice`
-- `marketPrice`
-- `units`
-- `vnaFinal`
-- `daysRemaining`
-- `taxBreakdown`
-
-## Tax rules
-
-- income tax applies to profit, not principal
-- IOF applies only before 30 calendar days
-- tax-exempt products return `ir = 0`
-- mark-to-market losses do not generate income tax
-
-## Examples
+`calculateInvestment` is the high-level dispatcher. It accepts a product type by name, looks up the rf_02 tax/liquidity rules automatically, and routes to the correct underlying formula.
 
 ```ts
-import { calculateTreasurySelicInvestment } from '#/lib/renda-fixa'
+import { calculateInvestment } from '#/lib/renda-fixa'
 
-const result = calculateTreasurySelicInvestment({
-  capital: 1000,
-  annualSelicRate: 0.105,
-  businessDays: 252,
-  calendarDays: 365,
+// CDB prefixado — tax and IOF handled automatically
+const result = calculateInvestment({
+  productType: 'cdb',
+  indexer: 'pre',
+  capital: 10000,
+  annualRate: 0.125,
+  calendarDays: 737,
 })
+// result.netAmount ≈ 12282.14
 
-console.log(result.netAmount)
+// LCI CDI-indexada — IR-exempt, no IOF, liquidity check
+const lci = calculateInvestment({
+  productType: 'lci',
+  indexer: 'cdi',
+  capital: 10000,
+  annualRate: 0.105,
+  calendarDays: 180,
+  businessDays: 126,
+})
+// lci.ir === 0, lci.liquidity.blocked === false (180d ≥ 90d carência)
 ```
+
+## Product / Indexer matrix
+
+| Product | Allowed Indexers | IR-exempt | IOF | FGC | Carência | MtM |
+| --- | --- | --- | --- | --- | --- | --- |
+| `cdb` | pre, cdi, selic, ipca, igpm | no | yes | yes | 0 | no |
+| `lci` | pre, cdi, selic, ipca, igpm | yes | no | yes | 90d | no |
+| `lca` | pre, cdi, selic, ipca, igpm | yes | no | yes | 90d | no |
+| `cri` | pre, cdi, ipca, igpm | yes | no | no | ∞ (secondary) | no |
+| `cra` | pre, cdi, ipca, igpm | yes | no | no | ∞ (secondary) | no |
+| `tesouro-selic` | selic | no | yes | no | 0 | no |
+| `tesouro-prefixado` | pre | no | yes | no | 0 | yes |
+| `tesouro-ipca` | ipca | no | yes | no | 0 | yes |
+| `tesouro-renda-mais` | ipca | no | yes | no | 0 | yes |
+| `tesouro-educa-mais` | ipca | no | yes | no | 0 | yes |
+| `debenture-incentivada` | pre, cdi, ipca, igpm | yes | no | no | 0 | no |
+| `debenture-comum` | pre, cdi, ipca, igpm | no | yes | no | 0 | no |
+
+## How rates come from the BCB server function
+
+Live CDI/Selic/IPCA/IGPM rates are fetched from BCB SGS and cached in the `market_rate` DB table. Use `getBcbRatesFn` from `#/lib/renda-fixa-server` to get current decimals server-side:
 
 ```ts
-import { calculateIpcaPlusInvestment } from '#/lib/renda-fixa'
+import { getBcbRatesFn } from '#/lib/renda-fixa-server'
 
-const result = calculateIpcaPlusInvestment({
-  capital: 1000,
-  indexRate: 0.0483,
-  realAnnualRate: 0.06,
-  businessDays: 252,
-  calendarDays: 365,
-  hasIof: true,
-  isTaxExempt: false,
-})
+const rates = await getBcbRatesFn()
+// rates.cdiAnnual, rates.selicAnnual, rates.ipcaAccumulated12m, rates.igpmAccumulated12m
 ```
 
-## Tests
+Feed those decimals into `calculateInvestment`. If BCB is unreachable, hardcoded fallback constants (CDI/Selic 10.5%, IPCA 4.83%, IGPM 3.5%) are used so calculations never block.
 
-Coverage lives in:
+## Low-level API (pure functions)
 
-- `core.test.ts`
-- `fixed-rate.test.ts`
-- `cdi-selic.test.ts`
-- `ipca.test.ts`
-- `market.test.ts`
+Use these when you need direct control:
+
+- `calculateFixedRateInvestment(input)` — calendar-day compounding for `pre` rates
+- `calculateDailyRateInvestment(input)` — business-day compounding for CDI/Selic
+- `calculateVariableDailyRateInvestment(input)` — chained periods
+- `calculateIndexedInvestment(input)` — IPCA/IGPM + real spread
+- `calculateTreasuryMtm(input)` — Tesouro Direto mark-to-market
+
+## Notes
+
+- All functions are pure and stateless; rates are decimal values (e.g. `0.105` not `10.5`)
+- `calculateInvestment` throws a clear `Error` on programmer error only (indexer not allowed for product, missing required field)
+- `calculateIndexedInvestment` accepts either `indexRate` (single accumulated) or `monthlyRates` (chained)
+- `calculateTreasuryMtm` uses `kind: 'fixed-rate'` or `kind: 'indexed'`

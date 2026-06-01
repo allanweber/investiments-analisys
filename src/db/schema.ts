@@ -186,6 +186,17 @@ export const fxRate = pgTable(
   (t) => [primaryKey({ columns: [t.baseCurrency, t.quoteCurrency] })],
 )
 
+/** Global BCB indexer cache (no user_id). Series: cdi | selic | ipca | igpm. */
+export const marketRate = pgTable('market_rate', {
+  series: text('series').primaryKey(),
+  provider: text('provider').notNull(),
+  annual: numeric('annual', { precision: 24, scale: 8 }),
+  monthly: jsonb('monthly'),
+  accumulated12m: numeric('accumulated_12m', { precision: 24, scale: 8 }),
+  asOf: timestamp('as_of', { withTimezone: true }),
+  fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),

@@ -1,61 +1,15 @@
+export { calculateDailyRateInvestment, calculateVariableDailyRateInvestment, type DailyRateInvestmentInput, type VariableDailyRateInvestmentInput } from './cdi-selic'
+export { calculateFixedRateInvestment, type FixedRateInvestmentInput } from './fixed-rate'
+export { calculateIndexedInvestment, type IndexedInvestmentInput, type IndexedMtmInput } from './ipca'
+export { calculateTreasuryMtm, type TreasuryMtmInput } from './market'
 export {
-  annualRateToDailyRate,
-  buildAccumulatedIndexFactor,
-  buildTaxBreakdown,
-  compoundByAnnualRate,
-  compoundByDailyRate,
-  compoundChain,
-  getIofRateByDays,
-  getIrRateByDays,
-  type CompoundChainPeriod,
-  type TaxBreakdown,
-  type TaxedReturn,
-} from './core'
-export {
-  calculateCdiInvestment,
-  calculateCdbFromCdiInvestment,
-  calculateCraFromCdiInvestment,
-  calculateLcaFromCdiInvestment,
-  calculateLciFromCdiInvestment,
-  calculateSelicInvestment,
-  calculateTreasurySelicInvestment,
-  calculateVariableCdiSelicInvestment,
-  type CdiInvestmentInput,
-  type SelicInvestmentInput,
-  type VariableCdiSelicInvestmentInput,
-  type VariableCdiSelicPeriod,
-} from './cdi-selic'
-export {
-  calculateCdbFromIpcaInvestment,
-  calculateCraFromIgpmInvestment,
-  calculateCraFromIpcaInvestment,
-  calculateCriFromIpcaInvestment,
-  calculateIgpmPlusInvestment,
-  calculateIpcaPlusInvestment,
-  calculateLcaFromIpcaInvestment,
-  calculateLciFromIpcaInvestment,
-  calculateTreasuryEducationAccumulation,
-  calculateTreasuryIncomeAAccumulation,
-  calculateTreasuryIpcaInvestment,
-  calculateVariableIpcaInvestment,
-  type IndexedInvestmentInput,
-  type IndexedMtmInput,
-  type VariableIndexedInvestmentInput,
-} from './ipca'
-export {
-  calculateFixedRateCdbInvestment,
-  calculateFixedRateCraInvestment,
-  calculateFixedRateCriInvestment,
-  calculateFixedRateEarlyRedemption,
-  calculateFixedRateInvestment,
-  calculateFixedRateLcaInvestment,
-  calculateFixedRateLciInvestment,
-  calculateTreasuryFixedRateInvestment,
-  type FixedRateInvestmentInput,
-} from './fixed-rate'
-export {
-  calculateTreasuryFixedRateMtm,
-  calculateTreasuryIpcaMtm,
-  type TreasuryIpcaMtmInput,
-  type TreasuryPrefixadoMtmInput,
-} from './market'
+  calculateInvestment,
+  PRODUCT_RULES,
+  type CalculateInvestmentInput,
+  type InvestmentResult,
+  type Indexer,
+  type LiquidityInfo,
+  type MtmMarketData,
+  type ProductRule,
+  type ProductType,
+} from './products'

@@ -40,14 +40,52 @@ describe('renda fixa core helpers', () => {
     ).toMatchObject({
       grossProfit: 5,
       iof: 2.5,
-      ir: 0.5625,
-      netAmount: 1001.9375,
+      ir: 0.56,
+      netAmount: 1001.94,
       taxBreakdown: {
         hasIof: true,
         isTaxExempt: false,
         iofRate: 0.5,
         irRate: 0.225,
       },
+    })
+
+    expect(
+      buildTaxBreakdown({
+        capital: 1000,
+        grossAmount: 990,
+        calendarDays: 365,
+        hasIof: true,
+        isTaxExempt: false,
+      }),
+    ).toMatchObject({
+      grossProfit: -10,
+      iof: 0,
+      ir: 0,
+      netAmount: 990,
+      taxBreakdown: {
+        hasIof: true,
+        isTaxExempt: false,
+        iofRate: 0,
+        irRate: 0,
+      },
+    })
+
+    expect(
+      buildTaxBreakdown({
+        capital: 0,
+        grossAmount: 0,
+        calendarDays: 10,
+        hasIof: true,
+        isTaxExempt: false,
+      }),
+    ).toMatchObject({
+      grossProfit: 0,
+      grossRate: 0,
+      iof: 0,
+      ir: 0,
+      netAmount: 0,
+      netRate: 0,
     })
 
     expect(
