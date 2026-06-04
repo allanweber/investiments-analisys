@@ -37,6 +37,7 @@ function PortfolioPage() {
     if (!session?.user) return
     if (!isPortfolioIndex) return
     setOverview(null)
+    setHasHoldingsKnown(null)
     listPortfolioCurrenciesFn()
       .then((cs) => setHasHoldingsKnown(cs.length > 0))
       .catch(() => setHasHoldingsKnown(false))
