@@ -1,35 +1,15 @@
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
-import * as schema from '#/db/schema'
+import type * as schema from '#/db/schema'
 import { fxRate } from '#/db/schema'
 import { findMissingFxPairs, isFxCacheStale, loadFxRatesFromDb } from '#/lib/fx'
 
+import { getMarketDataDb, makeLogger } from './db'
 import { fetchYahooFxRates } from './fx-yahoo'
 
 type Db = NodePgDatabase<typeof schema>
 
-async function getDb() {
-  try {
-    return (await import('#/db')).db
-  } catch {
-    const { drizzle } = await import('drizzle-orm/node-postgres')
-    const { Pool } = await import('pg')
-    const schema = await import('#/db/schema')
-    const url = (process.env.DATABASE_URL ?? '').trim()
-    if (!url) throw new Error('DATABASE_URL is required (non-empty).')
-    const pool = new Pool({ connectionString: url })
-    return drizzle(pool, { schema: schema })
-  }
-}
-
-function logFxRefresh(event: Record<string, unknown>) {
-  const payload = { ts: new Date().toISOString(), scope: 'fxRefresh', ...event }
-  const line = JSON.stringify(payload)
-  const level = typeof event.level === 'string' ? event.level : 'info'
-  if (level === 'error') console.error(line)
-  else if (level === 'warn') console.warn(line)
-  else console.info(line)
-}
+const log = makeLogger('fxRefresh')
 
 export type FxRefreshResult = {
   refreshed: boolean
@@ -44,7 +24,7 @@ export async function refreshFxRatesIfStale(options?: {
   force?: boolean
   db?: Db
 }): Promise<FxRefreshResult> {
-  const db = options?.db ?? (await getDb())
+  const db = options?.db ?? (await getMarketDataDb())
   const { oldestFetchedAt, rows } = await loadFxRatesFromDb(db)
 
   if (
@@ -52,14 +32,14 @@ export async function refreshFxRatesIfStale(options?: {
     rows.length > 0 &&
     !isFxCacheStale(oldestFetchedAt)
   ) {
-    logFxRefresh({ level: 'info', msg: 'fx -> skip (cache fresh)', pairs: rows.length })
+    log({ level: 'info', msg: 'fx -> skip (cache fresh)', pairs: rows.length })
     return { refreshed: false, skipped: true, pairsUpserted: 0 }
   }
 
   try {
     const fetched = await fetchYahooFxRates()
     if (fetched.length === 0) {
-      logFxRefresh({ level: 'warn', msg: 'fx -> no_rates_from_yahoo' })
+      log({ level: 'warn', msg: 'fx -> no_rates_from_yahoo' })
       return { refreshed: false, skipped: false, pairsUpserted: 0, error: 'NO_RATES' }
     }
 
@@ -88,7 +68,7 @@ export async function refreshFxRatesIfStale(options?: {
         })
     }
 
-    logFxRefresh({
+    log({
       level: 'info',
       msg: 'fx -> refreshed',
       pairsUpserted: fetched.length,
@@ -96,7 +76,7 @@ export async function refreshFxRatesIfStale(options?: {
     return { refreshed: true, skipped: false, pairsUpserted: fetched.length }
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'FX refresh error'
-    logFxRefresh({ level: 'error', msg: 'fx -> error', error: msg })
+    log({ level: 'error', msg: 'fx -> error', error: msg })
     return { refreshed: false, skipped: false, pairsUpserted: 0, error: msg }
   }
 }
@@ -117,7 +97,7 @@ export async function ensureFxRatesForDisplay(
   const needsRefresh = cacheEmpty || cacheStale || missing.length > 0
 
   if (needsRefresh) {
-    logFxRefresh({
+    log({
       level: 'info',
       msg: 'fx -> ensure_refresh',
       cacheEmpty,
@@ -128,7 +108,7 @@ export async function ensureFxRatesForDisplay(
     loaded = await loadFxRatesFromDb(db)
     missing = findMissingFxPairs(nativeCurrencies, displayCurrency, loaded.matrix)
     if (missing.length > 0) {
-      logFxRefresh({ level: 'warn', msg: 'fx -> still_missing_after_refresh', missingPairs: missing })
+      log({ level: 'warn', msg: 'fx -> still_missing_after_refresh', missingPairs: missing })
     }
   }
 

@@ -1,22 +1,11 @@
 import { inArray, sql } from 'drizzle-orm'
-import { drizzle } from 'drizzle-orm/node-postgres'
-import { Pool } from 'pg'
 
 import { marketQuote } from '../../db/schema'
+import { getMarketDataDb, makeLogger } from './db'
 import { getQuoteProvider } from './index'
 import type { MarketQuote, MarketQuoteInput, QuoteFetchResult } from './types'
 
-async function getDb() {
-  // Prefer `#/db` when available (SSR/server graph); fall back for the worker entry.
-  try {
-    return (await import('#/db')).db
-  } catch {
-    const url = (process.env.DATABASE_URL ?? '').trim()
-    if (!url) throw new Error('DATABASE_URL is required (non-empty).')
-    const pool = new Pool({ connectionString: url })
-    return drizzle(pool)
-  }
-}
+const log = makeLogger('quoteRefresh')
 
 function normalizeHoldingCurrency(c: string | null | undefined): string | null {
   const t = (c ?? '').trim().toUpperCase()
@@ -41,19 +30,6 @@ function isMarketDataLogEnabled(): boolean {
   return false
 }
 
-function logQuoteRefreshEvent(event: Record<string, unknown>) {
-  const payload = {
-    ts: new Date().toISOString(),
-    scope: 'quoteRefresh',
-    ...event,
-  }
-  const line = JSON.stringify(payload)
-  const level = typeof event.level === 'string' ? event.level : 'info'
-  if (level === 'error') console.error(line)
-  else if (level === 'warn') console.warn(line)
-  else console.info(line)
-}
-
 function requireBrapiToken() {
   const token = (process.env.BRAPI_TOKEN ?? '').trim()
   if (!token) throw new Error('Missing BRAPI_TOKEN (required)')
@@ -71,7 +47,7 @@ export async function refreshMarketQuotesForInputs(params: {
 }> {
   const logEnabled = isMarketDataLogEnabled()
   const startedAt = Date.now()
-  const db = await getDb()
+  const db = await getMarketDataDb()
 
   const symbols = [...new Set(params.inputs.map((i) => i.symbol.trim()).filter(Boolean))]
   const bySymbol = new Map<string, { quote: MarketQuote | null; fetchedAt: Date | null; ok: boolean }>()
@@ -91,7 +67,7 @@ export async function refreshMarketQuotesForInputs(params: {
   let brlResults: QuoteFetchResult[] = []
   const brapiStart = Date.now()
   if (logEnabled && brlPrimary.length > 0) {
-    logQuoteRefreshEvent({
+    log({
       level: 'info',
       msg: 'brapi -> triggered',
       provider: 'brapi',
@@ -105,7 +81,7 @@ export async function refreshMarketQuotesForInputs(params: {
     brlResults = brlPrimary.length > 0 ? await brapi.fetchQuotes(brlInputs) : []
   } catch (e: any) {
     stale = true
-    logQuoteRefreshEvent({
+    log({
       level: 'error',
       msg: 'brapi -> error',
       provider: 'brapi',
@@ -143,7 +119,7 @@ export async function refreshMarketQuotesForInputs(params: {
   if (yahooList.length > 0) {
     const yStart = Date.now()
     if (logEnabled) {
-      logQuoteRefreshEvent({
+      log({
         level: 'info',
         msg: 'yfinance -> triggered',
         provider: 'yfinance',
@@ -157,7 +133,7 @@ export async function refreshMarketQuotesForInputs(params: {
       yahooResults = await yfinance.fetchQuotes(yahooInputs)
     } catch (e: any) {
       stale = true
-      logQuoteRefreshEvent({
+      log({
         level: 'error',
         msg: 'yfinance -> error',
         provider: 'yfinance',
@@ -287,7 +263,7 @@ export async function refreshMarketQuotesForInputs(params: {
   }
 
   if (logEnabled) {
-    logQuoteRefreshEvent({
+    log({
       level: 'info',
       msg: 'refresh -> done',
       phase: 'done',

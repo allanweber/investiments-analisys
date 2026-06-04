@@ -1,35 +1,15 @@
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
-import * as schema from '#/db/schema'
+import type * as schema from '#/db/schema'
 import { marketRate } from '#/db/schema'
 
+import { getMarketDataDb, makeLogger } from './db'
 import { fetchBcbRates } from './providers/bcb'
 import type { BcbRates } from './providers/bcb'
 
 type Db = NodePgDatabase<typeof schema>
 
-async function getDb() {
-  try {
-    return (await import('#/db')).db
-  } catch {
-    const { drizzle } = await import('drizzle-orm/node-postgres')
-    const { Pool } = await import('pg')
-    const schema = await import('#/db/schema')
-    const url = (process.env.DATABASE_URL ?? '').trim()
-    if (!url) throw new Error('DATABASE_URL is required (non-empty).')
-    const pool = new Pool({ connectionString: url })
-    return drizzle(pool, { schema: schema })
-  }
-}
-
-function logBcbRefresh(event: Record<string, unknown>) {
-  const payload = { ts: new Date().toISOString(), scope: 'bcbRefresh', ...event }
-  const line = JSON.stringify(payload)
-  const level = typeof event.level === 'string' ? event.level : 'info'
-  if (level === 'error') console.error(line)
-  else if (level === 'warn') console.warn(line)
-  else console.info(line)
-}
+const log = makeLogger('bcbRefresh')
 
 function bcbTtlMs(): number {
   const raw = (process.env.BCB_REFRESH_HOURS ?? '').trim()
@@ -102,21 +82,21 @@ export async function refreshBcbRatesIfStale(options?: {
   force?: boolean
   db?: Db
 }): Promise<BcbRefreshResult> {
-  const db = options?.db ?? (await getDb())
+  const db = options?.db ?? (await getMarketDataDb())
 
   if (!options?.force && !(await isCacheStale(db))) {
-    logBcbRefresh({ level: 'info', msg: 'bcb -> skip (cache fresh)' })
+    log({ level: 'info', msg: 'bcb -> skip (cache fresh)' })
     return { refreshed: false, skipped: true }
   }
 
   try {
     const rates = await fetchBcbRates()
     await upsertRates(db, rates)
-    logBcbRefresh({ level: 'info', msg: 'bcb -> refreshed', asOf: rates.asOf?.toISOString() })
+    log({ level: 'info', msg: 'bcb -> refreshed', asOf: rates.asOf?.toISOString() })
     return { refreshed: true, skipped: false }
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'BCB refresh error'
-    logBcbRefresh({ level: 'error', msg: 'bcb -> error', error: msg })
+    log({ level: 'error', msg: 'bcb -> error', error: msg })
     return { refreshed: false, skipped: false, error: msg }
   }
 }
