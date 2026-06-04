@@ -14,16 +14,8 @@ import type { UserAllocationTargetsJson } from '#/db/schema'
 import { compareInvestmentsByRank, computeScoreFromActiveQuestions } from '#/lib/investment-scoring'
 import { valuateHoldings } from '#/lib/valuation-pipeline'
 
-import {
-  getDb,
-  requireUserId,
-  currencyCode,
-  num,
-  clampPct,
-  normalizeHoldingCurrency,
-  parseTargetsJson,
-  computePct,
-} from '#/lib/server-utils'
+import { clampPct, computePct, normalizeHoldingCurrency, num } from '#/lib/math'
+import { getDb, requireUserId, currencyCode, parseTargetsJson } from '#/lib/server-utils'
 
 type ScoredInvestmentRow = {
   id: string

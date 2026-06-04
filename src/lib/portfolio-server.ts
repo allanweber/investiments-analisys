@@ -8,14 +8,8 @@ import type { MarketQuoteInput } from '#/lib/market-data'
 import { isFixedIncomeTipo } from '#/lib/portfolio-valuation'
 import { valuateHoldings } from '#/lib/valuation-pipeline'
 
-import {
-  getDb,
-  requireUserId,
-  uuid,
-  currencyCode,
-  idInput,
-  normalizeHoldingCurrency,
-} from '#/lib/server-utils'
+import { normalizeHoldingCurrency } from '#/lib/math'
+import { getDb, requireUserId, uuid, currencyCode, idInput } from '#/lib/server-utils'
 
 export const listPortfolioCurrenciesFn = createServerFn({ method: 'GET' }).handler(
   async () => {

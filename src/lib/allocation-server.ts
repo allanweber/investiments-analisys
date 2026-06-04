@@ -5,15 +5,8 @@ import { z } from 'zod'
 import { userAllocationProfile } from '#/db/schema'
 import type { UserAllocationTargetsJson } from '#/db/schema'
 
-import {
-  getDb,
-  requireUserId,
-  uuid,
-  pct,
-  num,
-  clampPct,
-  parseTargetsJson,
-} from '#/lib/server-utils'
+import { clampPct, num } from '#/lib/math'
+import { getDb, requireUserId, uuid, pct, parseTargetsJson } from '#/lib/server-utils'
 
 export const listAllocationTargetsFn = createServerFn({ method: 'GET' }).handler(async () => {
   const db = await getDb()

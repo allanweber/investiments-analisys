@@ -1,18 +1,13 @@
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 import type * as schema from '#/db/schema'
+import { convertMoney, isFxCacheStale } from '#/lib/fx'
+import { normalizeHoldingCurrency, num, toMoney } from '#/lib/math'
 import { ensureFxRatesForDisplay } from '#/lib/market-data/fx-refresh'
+import { loadQuotesFromDb } from '#/lib/market-data/quote-cache'
 import type { MarketQuoteInput } from '#/lib/market-data'
-import { isFxCacheStale } from '#/lib/fx'
 import { isFixedIncomeTipo, valueHolding } from '#/lib/portfolio-valuation'
 import type { HoldingQuoteStatus } from '#/lib/portfolio-valuation'
-import {
-  loadQuotesFromDb,
-  applyFxToNativeAmounts,
-  num,
-  toMoney,
-  normalizeHoldingCurrency,
-} from '#/lib/server-utils'
 
 type Db = NodePgDatabase<typeof schema>
 
@@ -87,13 +82,14 @@ export async function valuateHoldings(
       q,
     )
 
-    const fx = applyFxToNativeAmounts({
-      marketValueNative: valued.marketValueNative,
-      unrealizedPlNative: valued.unrealizedPlNative,
-      nativeCurrency: h.currency,
-      displayCurrency,
-      matrix,
-    })
+    const mv =
+      valued.marketValueNative == null
+        ? { value: null as number | null, rate: null as number | null }
+        : convertMoney(valued.marketValueNative, h.currency, displayCurrency, matrix)
+    const pl =
+      valued.unrealizedPlNative == null
+        ? { value: null as number | null, rate: null as number | null }
+        : convertMoney(valued.unrealizedPlNative, h.currency, displayCurrency, matrix)
 
     return {
       quantity: qty,
@@ -101,10 +97,10 @@ export async function valuateHoldings(
       lastPrice: valued.lastPrice,
       marketValueNative: valued.marketValueNative,
       unrealizedPlNative: valued.unrealizedPlNative,
-      marketValueDisplay: fx.marketValueDisplay,
-      unrealizedPlDisplay: fx.unrealizedPlDisplay,
-      fxRateUsed: fx.fxRateUsed,
-      fxUnavailable: fx.fxUnavailable,
+      marketValueDisplay: mv.value,
+      unrealizedPlDisplay: pl.value,
+      fxRateUsed: mv.rate,
+      fxUnavailable: valued.marketValueNative != null && mv.value == null,
       quoteFetchedAt: valued.quoteFetchedAt,
       quoteCurrency: valued.quoteCurrency,
       quoteLogoUrl: valued.quoteLogoUrl,
