@@ -1,7 +1,7 @@
-/**
- * Pure scoring rules: only **active** questions count; unanswered = 0 and excluded from answered count.
- * Kept separate from DB access for unit tests and a single source of truth with list/overview/scoring screens.
- */
+import { asc, eq, inArray } from 'drizzle-orm'
+
+import { investment, investmentAnswer, investmentType, question } from '#/db/schema'
+import { getDb } from '#/lib/server-utils'
 
 export type ActiveQuestionScore = {
   score: number
@@ -39,4 +39,85 @@ export function compareInvestmentsByRank(
 ): number {
   if (b.score !== a.score) return b.score - a.score
   return a.name.localeCompare(b.name, 'pt-BR')
+}
+
+export type InvestmentOverviewRow = {
+  id: string
+  name: string
+  investmentTypeId: string
+  typeName: string
+  typeSortOrder: number
+  fixedIncome: boolean
+  score: number
+  activeQuestionCount: number
+  answeredActiveCount: number
+}
+
+export async function loadInvestmentOverviewRows(userId: string): Promise<InvestmentOverviewRow[]> {
+  const db = await getDb()
+  const rows = await db
+    .select({
+      id: investment.id,
+      name: investment.name,
+      investmentTypeId: investment.investmentTypeId,
+      typeName: investmentType.name,
+      typeSortOrder: investmentType.sortOrder,
+      fixedIncome: investmentType.fixedIncome,
+    })
+    .from(investment)
+    .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
+    .where(eq(investment.userId, userId))
+    .orderBy(asc(investmentType.sortOrder), asc(investment.name))
+
+  if (rows.length === 0) return []
+
+  const invIds = rows.map((r) => r.id)
+  const answers = await db
+    .select({
+      investmentId: investmentAnswer.investmentId,
+      questionId: investmentAnswer.questionId,
+      valueYes: investmentAnswer.valueYes,
+    })
+    .from(investmentAnswer)
+    .where(inArray(investmentAnswer.investmentId, invIds))
+
+  const questions = await db
+    .select()
+    .from(question)
+    .where(eq(question.userId, userId))
+
+  const qByType = new Map<string, typeof questions>()
+  for (const qrow of questions) {
+    const list = qByType.get(qrow.investmentTypeId) ?? []
+    list.push(qrow)
+    qByType.set(qrow.investmentTypeId, list)
+  }
+
+  const ansKey = (i: string, q: string) => `${i}:${q}`
+  const ansMap = new Map(
+    answers.map((a) => [ansKey(a.investmentId, a.questionId), a.valueYes]),
+  )
+
+  return rows.map((r) => {
+    const typeQs = qByType.get(r.investmentTypeId) ?? []
+    const activeQs = typeQs.filter((q) => q.active)
+    const answerForInv = new Map<string, boolean>()
+    for (const q of activeQs) {
+      const key = ansKey(r.id, q.id)
+      if (ansMap.has(key)) {
+        answerForInv.set(q.id, ansMap.get(key)!)
+      }
+    }
+    const { score, answeredActiveCount, activeQuestionCount } =
+      computeScoreFromActiveQuestions(
+        activeQs.map((q) => q.id),
+        answerForInv,
+      )
+    return {
+      ...r,
+      score,
+      activeQuestionCount,
+      answeredActiveCount,
+    }
+  })
 }

@@ -1,86 +1,24 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import {
   investment,
-  investmentAnswer,
   investmentType,
   portfolioHolding,
-  question,
   userAllocationProfile,
 } from '#/db/schema'
 import type { UserAllocationTargetsJson } from '#/db/schema'
-import { compareInvestmentsByRank, computeScoreFromActiveQuestions } from '#/lib/investment-scoring'
+import {
+  compareInvestmentsByRank,
+  type InvestmentOverviewRow,
+  loadInvestmentOverviewRows,
+} from '#/lib/investment-scoring'
 import { valuateHoldings } from '#/lib/valuation-pipeline'
 
 import { clampPct, computePct, normalizeHoldingCurrency, num } from '#/lib/math'
 import { getDb, requireUserId, currencyCode, parseTargetsJson } from '#/lib/server-utils'
 
-type ScoredInvestmentRow = {
-  id: string
-  name: string
-  investmentTypeId: string
-  score: number
-}
-
-async function loadScoredInvestments(userId: string): Promise<ScoredInvestmentRow[]> {
-  const db = await getDb()
-  const rows = await db
-    .select({
-      id: investment.id,
-      name: investment.name,
-      investmentTypeId: investment.investmentTypeId,
-    })
-    .from(investment)
-    .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
-    .where(eq(investment.userId, userId))
-    .orderBy(asc(investmentType.sortOrder), asc(investment.name))
-
-  if (rows.length === 0) return []
-
-  const invIds = rows.map((r) => r.id)
-  const answers = await db
-    .select({
-      investmentId: investmentAnswer.investmentId,
-      questionId: investmentAnswer.questionId,
-      valueYes: investmentAnswer.valueYes,
-    })
-    .from(investmentAnswer)
-    .where(inArray(investmentAnswer.investmentId, invIds))
-
-  const questions = await db
-    .select()
-    .from(question)
-    .where(eq(question.userId, userId))
-
-  const qByType = new Map<string, typeof questions>()
-  for (const qrow of questions) {
-    const list = qByType.get(qrow.investmentTypeId) ?? []
-    list.push(qrow)
-    qByType.set(qrow.investmentTypeId, list)
-  }
-
-  const ansKey = (i: string, q: string) => `${i}:${q}`
-  const ansMap = new Map(
-    answers.map((a) => [ansKey(a.investmentId, a.questionId), a.valueYes]),
-  )
-
-  return rows.map((r) => {
-    const typeQs = qByType.get(r.investmentTypeId) ?? []
-    const activeQs = typeQs.filter((q) => q.active)
-    const answerForInv = new Map<string, boolean>()
-    for (const q of activeQs) {
-      const key = ansKey(r.id, q.id)
-      if (ansMap.has(key)) answerForInv.set(q.id, ansMap.get(key)!)
-    }
-    const { score } = computeScoreFromActiveQuestions(
-      activeQs.map((q) => q.id),
-      answerForInv,
-    )
-    return { ...r, score }
-  })
-}
 
 const portfolioOverviewInput = z.object({ displayCurrency: currencyCode })
 
@@ -240,8 +178,8 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
         return sa - sb
       })
 
-    const scoredInvestments = await loadScoredInvestments(userId)
-    const byTypeId = new Map<string, ScoredInvestmentRow[]>()
+    const scoredInvestments = await loadInvestmentOverviewRows(userId)
+    const byTypeId = new Map<string, InvestmentOverviewRow[]>()
     for (const r of scoredInvestments) {
       const list = byTypeId.get(r.investmentTypeId) ?? []
       list.push(r)

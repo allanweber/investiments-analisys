@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import {
-  createInvestmentFn,
-  listInvestmentTypesOptionsFn,
-  listInvestmentsOverviewFn,
-} from '#/lib/scoring-server'
+import { createInvestmentFn } from '#/lib/investment-server'
+import { listInvestmentTypesOptionsFn } from '#/lib/investment-type-server'
+import { listInvestmentsOverviewFn } from '#/lib/scoring-server'
 import {
   deletePortfolioHoldingFn,
   upsertPortfolioHoldingFn,

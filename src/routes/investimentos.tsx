@@ -22,13 +22,9 @@ import {
 } from '#/components/ui/select'
 import { authClient } from '#/lib/auth-client'
 import { messages as m } from '#/messages'
-import {
-  createInvestmentsBulkFn,
-  deleteInvestmentFn,
-  listInvestmentTypesOptionsFn,
-  listInvestmentsOverviewFn,
-  updateInvestmentFn,
-} from '#/lib/scoring-server'
+import { createInvestmentsBulkFn, deleteInvestmentFn, updateInvestmentFn } from '#/lib/investment-server'
+import { listInvestmentTypesOptionsFn } from '#/lib/investment-type-server'
+import { listInvestmentsOverviewFn } from '#/lib/scoring-server'
 
 export const Route = createFileRoute('/investimentos')({
   component: InvestimentosPage,
