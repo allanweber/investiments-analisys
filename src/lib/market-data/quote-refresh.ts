@@ -1,16 +1,12 @@
 import { inArray, sql } from 'drizzle-orm'
 
 import { marketQuote } from '../../db/schema'
+import { normalizeHoldingCurrency } from '../math'
 import { getMarketDataDb, makeLogger } from './db'
 import { getQuoteProvider } from './index'
 import type { MarketQuote, MarketQuoteInput, QuoteFetchResult } from './types'
 
 const log = makeLogger('quoteRefresh')
-
-function normalizeHoldingCurrency(c: string | null | undefined): string | null {
-  const t = (c ?? '').trim().toUpperCase()
-  return t.length ? t : null
-}
 
 /**
  * If the same symbol appears with mixed `holdingCurrency` values, **any** `BRL`

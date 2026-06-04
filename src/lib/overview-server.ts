@@ -9,11 +9,8 @@ import {
   userAllocationProfile,
 } from '#/db/schema'
 import type { UserAllocationTargetsJson } from '#/db/schema'
-import {
-  compareInvestmentsByRank,
-  type InvestmentOverviewRow,
-  loadInvestmentOverviewRows,
-} from '#/lib/investment-scoring'
+import { loadInvestmentOverviewRows } from '#/lib/investment-scoring'
+import { analyzePortfolioAllocation } from '#/lib/portfolio-analysis'
 import { valuateHoldings } from '#/lib/valuation-pipeline'
 
 import { clampPct, computePct, normalizeHoldingCurrency, num } from '#/lib/math'
@@ -151,64 +148,8 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
         currentPct: clampPct(computePct(t.marketValue, total)),
       }))
 
-    const allocByTypeId = new Map(allocation.map((a) => [a.investmentTypeId, a]))
-    const drift = targets
-      .map((t) => {
-        const current = allocByTypeId.get(t.investmentTypeId)?.currentPct ?? 0
-        const delta = current - t.targetPct
-        return {
-          investmentTypeId: t.investmentTypeId,
-          investmentTypeName: t.investmentTypeName,
-          currentPct: current,
-          targetPct: t.targetPct,
-          delta,
-          status:
-            t.targetPct <= 0
-              ? ('SEM_META' as const)
-              : delta > 0.5
-                ? ('ACIMA' as const)
-                : delta < -0.5
-                  ? ('ABAIXO' as const)
-                  : ('EM_ALVO' as const),
-        }
-      })
-      .sort((a, b) => {
-        const sa = targets.find((t) => t.investmentTypeId === a.investmentTypeId)?.typeSortOrder ?? 0
-        const sb = targets.find((t) => t.investmentTypeId === b.investmentTypeId)?.typeSortOrder ?? 0
-        return sa - sb
-      })
-
     const scoredInvestments = await loadInvestmentOverviewRows(userId)
-    const byTypeId = new Map<string, InvestmentOverviewRow[]>()
-    for (const r of scoredInvestments) {
-      const list = byTypeId.get(r.investmentTypeId) ?? []
-      list.push(r)
-      byTypeId.set(r.investmentTypeId, list)
-    }
-
-    const suggestions = drift
-      .filter((d) => d.targetPct > 0 && d.currentPct < d.targetPct)
-      .map((d) => {
-        const list = byTypeId.get(d.investmentTypeId) ?? []
-        if (list.length === 0) return null
-        const best = [...list].sort(compareInvestmentsByRank)[0]
-        return {
-          investmentTypeId: d.investmentTypeId,
-          investmentTypeName: d.investmentTypeName,
-          deltaPct: d.targetPct - d.currentPct,
-          investmentId: best.id,
-          investmentName: best.name,
-          score: best.score,
-        }
-      })
-      .filter(Boolean) as Array<{
-      investmentTypeId: string
-      investmentTypeName: string
-      deltaPct: number
-      investmentId: string
-      investmentName: string
-      score: number
-    }>
+    const { drift, suggestions } = analyzePortfolioAllocation({ allocation, targets, scoredInvestments })
 
     const targetTotal = targets.reduce((acc, t) => acc + t.targetPct, 0)
     const quoteFetchedAts = valuated

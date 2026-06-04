@@ -11,7 +11,8 @@ import { messages as m } from '#/messages'
 
 import type { HoldingRow, PortfolioHoldingForm } from '../types'
 import { toDateInputValue } from '../utils/holdings-format'
-import { findExistingHoldingForAdd, findInvestmentIdForTicker, isRendaFixaTipo, isVariableIncomeInv } from '../utils/investment-match'
+import { isFixedIncomeTipo } from '#/lib/portfolio-valuation'
+import { findExistingHoldingForAdd, findInvestmentIdForTicker, isVariableIncomeInv } from '../utils/investment-match'
 import { round2 } from '../utils/currency-input'
 import type { UseHoldingModalResult } from './use-holding-modal'
 
@@ -109,7 +110,7 @@ export function useHoldingForm({ rows, modal, displayCurrency, refresh }: UseHol
   )
 
   const variableTypeOptions = useMemo(
-    () => (typeOptions ?? []).filter((t) => !t.fixedIncome && !isRendaFixaTipo(t.name)),
+    () => (typeOptions ?? []).filter((t) => !isFixedIncomeTipo(t.fixedIncome, t.name)),
     [typeOptions],
   )
 

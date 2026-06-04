@@ -1,11 +1,8 @@
+import { isFixedIncomeTipo } from '#/lib/portfolio-valuation'
 import type { HoldingRow } from '../types'
 
-export function isRendaFixaTipo(name: string | null | undefined): boolean {
-  return (name ?? '').trim() === 'Renda fixa'
-}
-
 export function isVariableIncomeInv(o: { fixedIncome: boolean; typeName: string }): boolean {
-  return !o.fixedIncome && !isRendaFixaTipo(o.typeName)
+  return !isFixedIncomeTipo(o.fixedIncome, o.typeName)
 }
 
 export function findInvestmentIdForTicker(

@@ -10,6 +10,7 @@ import { Pool } from 'pg'
 import { investment, investmentType, marketQuote, portfolioHolding } from '../db/schema'
 import { refreshFxRatesIfStale } from '../lib/market-data/fx-refresh'
 import { refreshMarketQuotesForInputs } from '../lib/market-data/quote-refresh'
+import { normalizeHoldingCurrency } from '../lib/math'
 
 function loadEnvFiles() {
   // Prefer local overrides, then default env.
@@ -39,11 +40,6 @@ function marketQuoteTtlMsFromEnv(): number {
   const h = raw ? Number(raw) : 12
   const hours = Number.isFinite(h) && h > 0 ? h : 12
   return hours * 60 * 60_000
-}
-
-function normalizeHoldingCurrency(c: string | null | undefined): string | null {
-  const t = (c ?? '').trim().toUpperCase()
-  return t.length ? t : null
 }
 
 function sleep(ms: number): Promise<void> {

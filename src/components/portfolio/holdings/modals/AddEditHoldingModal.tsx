@@ -4,7 +4,7 @@ import type { UseHoldingFormResult } from '../hooks/use-holding-form'
 import type { UseHoldingModalResult } from '../hooks/use-holding-modal'
 import { HOLDING_CURRENCY_OPTIONS } from '../types'
 import { CurrencyInput } from '../CurrencyInput'
-import { isRendaFixaTipo } from '../utils/investment-match'
+import { isFixedIncomeTipo } from '#/lib/portfolio-valuation'
 import { round2 } from '../utils/currency-input'
 import { findExistingHoldingForAdd } from '../utils/investment-match'
 
@@ -27,12 +27,10 @@ export function AddEditHoldingModal({ modal, form, rows }: Props) {
   const existingHoldingForAdd =
     !isEdit && rows ? findExistingHoldingForAdd(rows, f.investmentId, f.ticker) : undefined
   const holdingIsFixedIncome = isEdit
-    ? Boolean(state.row.fixedIncome || isRendaFixaTipo(state.row.investmentTypeName))
+    ? isFixedIncomeTipo(state.row.fixedIncome, state.row.investmentTypeName)
     : Boolean(
-        selectedOpt?.fixedIncome ||
-          isRendaFixaTipo(selectedOpt?.typeName) ||
-          existingHoldingForAdd?.fixedIncome ||
-          isRendaFixaTipo(existingHoldingForAdd?.investmentTypeName),
+        isFixedIncomeTipo(selectedOpt?.fixedIncome ?? false, selectedOpt?.typeName) ||
+          isFixedIncomeTipo(existingHoldingForAdd?.fixedIncome ?? false, existingHoldingForAdd?.investmentTypeName),
       )
   const mergingAdd = !isEdit && Boolean(existingHoldingForAdd)
   const avgCostFieldLabel = mergingAdd
