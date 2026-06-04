@@ -21,7 +21,7 @@ import {
   listQuestionsForTypeFn,
   restoreDefaultQuestionsForTypeFn,
   updateQuestionFn,
-} from '#/lib/investment-server'
+} from '#/lib/scoring-server'
 
 export const Route = createFileRoute('/tipos/$typeId/perguntas')({
   component: PerguntasPage,

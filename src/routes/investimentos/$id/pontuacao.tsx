@@ -7,7 +7,7 @@ import { authClient } from '#/lib/auth-client'
 import {
   loadInvestmentScoringFn,
   saveInvestmentScoringFn,
-} from '#/lib/investment-server'
+} from '#/lib/scoring-server'
 import { messages as m } from '#/messages'
 import { cn } from '#/lib/utils'
 

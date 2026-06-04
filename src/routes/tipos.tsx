@@ -19,7 +19,7 @@ import {
   deleteInvestmentTypeFn,
   listInvestmentTypesWithCounts,
   updateInvestmentTypeFn,
-} from '#/lib/investment-server'
+} from '#/lib/scoring-server'
 
 export const Route = createFileRoute('/tipos')({
   component: TiposPage,

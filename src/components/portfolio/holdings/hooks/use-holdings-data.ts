@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { allocColorForType } from '#/components/portfolio/format'
 import { authClient } from '#/lib/auth-client'
-import { listPortfolioHoldingsFn, refreshPortfolioQuotesFn } from '#/lib/investment-server'
+import { listPortfolioHoldingsFn, refreshPortfolioQuotesFn } from '#/lib/portfolio-server'
 
 import type { DonutSegment, HoldingRow } from '../types'
 

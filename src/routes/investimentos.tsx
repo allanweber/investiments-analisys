@@ -28,7 +28,7 @@ import {
   listInvestmentTypesOptionsFn,
   listInvestmentsOverviewFn,
   updateInvestmentFn,
-} from '#/lib/investment-server'
+} from '#/lib/scoring-server'
 
 export const Route = createFileRoute('/investimentos')({
   component: InvestimentosPage,

@@ -10,11 +10,9 @@ import { PortfolioDriftAnalysis } from '#/components/portfolio/portfolio-drift-a
 import { PortfolioSummaryCards } from '#/components/portfolio/portfolio-summary-cards'
 import { useDisplayCurrency } from '#/hooks/use-display-currency'
 import { authClient } from '#/lib/auth-client'
-import {
-  listPortfolioCurrenciesFn,
-  loadPortfolioOverviewFn,
-  saveAllocationTargetsBulkFn,
-} from '#/lib/investment-server'
+import { listPortfolioCurrenciesFn } from '#/lib/portfolio-server'
+import { loadPortfolioOverviewFn } from '#/lib/overview-server'
+import { saveAllocationTargetsBulkFn } from '#/lib/allocation-server'
 import { messages as m } from '#/messages'
 
 export const Route = createFileRoute('/portfolio')({

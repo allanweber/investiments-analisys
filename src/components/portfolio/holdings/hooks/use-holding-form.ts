@@ -2,11 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   createInvestmentFn,
-  deletePortfolioHoldingFn,
   listInvestmentTypesOptionsFn,
   listInvestmentsOverviewFn,
+} from '#/lib/scoring-server'
+import {
+  deletePortfolioHoldingFn,
   upsertPortfolioHoldingFn,
-} from '#/lib/investment-server'
+} from '#/lib/portfolio-server'
 import { messages as m } from '#/messages'
 
 import type { HoldingRow, PortfolioHoldingForm } from '../types'

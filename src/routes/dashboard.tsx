@@ -5,7 +5,7 @@ import { authClient } from '#/lib/auth-client'
 import {
   getDashboardHighlightsFn,
   getDashboardSummaryFn,
-} from '#/lib/investment-server'
+} from '#/lib/scoring-server'
 import { messages as m } from '#/messages'
 
 export const Route = createFileRoute('/dashboard')({

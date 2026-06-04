@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { upsertPortfolioHoldingFn } from '#/lib/investment-server'
+import { upsertPortfolioHoldingFn } from '#/lib/portfolio-server'
 
 import { moneyMeta, parseAvgCostDraft, round2, sanitizeAvgCostTyping, formatCurrencyFixed2 } from '../utils/currency-input'
 import { parseAdditionalQty, toDateInputValue } from '../utils/holdings-format'
