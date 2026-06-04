@@ -7,14 +7,14 @@ import {
   investmentType,
   portfolioHolding,
   userAllocationProfile,
-} from '#/db/schema'
-import type { UserAllocationTargetsJson } from '#/db/schema'
-import { loadInvestmentOverviewRows } from '#/lib/investment-scoring'
-import { analyzePortfolioAllocation } from '#/lib/portfolio-analysis'
-import { valuateHoldings } from '#/lib/valuation-pipeline'
+} from '@/db/schema'
+import type { UserAllocationTargetsJson } from '@/db/schema'
+import { loadInvestmentOverviewRows } from '@/lib/investment-scoring'
+import { analyzePortfolioAllocation } from '@/lib/portfolio-analysis'
+import { valuateHoldings } from '@/lib/valuation-pipeline'
 
-import { clampPct, computePct, normalizeHoldingCurrency, num } from '#/lib/math'
-import { getDb, requireUserId, currencyCode, parseTargetsJson } from '#/lib/server-utils'
+import { clampPct, computePct, normalizeHoldingCurrency, num } from '@/lib/math'
+import { getDb, requireUserId, currencyCode, parseTargetsJson } from '@/lib/server-utils'
 
 
 const portfolioOverviewInput = z.object({ displayCurrency: currencyCode })

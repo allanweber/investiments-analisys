@@ -6,11 +6,11 @@ import {
 } from '@tanstack/react-router'
 import { useState } from 'react'
 
-import { AuthAlert } from '#/components/auth/auth-alert'
-import { AuthPageShell } from '#/components/auth/auth-page-shell'
-import { authClient } from '#/lib/auth-client'
-import { mapOtpError } from '#/lib/auth-errors'
-import { messages as m } from '#/messages'
+import { AuthAlert } from '@/components/auth/auth-alert'
+import { AuthPageShell } from '@/components/auth/auth-page-shell'
+import { authClient } from '@/lib/auth-client'
+import { mapOtpError } from '@/lib/auth-errors'
+import { messages as m } from '@/messages'
 
 export const Route = createFileRoute('/forgot-password')({
   component: ForgotPasswordPage,

@@ -1,5 +1,5 @@
-import { fmtMoney, fmtPct, fmtSignedMoney } from '#/components/portfolio/format'
-import { messages as m } from '#/messages'
+import { fmtMoney, fmtPct, fmtSignedMoney } from '@/components/portfolio/format'
+import { messages as m } from '@/messages'
 
 type Props = {
   total: number

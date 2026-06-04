@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { createInvestmentFn } from '#/lib/investment-server'
-import { listInvestmentTypesOptionsFn } from '#/lib/investment-type-server'
-import { listInvestmentsOverviewFn } from '#/lib/scoring-server'
+import { createInvestmentFn } from '@/lib/investment-server'
+import { listInvestmentTypesOptionsFn } from '@/lib/investment-type-server'
+import { listInvestmentsOverviewFn } from '@/lib/scoring-server'
 import {
   deletePortfolioHoldingFn,
   upsertPortfolioHoldingFn,
-} from '#/lib/portfolio-server'
-import { messages as m } from '#/messages'
+} from '@/lib/portfolio-server'
+import { messages as m } from '@/messages'
 
 import type { HoldingRow, PortfolioHoldingForm } from '../types'
 import { toDateInputValue } from '../utils/holdings-format'
-import { isFixedIncomeTipo } from '#/lib/portfolio-valuation'
+import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
 import { findExistingHoldingForAdd, findInvestmentIdForTicker, isVariableIncomeInv } from '../utils/investment-match'
 import { round2 } from '../utils/currency-input'
 import type { UseHoldingModalResult } from './use-holding-modal'

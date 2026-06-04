@@ -1,4 +1,4 @@
-import { compareInvestmentsByRank, type InvestmentOverviewRow } from '#/lib/investment-scoring'
+import { compareInvestmentsByRank, type InvestmentOverviewRow } from '@/lib/investment-scoring'
 
 type AllocationRow = {
   investmentTypeId: string

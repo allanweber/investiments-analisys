@@ -1,4 +1,4 @@
-import type { listPortfolioHoldingsFn } from '#/lib/portfolio-server'
+import type { listPortfolioHoldingsFn } from '@/lib/portfolio-server'
 
 export type HoldingRow = Awaited<ReturnType<typeof listPortfolioHoldingsFn>>['rows'][number]
 

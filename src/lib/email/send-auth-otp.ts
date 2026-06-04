@@ -1,6 +1,6 @@
 import { Resend } from 'resend'
 
-import { messages as m } from '#/messages'
+import { messages as m } from '@/messages'
 
 export type AuthOtpEmailType =
   | 'email-verification'

@@ -2,8 +2,8 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, count, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { investment, investmentAnswer, investmentType } from '#/db/schema'
-import { getDb, idInput, requireUserId, uuid } from '#/lib/server-utils'
+import { investment, investmentAnswer, investmentType } from '@/db/schema'
+import { getDb, idInput, requireUserId, uuid } from '@/lib/server-utils'
 
 const createInvInput = z.object({
   name: z.string().min(1).max(200),

@@ -5,7 +5,7 @@ import {
   DISPLAY_CURRENCY_STORAGE_KEY,
   SUPPORTED_FX_CURRENCIES,
   type FxCurrency,
-} from '#/lib/fx'
+} from '@/lib/fx'
 
 function readStoredDisplayCurrency(): FxCurrency {
   if (typeof window === 'undefined') return DEFAULT_DISPLAY_CURRENCY

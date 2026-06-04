@@ -197,6 +197,72 @@ export const marketRate = pgTable('market_rate', {
   fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+/**
+ * Fixed-income contract terms stored at purchase time.
+ * Child of portfolio_holding — shares the same (user_id, investment_id) composite key.
+ * annualRate meaning depends on indexer:
+ *   pre        → contracted fixed annual rate (e.g. 0.14 = 14% a.a.)
+ *   cdi/selic  → 0 (unused; BCB rate is used at valuation time); contracted terms live in multiplier
+ *   ipca/igpm  → real annual spread (e.g. 0.06 = IPCA + 6%)
+ * multiplier is only set for CDI/Selic products (e.g. 1.10 = 110% CDI).
+ * carenciaDays = Infinity products store multiplier = null; secondary-market-only is captured in valuation.
+ */
+export const rendaFixaDetail = pgTable(
+  'renda_fixa_detail',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    investmentId: uuid('investment_id')
+      .notNull()
+      .references(() => investment.id, { onDelete: 'cascade' }),
+    productType: text('product_type').notNull(),
+    indexer: text('indexer').notNull(),
+    capital: numeric('capital', { precision: 24, scale: 8 }).notNull(),
+    annualRate: numeric('annual_rate', { precision: 24, scale: 8 }).notNull(),
+    purchaseDate: timestamp('purchase_date', { withTimezone: true }).notNull(),
+    maturityDate: timestamp('maturity_date', { withTimezone: true }).notNull(),
+    /** CDI multiplier (e.g. 1.10 = 110% CDI). Null for non-CDI/Selic indexers. */
+    multiplier: numeric('multiplier', { precision: 10, scale: 6 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.investmentId] })],
+)
+
+/**
+ * Latest computed snapshot of a fixed-income position's return and tax breakdown.
+ * Overwritten on each valuation run — not an append-only log.
+ * carenciaDays = null means secondary-market-only (Infinity in the domain model).
+ */
+export const rendaFixaValuation = pgTable(
+  'renda_fixa_valuation',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    investmentId: uuid('investment_id')
+      .notNull()
+      .references(() => investment.id, { onDelete: 'cascade' }),
+    grossAmount: numeric('gross_amount', { precision: 24, scale: 8 }).notNull(),
+    grossProfit: numeric('gross_profit', { precision: 24, scale: 8 }).notNull(),
+    iof: numeric('iof', { precision: 24, scale: 8 }).notNull(),
+    ir: numeric('ir', { precision: 24, scale: 8 }).notNull(),
+    netAmount: numeric('net_amount', { precision: 24, scale: 8 }).notNull(),
+    netProfit: numeric('net_profit', { precision: 24, scale: 8 }).notNull(),
+    netRate: numeric('net_rate', { precision: 24, scale: 8 }).notNull(),
+    calendarDays: integer('calendar_days').notNull(),
+    liquidityBlocked: boolean('liquidity_blocked').notNull(),
+    /** Null means secondary-market-only (carencia = Infinity). */
+    carenciaDays: integer('carencia_days'),
+    liquidityReason: text('liquidity_reason'),
+    /** BCB annual rate used at compute time (CDI, Selic, IPCA-12m, or IGP-M-12m). Null for prefixado. */
+    indexerAnnual: numeric('indexer_annual', { precision: 24, scale: 8 }),
+    computedAt: timestamp('computed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.investmentId] })],
+)
+
 export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
@@ -260,6 +326,16 @@ export const portfolioHoldingRelations = relations(portfolioHolding, ({ one }) =
     fields: [portfolioHolding.investmentId],
     references: [investment.id],
   }),
+}))
+
+export const rendaFixaDetailRelations = relations(rendaFixaDetail, ({ one }) => ({
+  user: one(user, { fields: [rendaFixaDetail.userId], references: [user.id] }),
+  investment: one(investment, { fields: [rendaFixaDetail.investmentId], references: [investment.id] }),
+}))
+
+export const rendaFixaValuationRelations = relations(rendaFixaValuation, ({ one }) => ({
+  user: one(user, { fields: [rendaFixaValuation.userId], references: [user.id] }),
+  investment: one(investment, { fields: [rendaFixaValuation.investmentId], references: [investment.id] }),
 }))
 
 export const userAllocationProfileRelations = relations(userAllocationProfile, ({ one }) => ({

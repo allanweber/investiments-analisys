@@ -8,23 +8,23 @@ import {
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 
-import { FaDetailsCard, FaMobilePanel } from '#/components/fa/details-card'
-import { Button } from '#/components/ui/button'
-import { Input } from '#/components/ui/input'
-import { Label } from '#/components/ui/label'
-import { Textarea } from '#/components/ui/textarea'
+import { FaDetailsCard, FaMobilePanel } from '@/components/fa/details-card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '#/components/ui/select'
-import { authClient } from '#/lib/auth-client'
-import { messages as m } from '#/messages'
-import { createInvestmentsBulkFn, deleteInvestmentFn, updateInvestmentFn } from '#/lib/investment-server'
-import { listInvestmentTypesOptionsFn } from '#/lib/investment-type-server'
-import { listInvestmentsOverviewFn } from '#/lib/scoring-server'
+} from '@/components/ui/select'
+import { authClient } from '@/lib/auth-client'
+import { messages as m } from '@/messages'
+import { createInvestmentsBulkFn, deleteInvestmentFn, updateInvestmentFn } from '@/lib/investment-server'
+import { listInvestmentTypesOptionsFn } from '@/lib/investment-type-server'
+import { listInvestmentsOverviewFn } from '@/lib/scoring-server'
 
 export const Route = createFileRoute('/investimentos')({
   component: InvestimentosPage,

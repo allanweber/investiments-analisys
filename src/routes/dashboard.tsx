@@ -1,12 +1,12 @@
 import { Link, createFileRoute, Navigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
-import { authClient } from '#/lib/auth-client'
+import { authClient } from '@/lib/auth-client'
 import {
   getDashboardHighlightsFn,
   getDashboardSummaryFn,
-} from '#/lib/scoring-server'
-import { messages as m } from '#/messages'
+} from '@/lib/scoring-server'
+import { messages as m } from '@/messages'
 
 export const Route = createFileRoute('/dashboard')({
   component: DashboardPage,

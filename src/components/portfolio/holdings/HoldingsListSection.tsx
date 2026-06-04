@@ -1,5 +1,5 @@
-import { fmtMoney } from '#/components/portfolio/format'
-import { messages as m } from '#/messages'
+import { fmtMoney } from '@/components/portfolio/format'
+import { messages as m } from '@/messages'
 
 import type { HoldingRow } from './types'
 import type { UseHoldingsFiltersResult } from './hooks/use-holdings-filters'

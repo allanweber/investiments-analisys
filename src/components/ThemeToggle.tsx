@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { messages as m } from '#/messages'
+import { messages as m } from '@/messages'
 
 type ThemeMode = 'light' | 'dark' | 'auto'
 

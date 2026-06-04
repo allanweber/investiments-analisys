@@ -7,16 +7,16 @@ import {
 import { useMemo, useState } from 'react'
 import { z } from 'zod'
 
-import { AuthSuccessAlert } from '#/components/auth/auth-alert'
-import ThemeToggle from '#/components/ThemeToggle'
-import { authClient } from '#/lib/auth-client'
+import { AuthSuccessAlert } from '@/components/auth/auth-alert'
+import ThemeToggle from '@/components/ThemeToggle'
+import { authClient } from '@/lib/auth-client'
 import {
   isEmailNotVerifiedError,
   isInvalidCredentialsError,
-} from '#/lib/auth-errors'
+} from '@/lib/auth-errors'
 
-import { stashVerifyPassword } from '#/lib/auth-verify-storage'
-import { messages as m } from '#/messages'
+import { stashVerifyPassword } from '@/lib/auth-verify-storage'
+import { messages as m } from '@/messages'
 
 export const Route = createFileRoute('/login')({
   validateSearch: z.object({

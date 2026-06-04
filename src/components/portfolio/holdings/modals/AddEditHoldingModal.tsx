@@ -1,10 +1,10 @@
-import { messages as m } from '#/messages'
+import { messages as m } from '@/messages'
 
 import type { UseHoldingFormResult } from '../hooks/use-holding-form'
 import type { UseHoldingModalResult } from '../hooks/use-holding-modal'
 import { HOLDING_CURRENCY_OPTIONS } from '../types'
 import { CurrencyInput } from '../CurrencyInput'
-import { isFixedIncomeTipo } from '#/lib/portfolio-valuation'
+import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
 import { round2 } from '../utils/currency-input'
 import { findExistingHoldingForAdd } from '../utils/investment-match'
 

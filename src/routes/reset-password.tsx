@@ -7,12 +7,12 @@ import {
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
-import { AuthAlert } from '#/components/auth/auth-alert'
-import { AuthPageShell } from '#/components/auth/auth-page-shell'
-import { useResendCooldown } from '#/hooks/use-resend-cooldown'
-import { authClient } from '#/lib/auth-client'
-import { mapOtpError } from '#/lib/auth-errors'
-import { messages as m } from '#/messages'
+import { AuthAlert } from '@/components/auth/auth-alert'
+import { AuthPageShell } from '@/components/auth/auth-page-shell'
+import { useResendCooldown } from '@/hooks/use-resend-cooldown'
+import { authClient } from '@/lib/auth-client'
+import { mapOtpError } from '@/lib/auth-errors'
+import { messages as m } from '@/messages'
 
 export const Route = createFileRoute('/reset-password')({
   validateSearch: z.object({

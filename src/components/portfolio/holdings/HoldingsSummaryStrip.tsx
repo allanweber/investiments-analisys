@@ -1,4 +1,4 @@
-import { fmtMoney } from '#/components/portfolio/format'
+import { fmtMoney } from '@/components/portfolio/format'
 
 type TypeBreakdownEntry = {
   name: string

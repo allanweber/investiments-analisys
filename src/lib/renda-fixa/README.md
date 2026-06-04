@@ -7,7 +7,7 @@ Pure estimate-oriented calculations for fixed-income products.
 `calculateInvestment` is the high-level dispatcher. It accepts a product type by name, looks up the rf_02 tax/liquidity rules automatically, and routes to the correct underlying formula.
 
 ```ts
-import { calculateInvestment } from '#/lib/renda-fixa'
+import { calculateInvestment } from '@/lib/renda-fixa'
 
 // CDB prefixado — tax and IOF handled automatically
 const result = calculateInvestment({
@@ -53,7 +53,7 @@ const lci = calculateInvestment({
 Live CDI/Selic/IPCA/IGPM rates are fetched from BCB SGS and cached in the `market_rate` DB table. Use `getBcbRatesFn` from `#/lib/renda-fixa-server` to get current decimals server-side:
 
 ```ts
-import { getBcbRatesFn } from '#/lib/renda-fixa-server'
+import { getBcbRatesFn } from '@/lib/renda-fixa-server'
 
 const rates = await getBcbRatesFn()
 // rates.cdiAnnual, rates.selicAnnual, rates.ipcaAccumulated12m, rates.igpmAccumulated12m

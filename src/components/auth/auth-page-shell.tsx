@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 
-import ThemeToggle from '#/components/ThemeToggle'
-import { messages as m } from '#/messages'
+import ThemeToggle from '@/components/ThemeToggle'
+import { messages as m } from '@/messages'
 
 type AuthPageShellProps = {
   icon: string

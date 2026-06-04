@@ -1,4 +1,4 @@
-import { isFixedIncomeTipo } from '#/lib/portfolio-valuation'
+import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
 import type { HoldingRow } from '../types'
 
 export function isVariableIncomeInv(o: { fixedIncome: boolean; typeName: string }): boolean {

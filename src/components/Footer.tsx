@@ -1,4 +1,4 @@
-import { messages as m } from '#/messages'
+import { messages as m } from '@/messages'
 
 export default function Footer() {
   const year = new Date().getFullYear()

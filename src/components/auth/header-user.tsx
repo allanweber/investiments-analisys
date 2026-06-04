@@ -1,5 +1,5 @@
-import { authClient } from '#/lib/auth-client'
-import { messages as m } from '#/messages'
+import { authClient } from '@/lib/auth-client'
+import { messages as m } from '@/messages'
 import { Link } from '@tanstack/react-router'
 
 type Props = { variant?: 'topbar' | 'default' }

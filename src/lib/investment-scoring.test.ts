@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   compareInvestmentsByRank,
   computeScoreFromActiveQuestions,
-} from '#/lib/investment-scoring'
+} from '@/lib/investment-scoring'
 
 describe('computeScoreFromActiveQuestions', () => {
   it('returns zeros when there are no active questions', () => {

@@ -6,22 +6,22 @@ import {
 } from '@tanstack/react-router'
 import { useState } from 'react'
 
-import { FaDetailsCard, FaMobilePanel } from '#/components/fa/details-card'
-import { Button } from '#/components/ui/button'
-import { Input } from '#/components/ui/input'
-import { Label } from '#/components/ui/label'
-import { Switch } from '#/components/ui/switch'
-import { Textarea } from '#/components/ui/textarea'
-import { hasDefaultQuestionPackForTypeName } from '#/db/default-question-bank'
-import { authClient } from '#/lib/auth-client'
-import { messages as m } from '#/messages'
+import { FaDetailsCard, FaMobilePanel } from '@/components/fa/details-card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import { hasDefaultQuestionPackForTypeName } from '@/db/default-question-bank'
+import { authClient } from '@/lib/auth-client'
+import { messages as m } from '@/messages'
 import {
   createQuestionFn,
   deleteQuestionFn,
   listQuestionsForTypeFn,
   restoreDefaultQuestionsForTypeFn,
   updateQuestionFn,
-} from '#/lib/question-server'
+} from '@/lib/question-server'
 
 export const Route = createFileRoute('/tipos/$typeId/perguntas')({
   component: PerguntasPage,

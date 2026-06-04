@@ -1,7 +1,7 @@
 'use client'
 
-import { allocColorForType } from '#/components/portfolio/format'
-import { Tooltip, TooltipContent, TooltipTrigger } from '#/components/ui/tooltip'
+import { allocColorForType } from '@/components/portfolio/format'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 type AllocSeg = {
   investmentTypeId: string

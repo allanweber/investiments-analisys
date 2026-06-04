@@ -1,9 +1,9 @@
 import { Link, Navigate, useRouterState } from '@tanstack/react-router'
 
-import { TooltipProvider } from '#/components/ui/tooltip'
-import BetterAuthHeader from '#/components/auth/header-user'
-import { authClient } from '#/lib/auth-client'
-import { messages as m } from '#/messages'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import BetterAuthHeader from '@/components/auth/header-user'
+import { authClient } from '@/lib/auth-client'
+import { messages as m } from '@/messages'
 import ThemeToggle from './ThemeToggle'
 
 const NAV_CONFIG = [

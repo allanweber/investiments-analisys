@@ -1,17 +1,17 @@
 import { getRequest } from '@tanstack/react-start/server'
 import { z } from 'zod'
 
-import type { UserAllocationTargetsJson } from '#/db/schema'
+import type { UserAllocationTargetsJson } from '@/db/schema'
 
-import { clampPct, num } from '#/lib/math'
+import { clampPct, num } from '@/lib/math'
 
 export async function getDb() {
-  return (await import('#/db')).db
+  return (await import('@/db')).db
 }
 
 export async function requireUserId(): Promise<string> {
   const request = getRequest()
-  const { getAuth } = await import('#/lib/auth')
+  const { getAuth } = await import('@/lib/auth')
   const auth = await getAuth()
   const session = await auth.api.getSession({ headers: request.headers })
   const id = session?.user?.id

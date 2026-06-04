@@ -2,7 +2,7 @@ import { HeadContent, Link, Scripts, createRootRoute } from '@tanstack/react-rou
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import AppShell from '../components/AppShell'
-import { messages as m } from '#/messages'
+import { messages as m } from '@/messages'
 
 import appCss from '../styles.css?url'
 

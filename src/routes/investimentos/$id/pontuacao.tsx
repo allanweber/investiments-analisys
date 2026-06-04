@@ -1,15 +1,15 @@
 import { Link, createFileRoute, Navigate, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
-import { Button } from '#/components/ui/button'
-import { Label } from '#/components/ui/label'
-import { authClient } from '#/lib/auth-client'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { authClient } from '@/lib/auth-client'
 import {
   loadInvestmentScoringFn,
   saveInvestmentScoringFn,
-} from '#/lib/scoring-server'
-import { messages as m } from '#/messages'
-import { cn } from '#/lib/utils'
+} from '@/lib/scoring-server'
+import { messages as m } from '@/messages'
+import { cn } from '@/lib/utils'
 
 type AnswerChoice = 'unanswered' | 'no' | 'yes'
 

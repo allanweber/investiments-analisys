@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from 'react'
 
-import { Button } from '#/components/ui/button'
-import { Slider } from '#/components/ui/slider'
+import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
 
-import { allocColorForType, fmtPct } from '#/components/portfolio/format'
+import { allocColorForType, fmtPct } from '@/components/portfolio/format'
 import {
   defaultTargetsHundredRendaFixa,
   redistributeAfterChange,
-} from '#/components/portfolio/redistribute-targets'
+} from '@/components/portfolio/redistribute-targets'
 
 export type AllocationTargetRow = {
   investmentTypeId: string

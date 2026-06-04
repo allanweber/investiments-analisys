@@ -6,9 +6,9 @@ import { emailOTP } from 'better-auth/plugins'
 
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 
-import * as schema from '#/db/schema'
+import * as schema from '@/db/schema'
 
-import { sendAuthOtpEmail } from '#/lib/email/send-auth-otp'
+import { sendAuthOtpEmail } from '@/lib/email/send-auth-otp'
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID
 
@@ -56,7 +56,7 @@ let authInstance: ReturnType<typeof betterAuth> | undefined
 
  * Lazy init so `#/db` / `pg` are not loaded when this module is only referenced
 
- * from client-side server-fn stubs (dynamic `import('#/lib/auth')`).
+ * from client-side server-fn stubs (dynamic `import('@/lib/auth')`).
 
  */
 
@@ -64,11 +64,11 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
 
   if (authInstance) return authInstance
 
-  const { db } = await import('#/db')
+  const { db } = await import('@/db')
 
   const { seedDefaultInvestmentTypesForUser } = await import(
 
-    '#/db/seed-default-types',
+    '@/db/seed-default-types',
 
   )
 

@@ -2,8 +2,8 @@ import { asc } from 'drizzle-orm'
 
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
-import * as schema from '#/db/schema'
-import { fxRate } from '#/db/schema'
+import * as schema from '@/db/schema'
+import { fxRate } from '@/db/schema'
 
 import { buildRateMatrix, type FxRateMatrix, type FxRateRow } from './convert'
 

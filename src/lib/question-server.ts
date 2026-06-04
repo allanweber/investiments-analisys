@@ -6,9 +6,9 @@ import {
   getDefaultQuestionsForTypeName,
   hasDefaultQuestionPackForTypeName,
   normalizeQuestionPrompt,
-} from '#/db/default-question-bank'
-import { investmentAnswer, investmentType, question } from '#/db/schema'
-import { getDb, idInput, requireUserId, uuid } from '#/lib/server-utils'
+} from '@/db/default-question-bank'
+import { investmentAnswer, investmentType, question } from '@/db/schema'
+import { getDb, idInput, requireUserId, uuid } from '@/lib/server-utils'
 
 const listQuestionsInput = z.object({ typeId: uuid })
 

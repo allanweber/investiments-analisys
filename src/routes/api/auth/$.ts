@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 /** Dynamic import + lazy `getAuth()` keep `#/db` / `pg` off the client graph. */
 async function handleAuth(request: Request) {
-  const { getAuth } = await import('#/lib/auth')
+  const { getAuth } = await import('@/lib/auth')
   return (await getAuth()).handler(request)
 }
 

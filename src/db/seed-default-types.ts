@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 
-import { getDefaultQuestionsForTypeName } from '#/db/default-question-bank'
-import * as schema from '#/db/schema'
+import { getDefaultQuestionsForTypeName } from '@/db/default-question-bank'
+import * as schema from '@/db/schema'
 
 /** Types suggested after signup (pt-BR labels). Idempotent per user. */
 const DEFAULT_TYPES: { name: string; fixedIncome: boolean }[] = [
@@ -16,7 +16,7 @@ const DEFAULT_TYPES: { name: string; fixedIncome: boolean }[] = [
 ]
 
 export async function seedDefaultInvestmentTypesForUser(userId: string) {
-  const { db } = await import('#/db')
+  const { db } = await import('@/db')
   const existing = await db
     .select({ id: schema.investmentType.id })
     .from(schema.investmentType)

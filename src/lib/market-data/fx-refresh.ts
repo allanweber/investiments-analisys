@@ -1,8 +1,8 @@
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
-import type * as schema from '#/db/schema'
-import { fxRate } from '#/db/schema'
-import { findMissingFxPairs, isFxCacheStale, loadFxRatesFromDb } from '#/lib/fx'
+import type * as schema from '@/db/schema'
+import { fxRate } from '@/db/schema'
+import { findMissingFxPairs, isFxCacheStale, loadFxRatesFromDb } from '@/lib/fx'
 
 import { getMarketDataDb, makeLogger } from './db'
 import { fetchYahooFxRates } from './fx-yahoo'

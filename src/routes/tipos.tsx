@@ -8,18 +8,18 @@ import {
 } from '@tanstack/react-router'
 import { useState } from 'react'
 
-import { FaDetailsCard, FaMobilePanel } from '#/components/fa/details-card'
-import { Button } from '#/components/ui/button'
-import { Input } from '#/components/ui/input'
-import { Label } from '#/components/ui/label'
-import { authClient } from '#/lib/auth-client'
-import { messages as m } from '#/messages'
+import { FaDetailsCard, FaMobilePanel } from '@/components/fa/details-card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { authClient } from '@/lib/auth-client'
+import { messages as m } from '@/messages'
 import {
   createInvestmentTypeFn,
   deleteInvestmentTypeFn,
   listInvestmentTypesWithCounts,
   updateInvestmentTypeFn,
-} from '#/lib/investment-type-server'
+} from '@/lib/investment-type-server'
 
 export const Route = createFileRoute('/tipos')({
   component: TiposPage,

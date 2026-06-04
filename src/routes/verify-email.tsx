@@ -8,16 +8,16 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 
-import { AuthAlert } from '#/components/auth/auth-alert'
-import { AuthPageShell } from '#/components/auth/auth-page-shell'
-import { useResendCooldown } from '#/hooks/use-resend-cooldown'
-import { authClient } from '#/lib/auth-client'
-import { mapOtpError, mapSignInError } from '#/lib/auth-errors'
+import { AuthAlert } from '@/components/auth/auth-alert'
+import { AuthPageShell } from '@/components/auth/auth-page-shell'
+import { useResendCooldown } from '@/hooks/use-resend-cooldown'
+import { authClient } from '@/lib/auth-client'
+import { mapOtpError, mapSignInError } from '@/lib/auth-errors'
 import {
   clearVerifyPassword,
   readVerifyPassword,
-} from '#/lib/auth-verify-storage'
-import { messages as m } from '#/messages'
+} from '@/lib/auth-verify-storage'
+import { messages as m } from '@/messages'
 
 type VerifyEmailState = {
   password?: string

@@ -1,7 +1,7 @@
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
-import type * as schema from '#/db/schema'
-import { marketRate } from '#/db/schema'
+import type * as schema from '@/db/schema'
+import { marketRate } from '@/db/schema'
 
 import { getMarketDataDb, makeLogger } from './db'
 import { fetchBcbRates } from './providers/bcb'

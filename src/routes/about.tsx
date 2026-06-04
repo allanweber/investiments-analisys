@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { messages as m } from '#/messages'
+import { messages as m } from '@/messages'
 
 export const Route = createFileRoute('/about')({
   component: About,

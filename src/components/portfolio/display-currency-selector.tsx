@@ -1,5 +1,5 @@
-import type { FxCurrency } from '#/lib/fx'
-import { messages as m } from '#/messages'
+import type { FxCurrency } from '@/lib/fx'
+import { messages as m } from '@/messages'
 
 type Props = {
   value: FxCurrency

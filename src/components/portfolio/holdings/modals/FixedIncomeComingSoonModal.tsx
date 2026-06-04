@@ -1,4 +1,4 @@
-import { messages as m } from '#/messages'
+import { messages as m } from '@/messages'
 
 import type { UseHoldingModalResult } from '../hooks/use-holding-modal'
 

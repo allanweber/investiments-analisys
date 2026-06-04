@@ -1,6 +1,6 @@
-import { DisplayCurrencySelector } from '#/components/portfolio/display-currency-selector'
-import type { FxCurrency } from '#/lib/fx'
-import { messages as m } from '#/messages'
+import { DisplayCurrencySelector } from '@/components/portfolio/display-currency-selector'
+import type { FxCurrency } from '@/lib/fx'
+import { messages as m } from '@/messages'
 
 type Props = {
   displayCurrency: FxCurrency

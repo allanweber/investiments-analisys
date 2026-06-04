@@ -2,14 +2,14 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, asc, count, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { investment, investmentAnswer, investmentType, question } from '#/db/schema'
+import { investment, investmentAnswer, investmentType, question } from '@/db/schema'
 import {
   compareInvestmentsByRank,
   computeScoreFromActiveQuestions,
   type InvestmentOverviewRow,
   loadInvestmentOverviewRows,
-} from '#/lib/investment-scoring'
-import { getDb, requireUserId, uuid } from '#/lib/server-utils'
+} from '@/lib/investment-scoring'
+import { getDb, requireUserId, uuid } from '@/lib/server-utils'
 
 export const DASHBOARD_TOP_PER_TYPE = 3
 

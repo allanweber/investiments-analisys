@@ -8,6 +8,7 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 
 import { investment, investmentType, marketQuote, portfolioHolding } from '../db/schema'
+import { refreshBcbRatesIfStale } from '../lib/market-data/bcb-refresh'
 import { refreshFxRatesIfStale } from '../lib/market-data/fx-refresh'
 import { refreshMarketQuotesForInputs } from '../lib/market-data/quote-refresh'
 import { normalizeHoldingCurrency } from '../lib/math'
@@ -313,6 +314,25 @@ async function main() {
           level: 'warn',
           msg: 'fx -> sweep_error',
           phase: 'fx',
+          error: errorToJson(e),
+        })
+      }
+
+      try {
+        const bcbResult = await refreshBcbRatesIfStale()
+        logWorkerEvent({
+          level: bcbResult.error ? 'warn' : 'info',
+          msg: 'bcb -> sweep',
+          phase: 'bcb',
+          refreshed: bcbResult.refreshed,
+          skipped: bcbResult.skipped,
+          error: bcbResult.error ?? null,
+        })
+      } catch (e) {
+        logWorkerEvent({
+          level: 'warn',
+          msg: 'bcb -> sweep_error',
+          phase: 'bcb',
           error: errorToJson(e),
         })
       }

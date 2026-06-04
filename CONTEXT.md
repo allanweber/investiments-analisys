@@ -48,6 +48,11 @@ A Brazilian personal investment portfolio tool. Two main capabilities:
 | **MarketQuote** | Cached ticker price (provider: brapi or yfinance) |
 | **FxRate** | Cached currency pair rate (provider: yfinance / Yahoo Finance) |
 | **MarketRate** | Cached BCB indexer rate (CDI, Selic, IPCA, IGP-M) |
+| **RendaFixaDetail** | Fixed-income contract terms stored at purchase: productType, indexer, capital, contractedRate, purchaseDate, maturityDate, multiplier. Child of PortfolioHolding — shares the same (userId, investmentId) composite key. |
+| **RendaFixaValuation** | Latest computed snapshot of a fixed-income position's gross/net return, tax breakdown (IOF + IR), and liquidity status. Overwritten on each valuation run using current BCB rates. |
+| **ProductType** | One of 12 fixed-income product codes: cdb · lci · lca · cri · cra · tesouro-selic · tesouro-prefixado · tesouro-ipca · tesouro-renda-mais · tesouro-educa-mais · debenture-incentivada · debenture-comum |
+| **Indexer** | Rate index used for a renda fixa product: pre · cdi · selic · ipca · igpm |
+| **Multiplier** | CDI/Selic multiplier stored in RendaFixaDetail (e.g. 1.10 = 110% CDI). Null for non-CDI/Selic indexers. |
 
 ---
 
@@ -66,6 +71,7 @@ src/
 │
 ├── lib/
 │   ├── investment-server.ts        ALL server functions (RPC layer) — see below
+│   ├── renda-fixa-server.ts        Renda fixa CRUD + valuation RPC (getBcbRatesFn, upsertRendaFixaHoldingFn, deleteRendaFixaHoldingFn, listRendaFixaHoldingsFn, refreshRendaFixaValuationsFn)
 │   ├── portfolio-valuation.ts      valueHolding() pure fn — BOOK_VALUE | MISSING_TICKER | MISSING_QUOTE | OK
 │   ├── investment-scoring.ts       computeScoreFromActiveQuestions(), compareInvestmentsByRank()
 │   ├── fx/                         Currency conversion (convert, load, constants)
@@ -146,8 +152,19 @@ Do not simplify to just `fixedIncome`. Legacy holdings may have types named "Ren
 ### 4. Holding currency is locked after the first upsert
 In `upsertPortfolioHoldingFn`, when an existing holding is found the incoming currency is ignored — the stored currency is kept. To change denomination the holding must be deleted and re-created.
 
-### 5. `renda-fixa/` math is not yet wired into valuation
-The library (`src/lib/renda-fixa/`) has full formulas for prefixado, CDI, and IPCA products. It is **not** called by `portfolio-valuation.ts` yet. Wiring it requires a DB schema extension on `portfolio_holding` (maturity date, rate, index type, face value) — that migration is pending.
+### 5. Renda fixa valuation uses a child-table pattern, not a `portfolio_holding` extension
+Fixed-income contract terms live in `renda_fixa_detail` (child of `portfolio_holding`, same composite PK). Computed returns are cached in `renda_fixa_valuation`. Both tables cascade on `investment.id` deletion but have **no FK to `portfolio_holding`** — deleting a renda fixa holding via `deleteRendaFixaHoldingFn` explicitly removes all three rows in order: valuation → detail → holding.
+
+### 6. `renda_fixa_detail.annualRate` meaning depends on indexer
+- `pre`: contracted fixed annual rate (e.g. 0.14 = 14% a.a.)
+- `cdi` / `selic`: store 0; the current BCB rate is substituted at valuation time (these products float)
+- `ipca` / `igpm`: real annual spread (e.g. 0.06 = IPCA + 6%)
+
+### 7. Business day approximation
+`computeAndSaveValuation` (in `renda-fixa-server.ts`) derives `businessDays` from a weekday-only calendar — no Brazilian national holiday table is available yet. The 252-day convention used in `calculateInvestment` absorbs this imprecision for display purposes.
+
+### 8. BCB rate refresh is staleness-gated
+`refreshBcbRatesIfStale` (in `bcb-refresh.ts`) no-ops when the cache is fresh (default TTL: 24h, overridable via `BCB_REFRESH_HOURS`). It is called by `upsertRendaFixaHoldingFn` and `refreshRendaFixaValuationsFn`, and once per sweep in `quote-worker.ts`. Never force-refresh on every insert to avoid BCB rate-limiting.
 
 ---
 
@@ -197,4 +214,4 @@ Unit tests cover pure math only (`src/lib/renda-fixa/`, `src/lib/fx/`, `src/lib/
 
 1. **Holdings page** (`src/components/portfolio/holdings/`) — UI for listing, adding, editing, and deleting portfolio positions. Components, hooks, and modals are staged but not yet committed.
 
-2. **Renda-fixa valuation wiring** — pending a `portfolio_holding` schema extension to store fixed-income parameters (rate, index, maturity, face value). Once the migration lands, `portfolio-valuation.ts` can call into `src/lib/renda-fixa/` for mark-to-model pricing instead of book value.
+2. **Renda fixa backend** — `renda_fixa_detail` and `renda_fixa_valuation` tables added (migration: `drizzle/0005_renda_fixa.sql`). Server actions live in `src/lib/renda-fixa-server.ts`. BCB rate refresh wired into quote-worker sweep. Screens not yet created.

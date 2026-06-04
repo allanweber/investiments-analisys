@@ -1,5 +1,5 @@
-import { fmtMoney, fmtPct } from '#/components/portfolio/format'
-import { messages as m } from '#/messages'
+import { fmtMoney, fmtPct } from '@/components/portfolio/format'
+import { messages as m } from '@/messages'
 
 type NativeBreakdownRow = {
   currency: string
