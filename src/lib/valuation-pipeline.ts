@@ -1,0 +1,122 @@
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
+
+import type * as schema from '#/db/schema'
+import { ensureFxRatesForDisplay } from '#/lib/market-data/fx-refresh'
+import type { MarketQuoteInput } from '#/lib/market-data'
+import { isFxCacheStale } from '#/lib/fx'
+import { isFixedIncomeTipo, valueHolding } from '#/lib/portfolio-valuation'
+import type { HoldingQuoteStatus } from '#/lib/portfolio-valuation'
+import {
+  loadQuotesFromDb,
+  applyFxToNativeAmounts,
+  num,
+  toMoney,
+  normalizeHoldingCurrency,
+} from '#/lib/server-utils'
+
+type Db = NodePgDatabase<typeof schema>
+
+export type ValuationHoldingInput = {
+  ticker: string | null
+  quantity: string
+  avgCost: string
+  currency: string
+  fixedIncome: boolean
+  investmentTypeName: string
+}
+
+export type ValuatedHolding = {
+  quantity: number
+  avgCost: number
+  lastPrice: number | null
+  marketValueNative: number | null
+  unrealizedPlNative: number | null
+  marketValueDisplay: number | null
+  unrealizedPlDisplay: number | null
+  fxRateUsed: number | null
+  fxUnavailable: boolean
+  quoteFetchedAt: Date | null
+  quoteCurrency: string | null
+  quoteLogoUrl: string | null
+  quoteStatus: HoldingQuoteStatus
+}
+
+export type ValuationPipelineResult = {
+  valuated: ValuatedHolding[]
+  quotesStale: boolean
+  fxAsOf: Date | null
+  fxStale: boolean
+  fxMissingPairs: string[]
+}
+
+export async function valuateHoldings(
+  db: Db,
+  holdings: ValuationHoldingInput[],
+  displayCurrency: string,
+): Promise<ValuationPipelineResult> {
+  const inputs: MarketQuoteInput[] = holdings
+    .filter((h) => !isFixedIncomeTipo(h.fixedIncome, h.investmentTypeName))
+    .map((h) => ({
+      symbol: (h.ticker ?? '').trim(),
+      holdingCurrency: normalizeHoldingCurrency(h.currency),
+    }))
+    .filter((i) => i.symbol.length > 0)
+
+  const { bySymbol, stale } = await loadQuotesFromDb({ inputs })
+
+  const nativeCurrencies = [...new Set(holdings.map((h) => h.currency).filter(Boolean))]
+  const { matrix, newestFetchedAt, oldestFetchedAt, fxMissingPairs } =
+    await ensureFxRatesForDisplay(db, nativeCurrencies, displayCurrency)
+  const fxStale = isFxCacheStale(oldestFetchedAt)
+
+  const valuated: ValuatedHolding[] = holdings.map((h) => {
+    const sym = (h.ticker ?? '').trim()
+    const qty = toMoney(num(h.quantity))
+    const avg = toMoney(num(h.avgCost))
+
+    const q = sym ? bySymbol.get(sym) : null
+    const valued = valueHolding(
+      {
+        ticker: h.ticker,
+        quantity: qty,
+        avgCost: avg,
+        currency: h.currency,
+        fixedIncome: h.fixedIncome,
+        investmentTypeName: h.investmentTypeName,
+      },
+      q,
+    )
+
+    const fx = applyFxToNativeAmounts({
+      marketValueNative: valued.marketValueNative,
+      unrealizedPlNative: valued.unrealizedPlNative,
+      nativeCurrency: h.currency,
+      displayCurrency,
+      matrix,
+    })
+
+    return {
+      quantity: qty,
+      avgCost: avg,
+      lastPrice: valued.lastPrice,
+      marketValueNative: valued.marketValueNative,
+      unrealizedPlNative: valued.unrealizedPlNative,
+      marketValueDisplay: fx.marketValueDisplay,
+      unrealizedPlDisplay: fx.unrealizedPlDisplay,
+      fxRateUsed: fx.fxRateUsed,
+      fxUnavailable: fx.fxUnavailable,
+      quoteFetchedAt: valued.quoteFetchedAt,
+      quoteCurrency: valued.quoteCurrency,
+      quoteLogoUrl: valued.quoteLogoUrl,
+      quoteStatus: valued.quoteStatus,
+    }
+  })
+
+  return {
+    valuated,
+    quotesStale: stale,
+    fxAsOf: newestFetchedAt,
+    fxStale,
+    fxMissingPairs,
+  }
+}

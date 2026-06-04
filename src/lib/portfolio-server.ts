@@ -3,11 +3,10 @@ import { and, asc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { investment, investmentType, portfolioHolding } from '#/db/schema'
-import { ensureFxRatesForDisplay } from '#/lib/market-data/fx-refresh'
 import { refreshMarketQuotesForInputs } from '#/lib/market-data/quote-refresh'
 import type { MarketQuoteInput } from '#/lib/market-data'
-import { isFxCacheStale } from '#/lib/fx'
-import { isFixedIncomeTipo, valueHolding } from '#/lib/portfolio-valuation'
+import { isFixedIncomeTipo } from '#/lib/portfolio-valuation'
+import { valuateHoldings } from '#/lib/valuation-pipeline'
 
 import {
   getDb,
@@ -15,11 +14,7 @@ import {
   uuid,
   currencyCode,
   idInput,
-  num,
-  toMoney,
   normalizeHoldingCurrency,
-  loadQuotesFromDb,
-  applyFxToNativeAmounts,
 } from '#/lib/server-utils'
 
 export const listPortfolioCurrenciesFn = createServerFn({ method: 'GET' }).handler(
@@ -204,76 +199,21 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
       .where(and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)))
       .orderBy(asc(investmentType.sortOrder), asc(investment.name))
 
-    const tickers: MarketQuoteInput[] = rows
-      .filter((r) => !isFixedIncomeTipo(r.fixedIncome, r.investmentTypeName))
-      .map((r) => ({
-        symbol: (r.ticker ?? '').trim(),
-        holdingCurrency: r.currency ?? null,
-      }))
-      .filter((i) => i.symbol.length > 0)
-    const { bySymbol, stale } = await loadQuotesFromDb({ inputs: tickers })
+    const { valuated, quotesStale, fxAsOf, fxStale, fxMissingPairs } =
+      await valuateHoldings(db, rows, displayCurrency)
 
-    const nativeCurrencies = [...new Set(rows.map((r) => r.currency).filter(Boolean))]
-    const {
-      matrix,
-      newestFetchedAt,
-      oldestFetchedAt,
-      fxMissingPairs,
-    } = await ensureFxRatesForDisplay(db, nativeCurrencies, displayCurrency)
-    const fxStale = isFxCacheStale(oldestFetchedAt)
-
-    const enriched = rows.map((r) => {
-      const sym = (r.ticker ?? '').trim()
-      const qty = toMoney(num(r.quantity))
-      const avg = toMoney(num(r.avgCost))
-      const nativeCurrency = r.currency
-
-      const q = sym ? bySymbol.get(sym) : null
-      const valued = valueHolding(
-        {
-          ticker: r.ticker,
-          quantity: qty,
-          avgCost: avg,
-          currency: nativeCurrency,
-          fixedIncome: r.fixedIncome,
-          investmentTypeName: r.investmentTypeName,
-        },
-        q,
-      )
-
-      const fx = applyFxToNativeAmounts({
-        marketValueNative: valued.marketValueNative,
-        unrealizedPlNative: valued.unrealizedPlNative,
-        nativeCurrency,
-        displayCurrency,
-        matrix,
-      })
-
-      return {
-        ...r,
-        quantity: qty,
-        avgCost: avg,
-        lastPrice: valued.lastPrice,
-        marketValueNative: valued.marketValueNative,
-        marketValueDisplay: fx.marketValueDisplay,
-        unrealizedPlNative: valued.unrealizedPlNative,
-        unrealizedPlDisplay: fx.unrealizedPlDisplay,
-        marketValue: fx.marketValueDisplay,
-        unrealizedPl: fx.unrealizedPlDisplay,
-        quoteFetchedAt: valued.quoteFetchedAt,
-        quoteCurrency: valued.quoteCurrency,
-        quoteLogoUrl: valued.quoteLogoUrl,
-        quoteStatus: valued.quoteStatus,
-        fxRateUsed: fx.fxRateUsed,
-        fxUnavailable: fx.fxUnavailable,
-      }
-    })
+    const enriched = rows.map((r, i) => ({
+      ...r,
+      ...valuated[i],
+      marketValue: valuated[i].marketValueDisplay,
+      unrealizedPl: valuated[i].unrealizedPlDisplay,
+    }))
 
     return {
       rows: enriched,
-      quotesStale: stale,
+      quotesStale,
       displayCurrency,
-      fxAsOf: newestFetchedAt,
+      fxAsOf,
       fxStale,
       fxMissingPairs,
     }

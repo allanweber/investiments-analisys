@@ -11,24 +11,18 @@ import {
   userAllocationProfile,
 } from '#/db/schema'
 import type { UserAllocationTargetsJson } from '#/db/schema'
-import { ensureFxRatesForDisplay } from '#/lib/market-data/fx-refresh'
-import type { MarketQuoteInput } from '#/lib/market-data'
-import { isFxCacheStale } from '#/lib/fx'
-import { isFixedIncomeTipo, valueHolding } from '#/lib/portfolio-valuation'
 import { compareInvestmentsByRank, computeScoreFromActiveQuestions } from '#/lib/investment-scoring'
+import { valuateHoldings } from '#/lib/valuation-pipeline'
 
 import {
   getDb,
   requireUserId,
   currencyCode,
   num,
-  toMoney,
   clampPct,
   normalizeHoldingCurrency,
   parseTargetsJson,
   computePct,
-  loadQuotesFromDb,
-  applyFxToNativeAmounts,
 } from '#/lib/server-utils'
 
 type ScoredInvestmentRow = {
@@ -126,23 +120,9 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
     const currencies = [...new Set(holdings.map((h) => h.currency))].sort((a, b) =>
       a.localeCompare(b),
     )
-    const {
-      matrix,
-      newestFetchedAt,
-      oldestFetchedAt,
-      fxMissingPairs,
-    } = await ensureFxRatesForDisplay(db, currencies, displayCurrency)
-    const fxStale = isFxCacheStale(oldestFetchedAt)
 
-    const inputs: MarketQuoteInput[] = holdings
-      .filter((r) => !isFixedIncomeTipo(r.fixedIncome, r.investmentTypeName))
-      .map((r) => ({
-        symbol: (r.ticker ?? '').trim(),
-        holdingCurrency: r.currency ?? null,
-      }))
-      .filter((i) => i.symbol.length > 0)
-
-    const { bySymbol, stale } = await loadQuotesFromDb({ inputs })
+    const { valuated, quotesStale: stale, fxAsOf: newestFetchedAt, fxStale, fxMissingPairs } =
+      await valuateHoldings(db, holdings, displayCurrency)
 
     const byType = new Map<
       string,
@@ -161,41 +141,21 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
 
     let total = 0
     let unrealizedPl = 0
-    for (const r of holdings) {
-      const qty = toMoney(num(r.quantity))
-      const avg = toMoney(num(r.avgCost))
-      const sym = (r.ticker ?? '').trim()
-      const q = sym ? bySymbol.get(sym) : null
-      const valued = valueHolding(
-        {
-          ticker: r.ticker,
-          quantity: qty,
-          avgCost: avg,
-          currency: r.currency,
-          fixedIncome: r.fixedIncome,
-          investmentTypeName: r.investmentTypeName,
-        },
-        q,
-      )
-      if (valued.marketValueNative == null) continue
+    for (let i = 0; i < holdings.length; i++) {
+      const r = holdings[i]
+      const v = valuated[i]
+      if (v.marketValueNative == null) continue
 
-      const fx = applyFxToNativeAmounts({
-        marketValueNative: valued.marketValueNative,
-        unrealizedPlNative: valued.unrealizedPlNative,
-        nativeCurrency: r.currency,
-        displayCurrency,
-        matrix,
-      })
-      const mvDisplay = fx.marketValueDisplay ?? 0
+      const mvDisplay = v.marketValueDisplay ?? 0
       total += mvDisplay
-      unrealizedPl += fx.unrealizedPlDisplay ?? 0
+      unrealizedPl += v.unrealizedPlDisplay ?? 0
 
       const nativeBucket = byNativeMap.get(r.currency) ?? {
         marketValueNative: 0,
         marketValueDisplay: 0,
         holdingCount: 0,
       }
-      nativeBucket.marketValueNative += valued.marketValueNative
+      nativeBucket.marketValueNative += v.marketValueNative
       nativeBucket.marketValueDisplay += mvDisplay
       nativeBucket.holdingCount += 1
       byNativeMap.set(r.currency, nativeBucket)
@@ -321,8 +281,8 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
     }>
 
     const targetTotal = targets.reduce((acc, t) => acc + t.targetPct, 0)
-    const quoteFetchedAts = inputs
-      .map((i) => bySymbol.get(i.symbol)?.fetchedAt?.getTime?.() ?? 0)
+    const quoteFetchedAts = valuated
+      .map((v) => v.quoteFetchedAt?.getTime() ?? 0)
       .filter((t) => t > 0)
     const lastUpdatedAt =
       quoteFetchedAts.length === 0 ? null : new Date(Math.max(...quoteFetchedAts))
