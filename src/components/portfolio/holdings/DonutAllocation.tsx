@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { DonutSegment } from './types'
 
 function donutSlicePath(
@@ -34,27 +35,26 @@ function donutSlicePath(
 }
 
 export function DonutAllocation({ segments }: { segments: DonutSegment[] }) {
-  const total = segments.reduce((a, s) => a + s.pct, 0) || 1
   const size = 208
   const cx = size / 2
   const cy = size / 2
   const rOuter = size / 2 - 2
   const rInner = rOuter * 0.58
-  let angle = 0
 
-  const slices = segments.map((s) => {
-    const sweep = (s.pct / total) * 360
-    const start = angle
-    const end = angle + sweep
-    angle = end
-    return {
-      ...s,
-      d: donutSlicePath(cx, cy, rOuter, rInner, start, end),
-    }
-  })
+  const slices = useMemo(() => {
+    const total = segments.reduce((a, s) => a + s.pct, 0) || 1
+    let angle = 0
+    return segments.map((s) => {
+      const sweep = (s.pct / total) * 360
+      const start = angle
+      const end = angle + sweep
+      angle = end
+      return { ...s, d: donutSlicePath(cx, cy, rOuter, rInner, start, end) }
+    })
+  }, [segments, cx, cy, rOuter, rInner])
 
   return (
-    <div className="rounded-2xl bg-surface p-6 shadow-md ring-1 ring-outline-variant/10">
+    <div className="rounded-2xl bg-surface-container-lowest p-6">
       <h3 className="font-headline text-base font-extrabold text-on-surface">Alocação atual</h3>
       <div className="relative mx-auto mt-6 flex h-52 w-52 max-w-full items-center justify-center">
         <svg
@@ -91,7 +91,7 @@ export function DonutAllocation({ segments }: { segments: DonutSegment[] }) {
           >
             <span className="flex min-w-0 items-center gap-2">
               <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-outline-variant/20"
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ background: s.color }}
               />
               <span className="truncate font-medium text-on-surface">{s.label}</span>

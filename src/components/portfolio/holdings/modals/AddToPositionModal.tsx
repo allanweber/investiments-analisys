@@ -2,6 +2,7 @@ import { CurrencyInput } from '../CurrencyInput'
 import type { UseHoldingModalResult } from '../hooks/use-holding-modal'
 import type { UseAddToPositionResult } from '../hooks/use-add-to-position'
 import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
+import { useModalFocus } from '../hooks/use-modal-focus'
 
 type Props = {
   modal: UseHoldingModalResult
@@ -9,6 +10,8 @@ type Props = {
 }
 
 export function AddToPositionModal({ modal, addToPos }: Props) {
+  const isOpen = modal.state.kind === 'addToPosition'
+  const panelRef = useModalFocus(modal.close, isOpen)
   if (modal.state.kind !== 'addToPosition') return null
 
   const r = modal.state.row
@@ -31,11 +34,19 @@ export function AddToPositionModal({ modal, addToPos }: Props) {
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-[2px] sm:items-center sm:px-4 sm:py-10"
       data-holding-modal="add-to-position"
+      onClick={modal.close}
     >
-      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-surface px-6 pb-8 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-8 sm:pb-10 sm:pt-8">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-add-to-position-title"
+        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-surface px-6 pb-8 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-8 sm:pb-10 sm:pt-8"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="mb-5 flex items-start justify-between gap-4">
           <div className="min-w-0 pr-2">
-            <h3 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
+            <h3 id="modal-add-to-position-title" className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
               Adicionar cotas
             </h3>
             <p className="mt-2 text-sm leading-snug text-on-surface-variant">

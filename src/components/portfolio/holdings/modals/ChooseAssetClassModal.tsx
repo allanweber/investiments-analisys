@@ -2,6 +2,7 @@ import { messages as m } from '@/messages'
 
 import type { UseHoldingModalResult } from '../hooks/use-holding-modal'
 import type { UseHoldingFormResult } from '../hooks/use-holding-form'
+import { useModalFocus } from '../hooks/use-modal-focus'
 
 type Props = {
   modal: UseHoldingModalResult
@@ -9,17 +10,27 @@ type Props = {
 }
 
 export function ChooseAssetClassModal({ modal, form }: Props) {
-  if (modal.state.kind !== 'chooseAssetClass') return null
+  const isOpen = modal.state.kind === 'chooseAssetClass'
+  const panelRef = useModalFocus(modal.close, isOpen)
+  if (!isOpen) return null
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:px-4 sm:py-10"
       data-holding-modal="choose-asset-class"
+      onClick={modal.close}
     >
-      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-surface px-6 pb-8 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-8 sm:pb-10 sm:pt-8">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-choose-asset-class-title"
+        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-surface px-6 pb-8 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-8 sm:pb-10 sm:pt-8"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="mb-6 flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h3 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
+            <h3 id="modal-choose-asset-class-title" className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
               {m.portfolio.addPositionTitle}
             </h3>
             <p className="mt-2 text-xs leading-relaxed text-outline">
@@ -39,7 +50,7 @@ export function ChooseAssetClassModal({ modal, form }: Props) {
         <div className="grid grid-cols-1 gap-4">
           <button
             type="button"
-            className="flex w-full items-start gap-4 rounded-2xl bg-surface-container-low p-5 text-left shadow-md ring-1 ring-outline-variant/10 transition-colors hover:bg-surface-container-high"
+            className="flex w-full items-start gap-4 rounded-2xl bg-surface-container-low p-5 text-left transition-colors hover:bg-surface-container"
             onClick={form.openVariableAddModal}
           >
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-tertiary-fixed-dim/20 text-tertiary-fixed-dim">
@@ -56,7 +67,7 @@ export function ChooseAssetClassModal({ modal, form }: Props) {
           </button>
           <button
             type="button"
-            className="flex w-full items-start gap-4 rounded-2xl bg-surface-container-low p-5 text-left shadow-md ring-1 ring-outline-variant/10 transition-colors hover:bg-surface-container-high"
+            className="flex w-full items-start gap-4 rounded-2xl bg-surface-container-low p-5 text-left transition-colors hover:bg-surface-container"
             onClick={modal.openAddFixedIncome}
           >
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-container/25 text-primary-container">

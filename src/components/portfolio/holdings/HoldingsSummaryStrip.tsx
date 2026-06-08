@@ -14,6 +14,18 @@ type Props = {
   typeBreakdown: TypeBreakdownEntry[]
 }
 
+function typeIcon(name: string): string {
+  const n = name.toLowerCase()
+  if (n.includes('ação') || n.includes('ações') || n.includes('acoes') || n.includes('acao')) return 'candlestick_chart'
+  if (n.includes('renda fixa') || n.includes('cdb') || n.includes('tesouro') || n.includes('lci') || n.includes('lca')) return 'savings'
+  if (n.includes('fii') || n.includes('fundo imobiliário') || n.includes('fundo imobiliario')) return 'apartment'
+  if (n.includes('etf')) return 'bar_chart'
+  if (n.includes('cripto') || n.includes('bitcoin') || n.includes('crypto')) return 'currency_bitcoin'
+  if (n.includes('bdr') || n.includes('internacional') || n.includes('stock')) return 'language'
+  if (n.includes('fundo')) return 'account_balance'
+  return 'show_chart'
+}
+
 export function HoldingsSummaryStrip({
   displayCurrency,
   marketValue,
@@ -55,10 +67,10 @@ export function HoldingsSummaryStrip({
             return (
               <div
                 key={t.name}
-                className="rounded-2xl bg-surface p-5 shadow-md ring-1 ring-outline-variant/10"
+                className="rounded-2xl bg-surface-container-lowest p-5"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <span className="material-symbols-outlined text-outline">show_chart</span>
+                  <span className="material-symbols-outlined text-outline">{typeIcon(t.name)}</span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                       quotesStale

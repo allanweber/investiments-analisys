@@ -65,7 +65,7 @@ export function HoldingsListSection({
     page, setPage, pageCount, pageRows, processedRows, typeFilterOptions, currencyFilterOptions } = filters
 
   return (
-    <section className="rounded-2xl bg-surface p-6 shadow-md ring-1 ring-outline-variant/10 md:p-8 lg:col-span-2">
+    <section className="rounded-2xl bg-surface-container-lowest p-6 md:p-8 lg:col-span-2">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="font-headline text-base font-extrabold text-on-surface">Principais Ativos</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -123,7 +123,7 @@ export function HoldingsListSection({
           return (
             <div
               key={r.investmentId}
-              className="flex overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface-container-low/80 shadow-sm"
+              className="flex overflow-hidden rounded-2xl bg-surface-container-low"
             >
               <div
                 className="min-w-0 flex-1 cursor-pointer p-4 text-left outline-none transition-colors hover:bg-surface-container-high/30 focus-visible:ring-2 focus-visible:ring-primary"
@@ -175,10 +175,10 @@ export function HoldingsListSection({
                   </span>
                 </div>
               </div>
-              <div className="flex shrink-0 flex-col justify-center gap-1 border-l border-outline-variant/15 py-2 pr-2 pl-1">
+              <div className="flex shrink-0 flex-col justify-center gap-1 bg-surface-container py-2 pr-2 pl-1">
                 <button
                   type="button"
-                  className="px-2 py-2 text-center text-xs font-bold text-primary hover:bg-primary/10"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl px-3 text-center text-xs font-bold text-primary hover:bg-primary/10"
                   onClick={(e) => { e.stopPropagation(); onAddShares(r) }}
                 >
                   Adicionar cotas
@@ -186,7 +186,7 @@ export function HoldingsListSection({
                 <button
                   type="button"
                   disabled={deletingInvestmentId === r.investmentId}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-error hover:bg-error-container/45 disabled:opacity-45"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-error hover:bg-error-container/45 disabled:opacity-45"
                   aria-label={`Excluir posição ${r.ticker ?? r.investmentName}`}
                   onClick={(e) => { e.stopPropagation(); onDelete(r) }}
                 >
@@ -294,7 +294,7 @@ export function HoldingsListSection({
                       <button
                         type="button"
                         disabled={deletingInvestmentId === r.investmentId}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-error hover:bg-error-container/50 disabled:opacity-45"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-full text-error hover:bg-error-container/50 disabled:opacity-45"
                         aria-label={`Excluir posição ${r.ticker ?? r.investmentName}`}
                         onClick={() => onDelete(r)}
                       >

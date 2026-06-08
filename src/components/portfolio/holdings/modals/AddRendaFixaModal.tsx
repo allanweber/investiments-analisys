@@ -6,6 +6,7 @@ import type { UseHoldingModalResult } from '../hooks/use-holding-modal'
 import type { UseRendaFixaFormResult } from '../hooks/use-renda-fixa-form'
 import { CurrencyInput } from '../CurrencyInput'
 import { PercentInput } from '../PercentInput'
+import { useModalFocus } from '../hooks/use-modal-focus'
 
 const PRODUCT_TYPE_OPTIONS: { value: ProductType; label: string }[] = [
   { value: 'cdb', label: 'CDB' },
@@ -44,7 +45,9 @@ type Props = {
 }
 
 export function AddRendaFixaModal({ modal, rfForm }: Props) {
-  if (modal.state.kind !== 'addFixedIncome' && modal.state.kind !== 'editFixedIncome') return null
+  const isOpen = modal.state.kind === 'addFixedIncome' || modal.state.kind === 'editFixedIncome'
+  const panelRef = useModalFocus(modal.close, isOpen)
+  if (!isOpen) return null
 
   const {
     form, setForm, invOptions, typeOptions,
@@ -73,13 +76,21 @@ export function AddRendaFixaModal({ modal, rfForm }: Props) {
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:px-4 sm:py-10"
       data-holding-modal="add-fixed-income"
+      onClick={modal.close}
     >
-      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-surface px-6 pb-8 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-8 sm:pb-10 sm:pt-8">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-renda-fixa-title"
+        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-surface px-6 pb-8 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-8 sm:pb-10 sm:pt-8"
+        onClick={(e) => e.stopPropagation()}
+      >
 
         {/* Header */}
         <div className="mb-6 flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h3 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
+            <h3 id="modal-renda-fixa-title" className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
               {isEdit ? 'Editar Renda Fixa' : m.portfolio.rendaFixaTitle}
             </h3>
             <p className="mt-2 text-xs leading-relaxed text-outline">{m.portfolio.rendaFixaSubtitle}</p>

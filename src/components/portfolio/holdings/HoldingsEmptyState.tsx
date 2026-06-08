@@ -2,34 +2,34 @@ type Props = {
   onAdd: () => void
 }
 
-const FEATURE_CARDS = [
+const STEPS = [
   {
-    icon: 'candlestick_chart',
-    bg: 'bg-tertiary-fixed-dim/20 text-tertiary-fixed-dim',
-    title: 'Importação automática',
-    body: 'Conecte suas contas de corretoras para sincronizar posições em tempo real.',
+    icon: 'add_circle',
+    color: 'text-tertiary-fixed-dim',
+    title: 'Adicione posições',
+    body: 'Informe seus ativos de renda fixa e variável.',
   },
   {
-    icon: 'shield',
-    bg: 'bg-secondary-fixed/30 text-on-secondary-fixed',
-    title: 'Segurança de dados',
-    body: 'Seus ativos são criptografados com padrões bancários de alta segurança.',
+    icon: 'monitoring',
+    color: 'text-primary-container',
+    title: 'Acompanhe cotações',
+    body: 'Veja o valor atualizado do seu portfólio.',
   },
   {
     icon: 'pie_chart',
-    bg: 'bg-secondary-fixed/20 text-primary-container',
-    title: 'Visão por tipos',
-    body: 'Visualize sua alocação por classes de ativos assim que adicionar posições.',
+    color: 'text-on-secondary-fixed',
+    title: 'Analise alocação',
+    body: 'Entenda como seu patrimônio está distribuído.',
   },
 ]
 
 export function HoldingsEmptyState({ onAdd }: Props) {
   return (
     <>
-      <section className="mx-auto max-w-3xl rounded-3xl bg-surface p-10 text-center shadow-lg ring-1 ring-outline-variant/10 md:p-14">
+      <section className="mx-auto max-w-3xl rounded-3xl bg-surface-container-lowest p-10 text-center md:p-14">
         <div className="relative mx-auto mb-8 flex max-w-sm justify-center">
           <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-secondary-fixed/25 to-transparent blur-2xl" />
-          <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl bg-surface shadow-md ring-1 ring-outline-variant/15">
+          <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl bg-surface-container-low">
             <span className="material-symbols-outlined text-5xl text-secondary-container">
               account_balance_wallet
             </span>
@@ -51,19 +51,23 @@ export function HoldingsEmptyState({ onAdd }: Props) {
           Adicionar primeira posição
         </button>
       </section>
-      <section className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-4 md:grid-cols-3">
-        {FEATURE_CARDS.map((card) => (
-          <div
-            key={card.title}
-            className="rounded-2xl bg-surface p-5 shadow-md ring-1 ring-outline-variant/10"
-          >
-            <div className={`mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl ${card.bg}`}>
-              <span className="material-symbols-outlined text-[22px]">{card.icon}</span>
+
+      <section className="mx-auto mt-12 max-w-3xl">
+        <p className="mb-8 text-center text-[10px] font-bold uppercase tracking-widest text-outline">
+          Como funciona
+        </p>
+        <div className="flex flex-col gap-8 sm:flex-row sm:gap-4">
+          {STEPS.map((step, i) => (
+            <div key={step.title} className="flex flex-1 flex-col items-center text-center">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-low text-xs font-extrabold text-on-surface-variant">
+                {i + 1}
+              </div>
+              <span className={`material-symbols-outlined mt-4 text-3xl ${step.color}`}>{step.icon}</span>
+              <p className="mt-3 font-headline text-sm font-extrabold text-on-surface">{step.title}</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-on-surface-variant">{step.body}</p>
             </div>
-            <p className="font-headline text-sm font-extrabold text-on-surface">{card.title}</p>
-            <p className="mt-2 text-xs leading-relaxed text-on-surface-variant">{card.body}</p>
-          </div>
-        ))}
+          ))}
+        </div>
       </section>
     </>
   )

@@ -7,6 +7,7 @@ import { CurrencyInput } from '../CurrencyInput'
 import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
 import { round2 } from '../utils/currency-input'
 import { findExistingHoldingForAdd } from '../utils/investment-match'
+import { useModalFocus } from '../hooks/use-modal-focus'
 
 type Props = {
   modal: UseHoldingModalResult
@@ -16,7 +17,9 @@ type Props = {
 
 export function AddEditHoldingModal({ modal, form, rows }: Props) {
   const { state } = modal
-  if (state.kind !== 'add' && state.kind !== 'edit') return null
+  const isOpen = state.kind === 'add' || state.kind === 'edit'
+  const panelRef = useModalFocus(modal.close, isOpen)
+  if (!isOpen) return null
 
   const isEdit = state.kind === 'edit'
   const { form: f, setForm, invOptions, typeOptions, variableInvOptions, variableTypeOptions,
@@ -42,11 +45,19 @@ export function AddEditHoldingModal({ modal, form, rows }: Props) {
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:px-4 sm:py-10"
       data-holding-modal={isEdit ? 'edit' : 'add'}
+      onClick={modal.close}
     >
-      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-surface px-6 pb-8 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-8 sm:pb-10 sm:pt-8">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-add-edit-holding-title"
+        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-surface px-6 pb-8 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-8 sm:pb-10 sm:pt-8"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="mb-6 flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h3 className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
+            <h3 id="modal-add-edit-holding-title" className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
               {isEdit ? 'Editar posição' : 'Adicionar posição'}
             </h3>
             <p className="mt-2 text-xs leading-relaxed text-outline">{m.portfolio.holdingsRecordingNote}</p>
@@ -153,10 +164,14 @@ export function AddEditHoldingModal({ modal, form, rows }: Props) {
 
           {/* Quantity */}
           <div className="sm:col-span-1">
-            <label className="block text-[10px] font-bold uppercase tracking-widest text-outline">
+            <label
+              htmlFor="holding-qty-input"
+              className="block text-[10px] font-bold uppercase tracking-widest text-outline"
+            >
               {quantityFieldLabel}
             </label>
             <input
+              id="holding-qty-input"
               type="text"
               inputMode="numeric"
               autoComplete="off"
