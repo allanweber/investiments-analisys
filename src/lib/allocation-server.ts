@@ -6,7 +6,8 @@ import { userAllocationProfile } from '@/db/schema'
 import type { UserAllocationTargetsJson } from '@/db/schema'
 
 import { clampPct, num } from '@/lib/math'
-import { getDb, requireUserId, uuid, pct, parseTargetsJson } from '@/lib/server-utils'
+import { getDb, requireUserId } from '@/lib/db-server'
+import { uuid, pct, parseTargetsJson } from '@/lib/server-utils'
 
 export const listAllocationTargetsFn = createServerFn({ method: 'GET' }).handler(async () => {
   const db = await getDb()

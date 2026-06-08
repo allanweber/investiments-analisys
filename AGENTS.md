@@ -1,5 +1,7 @@
 # AGENTS.md — instructions for coding agents (LLMs)
 
+When talking to me, sacrifice grammar for the sake of concision.
+
 **Purpose**: short, **machine-checkable** product and stack decisions. Do **not** treat this as the full spec.
 
 **Canonical technical plan** (schema, implementation order, deploy, edge cases):
@@ -94,3 +96,19 @@ For **human-readable** vision and MVP scope in prose: `plan.md`.
 - **Theme**: **light + dark** in MVP (`DESIGN.md` / `dark:` in mocks).
 
 Also: `.agents/skills/financial-architect-design/SKILL.md` (Antigravity skill).
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as local markdown files under `.scratch/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo — one `CONTEXT.md` at root; no `docs/adr/` yet. See `docs/agents/domain.md`.

@@ -2,14 +2,15 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, asc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { investment, investmentType, portfolioHolding } from '@/db/schema'
+import { investment, investmentType, portfolioHolding, rendaFixaValuation } from '@/db/schema'
 import { refreshMarketQuotesForInputs } from '@/lib/market-data/quote-refresh'
 import type { MarketQuoteInput } from '@/lib/market-data'
 import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
 import { valuateHoldings } from '@/lib/valuation-pipeline'
 
 import { normalizeHoldingCurrency } from '@/lib/math'
-import { getDb, requireUserId, uuid, currencyCode, idInput } from '@/lib/server-utils'
+import { getDb, requireUserId } from '@/lib/db-server'
+import { uuid, currencyCode, idInput } from '@/lib/server-utils'
 
 export const listPortfolioCurrenciesFn = createServerFn({ method: 'GET' }).handler(
   async () => {
@@ -186,22 +187,48 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
         investmentTypeName: investmentType.name,
         typeSortOrder: investmentType.sortOrder,
         fixedIncome: investmentType.fixedIncome,
+        rfGrossAmount: rendaFixaValuation.grossAmount,
+        rfGrossProfit: rendaFixaValuation.grossProfit,
       })
       .from(portfolioHolding)
       .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
       .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
+      .leftJoin(
+        rendaFixaValuation,
+        and(
+          eq(rendaFixaValuation.userId, userId),
+          eq(rendaFixaValuation.investmentId, portfolioHolding.investmentId),
+        ),
+      )
       .where(and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)))
       .orderBy(asc(investmentType.sortOrder), asc(investment.name))
 
-    const { valuated, quotesStale, fxAsOf, fxStale, fxMissingPairs } =
-      await valuateHoldings(db, rows, displayCurrency)
+    // For renda fixa holdings, substitute avgCost with the latest computed grossAmount
+    // so the valuation pipeline returns the interest-accrued value, not just book value.
+    const rowsForValuation = rows.map((r) =>
+      r.rfGrossAmount != null
+        ? { ...r, avgCost: r.rfGrossAmount }
+        : r,
+    )
 
-    const enriched = rows.map((r, i) => ({
-      ...r,
-      ...valuated[i],
-      marketValue: valuated[i].marketValueDisplay,
-      unrealizedPl: valuated[i].unrealizedPlDisplay,
-    }))
+    const { valuated, quotesStale, fxAsOf, fxStale, fxMissingPairs } =
+      await valuateHoldings(db, rowsForValuation, displayCurrency)
+
+    const enriched = rows.map((r, i) => {
+      const v = valuated[i]
+      const rfCapital = Number(r.avgCost)
+      const unrealizedPl =
+        r.rfGrossProfit != null
+          ? Number(r.rfGrossProfit) * (v.fxRateUsed ?? 1)
+          : v.unrealizedPlDisplay
+      return {
+        ...r,
+        ...v,
+        rfCapital,
+        marketValue: v.marketValueDisplay,
+        unrealizedPl,
+      }
+    })
 
     return {
       rows: enriched,

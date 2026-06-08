@@ -1,7 +1,7 @@
 import { asc, eq, inArray } from 'drizzle-orm'
 
 import { investment, investmentAnswer, investmentType, question } from '@/db/schema'
-import { getDb } from '@/lib/server-utils'
+import { getDb } from '@/lib/db-server'
 
 export type ActiveQuestionScore = {
   score: number

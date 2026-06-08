@@ -5,7 +5,8 @@ import type { HoldingRow } from '../types'
 export type ModalState =
   | { kind: 'closed' }
   | { kind: 'chooseAssetClass' }
-  | { kind: 'fixedIncomeComingSoon' }
+  | { kind: 'addFixedIncome' }
+  | { kind: 'editFixedIncome'; row: HoldingRow }
   | { kind: 'add' }
   | { kind: 'edit'; row: HoldingRow }
   | { kind: 'addToPosition'; row: HoldingRow }
@@ -14,7 +15,8 @@ export type UseHoldingModalResult = {
   state: ModalState
   close: () => void
   openChooseAssetClass: () => void
-  openFixedIncomeComingSoon: () => void
+  openAddFixedIncome: () => void
+  openEditFixedIncome: (row: HoldingRow) => void
   openAdd: () => void
   openEdit: (row: HoldingRow) => void
   openAddToPosition: (row: HoldingRow) => void
@@ -27,7 +29,8 @@ export function useHoldingModal(): UseHoldingModalResult {
     state,
     close: () => setState({ kind: 'closed' }),
     openChooseAssetClass: () => setState({ kind: 'chooseAssetClass' }),
-    openFixedIncomeComingSoon: () => setState({ kind: 'fixedIncomeComingSoon' }),
+    openAddFixedIncome: () => setState({ kind: 'addFixedIncome' }),
+    openEditFixedIncome: (row) => setState({ kind: 'editFixedIncome', row }),
     openAdd: () => setState({ kind: 'add' }),
     openEdit: (row) => setState({ kind: 'edit', row }),
     openAddToPosition: (row) => setState({ kind: 'addToPosition', row }),

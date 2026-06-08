@@ -247,6 +247,12 @@ function PortfolioPage() {
         )
       ) : null}
       <Outlet />
+      <div className="mx-4 mb-6 mt-2 flex items-center gap-2 rounded-xl border border-tertiary/20 bg-tertiary/8 px-4 py-3 sm:mx-8">
+        <span className="material-symbols-outlined shrink-0 text-base text-tertiary">info</span>
+        <p className="text-xs text-on-surface-variant">
+          Os valores exibidos são estimativas calculadas com base nas informações registradas e podem divergir dos valores reais na sua corretora. Consulte sempre sua corretora para obter os valores exatos.
+        </p>
+      </div>
     </>
   )
 }

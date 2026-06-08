@@ -9,7 +9,8 @@ import {
   type InvestmentOverviewRow,
   loadInvestmentOverviewRows,
 } from '@/lib/investment-scoring'
-import { getDb, requireUserId, uuid } from '@/lib/server-utils'
+import { getDb, requireUserId } from '@/lib/db-server'
+import { uuid } from '@/lib/server-utils'
 
 export const DASHBOARD_TOP_PER_TYPE = 3
 

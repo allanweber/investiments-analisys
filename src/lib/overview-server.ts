@@ -6,6 +6,7 @@ import {
   investment,
   investmentType,
   portfolioHolding,
+  rendaFixaValuation,
   userAllocationProfile,
 } from '@/db/schema'
 import type { UserAllocationTargetsJson } from '@/db/schema'
@@ -14,7 +15,8 @@ import { analyzePortfolioAllocation } from '@/lib/portfolio-analysis'
 import { valuateHoldings } from '@/lib/valuation-pipeline'
 
 import { clampPct, computePct, normalizeHoldingCurrency, num } from '@/lib/math'
-import { getDb, requireUserId, currencyCode, parseTargetsJson } from '@/lib/server-utils'
+import { getDb, requireUserId } from '@/lib/db-server'
+import { currencyCode, parseTargetsJson } from '@/lib/server-utils'
 
 
 const portfolioOverviewInput = z.object({ displayCurrency: currencyCode })
@@ -38,18 +40,31 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
         investmentTypeName: investmentType.name,
         typeSortOrder: investmentType.sortOrder,
         fixedIncome: investmentType.fixedIncome,
+        rfGrossAmount: rendaFixaValuation.grossAmount,
+        rfGrossProfit: rendaFixaValuation.grossProfit,
       })
       .from(portfolioHolding)
       .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
       .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
+      .leftJoin(
+        rendaFixaValuation,
+        and(
+          eq(rendaFixaValuation.userId, userId),
+          eq(rendaFixaValuation.investmentId, portfolioHolding.investmentId),
+        ),
+      )
       .where(and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)))
 
     const currencies = [...new Set(holdings.map((h) => h.currency))].sort((a, b) =>
       a.localeCompare(b),
     )
 
+    const holdingsForValuation = holdings.map((h) =>
+      h.rfGrossAmount != null ? { ...h, avgCost: h.rfGrossAmount } : h,
+    )
+
     const { valuated, quotesStale: stale, fxAsOf: newestFetchedAt, fxStale, fxMissingPairs } =
-      await valuateHoldings(db, holdings, displayCurrency)
+      await valuateHoldings(db, holdingsForValuation, displayCurrency)
 
     const byType = new Map<
       string,
@@ -75,7 +90,10 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
 
       const mvDisplay = v.marketValueDisplay ?? 0
       total += mvDisplay
-      unrealizedPl += v.unrealizedPlDisplay ?? 0
+      const rfProfit = holdings[i].rfGrossProfit
+      unrealizedPl += rfProfit != null
+        ? Number(rfProfit) * (v.fxRateUsed ?? 1)
+        : (v.unrealizedPlDisplay ?? 0)
 
       const nativeBucket = byNativeMap.get(r.currency) ?? {
         marketValueNative: 0,

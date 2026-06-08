@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import { calculateInvestment } from '@/lib/renda-fixa/products'
 
-import { approxBusinessDays, buildRendaFixaValuationRow } from './renda-fixa-server'
-import type { RendaFixaDetailInput } from './renda-fixa-server'
+import { approxBusinessDays, buildRendaFixaValuationRow } from './renda-fixa-valuation'
+import type { RendaFixaDetailInput } from './renda-fixa-valuation'
 
 // Fixed reference date used in all cases — makes calendarDays deterministic.
 const TODAY = new Date('2025-06-04T00:00:00.000Z')
@@ -186,22 +186,22 @@ describe('buildRendaFixaValuationRow — rate resolution', () => {
     expect(row.indexerAnnual).toBe('0.11')
   })
 
-  it('Selic: uses rates.selicAnnual, not stored rate', () => {
+  it('selic-spread (spread=0): uses rates.selicAnnual as effective rate', () => {
     const rates = { ...STUB_RATES, selicAnnual: 0.1075 }
     const calendarDays = 812
     const purchaseDate = daysAgo(calendarDays)
     const businessDays = approxBusinessDays(purchaseDate, TODAY)
     const detail: RendaFixaDetailInput = {
       productType: 'tesouro-selic',
-      indexer: 'selic',
+      indexer: 'selic-spread',
       capital: '6067.47',
-      annualRate: '0',
+      annualRate: '0',  // spread = 0 → effective = selicAnnual
       purchaseDate,
       multiplier: null,
     }
     const direct = calculateInvestment({
       productType: 'tesouro-selic',
-      indexer: 'selic',
+      indexer: 'selic-spread',
       capital: 6067.47,
       annualRate: 0.1075,
       calendarDays,
@@ -268,6 +268,72 @@ describe('buildRendaFixaValuationRow — rate resolution', () => {
     const row = buildRendaFixaValuationRow(detail, rates, TODAY)
     expect(Number(row.netAmount)).toBeCloseTo(direct.netAmount, 6)
     expect(row.indexerAnnual).toBe('0.04')
+  })
+
+  it('selic-spread: effectiveRate = selicAnnual + spread, indexerAnnual reflects that', () => {
+    const rates = { ...STUB_RATES, selicAnnual: 0.105 }
+    const spread = 0.0005  // 0.05% a.a.
+    const calendarDays = 365
+    const purchaseDate = daysAgo(calendarDays)
+    const businessDays = approxBusinessDays(purchaseDate, TODAY)
+    const detail: RendaFixaDetailInput = {
+      productType: 'tesouro-selic',
+      indexer: 'selic-spread',
+      capital: '10000',
+      annualRate: String(spread),
+      purchaseDate,
+      multiplier: null,
+    }
+    const row = buildRendaFixaValuationRow(detail, rates, TODAY)
+    expect(row.indexerAnnual).toBe(String(0.105 + spread))
+    // Must earn more than flat SELIC (spread=0)
+    const flatDetail: RendaFixaDetailInput = { ...detail, annualRate: '0' }
+    const flatRow = buildRendaFixaValuationRow(flatDetail, rates, TODAY)
+    expect(Number(row.grossAmount)).toBeGreaterThan(Number(flatRow.grossAmount))
+  })
+
+  it('selic-spread with spread=0 produces same grossAmount as selic with multiplier=1', () => {
+    const rates = { ...STUB_RATES, selicAnnual: 0.105 }
+    const calendarDays = 812
+    const purchaseDate = daysAgo(calendarDays)
+    const businessDays = approxBusinessDays(purchaseDate, TODAY)
+
+    const spreadDetail: RendaFixaDetailInput = {
+      productType: 'tesouro-selic',
+      indexer: 'selic-spread',
+      capital: '6067.47',
+      annualRate: '0',
+      purchaseDate,
+      multiplier: null,
+    }
+    const direct = calculateInvestment({
+      productType: 'tesouro-selic',
+      indexer: 'selic-spread',
+      capital: 6067.47,
+      annualRate: 0.105,
+      calendarDays,
+      businessDays,
+    })
+    const row = buildRendaFixaValuationRow(spreadDetail, rates, TODAY)
+    expect(Number(row.grossAmount)).toBeCloseTo(direct.grossAmount, 6)
+  })
+
+  it('selic-spread: multiplier in detail is ignored', () => {
+    const rates = { ...STUB_RATES, selicAnnual: 0.105 }
+    const calendarDays = 365
+    const purchaseDate = daysAgo(calendarDays)
+    const withMultiplier: RendaFixaDetailInput = {
+      productType: 'tesouro-selic',
+      indexer: 'selic-spread',
+      capital: '10000',
+      annualRate: '0.0005',
+      purchaseDate,
+      multiplier: '1.5',  // should be ignored
+    }
+    const withoutMultiplier: RendaFixaDetailInput = { ...withMultiplier, multiplier: null }
+    const rowWith = buildRendaFixaValuationRow(withMultiplier, rates, TODAY)
+    const rowWithout = buildRendaFixaValuationRow(withoutMultiplier, rates, TODAY)
+    expect(Number(rowWith.grossAmount)).toBeCloseTo(Number(rowWithout.grossAmount), 6)
   })
 
   it('pre: indexerAnnual is null (no BCB rate applies)', () => {

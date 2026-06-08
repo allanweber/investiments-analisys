@@ -221,7 +221,7 @@ export const rendaFixaDetail = pgTable(
     capital: numeric('capital', { precision: 24, scale: 8 }).notNull(),
     annualRate: numeric('annual_rate', { precision: 24, scale: 8 }).notNull(),
     purchaseDate: timestamp('purchase_date', { withTimezone: true }).notNull(),
-    maturityDate: timestamp('maturity_date', { withTimezone: true }).notNull(),
+    maturityDate: timestamp('maturity_date', { withTimezone: true }),
     /** CDI multiplier (e.g. 1.10 = 110% CDI). Null for non-CDI/Selic indexers. */
     multiplier: numeric('multiplier', { precision: 10, scale: 6 }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

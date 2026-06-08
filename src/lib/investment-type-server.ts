@@ -3,7 +3,8 @@ import { and, asc, count, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { investment, investmentType, question } from '@/db/schema'
-import { getDb, idInput, requireUserId, uuid } from '@/lib/server-utils'
+import { getDb, requireUserId } from '@/lib/db-server'
+import { idInput, uuid } from '@/lib/server-utils'
 
 export const listInvestmentTypesWithCounts = createServerFn({ method: 'GET' }).handler(
   async () => {

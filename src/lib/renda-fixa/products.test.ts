@@ -88,17 +88,67 @@ describe('calculateInvestment — routing', () => {
     expect(result.taxBreakdown.isTaxExempt).toBe(false)
   })
 
-  it('Tesouro Selic (selic) routes to daily-rate path', () => {
+  it('Tesouro Selic (selic-spread, spread=0) produces same result as flat SELIC rate', () => {
+    const selicRate = 0.105
     const result = calculateInvestment({
       productType: 'tesouro-selic',
-      indexer: 'selic',
+      indexer: 'selic-spread',
       capital: 6067.47,
-      annualRate: 0.105,
+      annualRate: selicRate + 0,   // effective = selic + 0 spread
       calendarDays: 812,
       businessDays: 582,
     })
     expect(result.grossAmount).toBeCloseTo(7641.06, 2)
     expect(result.netAmount).toBeCloseTo(7405.02, 2)
+  })
+
+  it('Tesouro Selic (selic-spread, spread>0) earns more than flat SELIC', () => {
+    const selicRate = 0.105
+    const spread = 0.0005   // 0.05% a.a.
+    const flat = calculateInvestment({
+      productType: 'tesouro-selic',
+      indexer: 'selic-spread',
+      capital: 10000,
+      annualRate: selicRate,
+      calendarDays: 365,
+      businessDays: 252,
+    })
+    const withSpread = calculateInvestment({
+      productType: 'tesouro-selic',
+      indexer: 'selic-spread',
+      capital: 10000,
+      annualRate: selicRate + spread,
+      calendarDays: 365,
+      businessDays: 252,
+    })
+    expect(withSpread.grossAmount).toBeGreaterThan(flat.grossAmount)
+  })
+
+  it('Tesouro Selic (selic) now throws — indexer replaced by selic-spread', () => {
+    expect(() =>
+      calculateInvestment({
+        productType: 'tesouro-selic',
+        indexer: 'selic',
+        capital: 6067.47,
+        annualRate: 0.105,
+        calendarDays: 812,
+        businessDays: 582,
+      }),
+    ).toThrow()
+  })
+
+  it('CDB (selic-spread) is accepted and produces correct output', () => {
+    const result = calculateInvestment({
+      productType: 'cdb',
+      indexer: 'selic-spread',
+      capital: 10000,
+      annualRate: 0.1055,   // selic 10.5% + 0.05% spread
+      calendarDays: 365,
+      businessDays: 252,
+    })
+    expect(result.grossAmount).toBeGreaterThan(10000)
+    expect(result.ir).toBeGreaterThan(0)
+    expect(result.indexer).toBe('selic-spread')
   })
 
   it('Tesouro IPCA+ routes to indexed path (no MtM when market absent)', () => {

@@ -23,12 +23,25 @@ function quoteStatusLabel(r: HoldingRow, quotesStale: boolean): string {
 }
 
 function varPctText(r: HoldingRow): string {
+  if (r.quoteStatus === 'BOOK_VALUE') {
+    const cap = r.rfCapital
+    const gross = r.marketValueNative
+    return cap != null && cap > 0 && gross != null
+      ? `${(((gross - cap) / cap) * 100).toFixed(1)}%`
+      : '—'
+  }
   return r.lastPrice != null && r.avgCost > 0
     ? `${(((r.lastPrice - r.avgCost) / r.avgCost) * 100).toFixed(1)}%`
     : '—'
 }
 
 function varDir(r: HoldingRow): 'up' | 'down' | null {
+  if (r.quoteStatus === 'BOOK_VALUE') {
+    const cap = r.rfCapital
+    const gross = r.marketValueNative
+    if (cap == null || cap <= 0 || gross == null) return null
+    return gross >= cap ? 'up' : 'down'
+  }
   if (r.lastPrice == null || r.avgCost <= 0) return null
   return (r.lastPrice - r.avgCost) / r.avgCost >= 0 ? 'up' : 'down'
 }
@@ -260,7 +273,9 @@ export function HoldingsListSection({
                     </span>
                   </td>
                   <td className="py-3 text-right text-on-surface">
-                    {r.lastPrice == null ? '—' : fmtMoney(r.lastPrice, r.currency)}
+                    {r.quoteStatus === 'BOOK_VALUE'
+                      ? (r.marketValueNative == null ? '—' : fmtMoney(r.marketValueNative, r.currency))
+                      : (r.lastPrice == null ? '—' : fmtMoney(r.lastPrice, r.currency))}
                   </td>
                   <td className="py-3 text-right">
                     <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${statusPillClass}`}>

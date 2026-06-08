@@ -1,5 +1,7 @@
+import { CurrencyInput } from '../CurrencyInput'
 import type { UseHoldingModalResult } from '../hooks/use-holding-modal'
 import type { UseAddToPositionResult } from '../hooks/use-add-to-position'
+import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
 
 type Props = {
   modal: UseHoldingModalResult
@@ -10,12 +12,13 @@ export function AddToPositionModal({ modal, addToPos }: Props) {
   if (modal.state.kind !== 'addToPosition') return null
 
   const r = modal.state.row
+  const isRF = isFixedIncomeTipo(Boolean(r.fixedIncome), r.investmentTypeName)
   const tickerLabel = r.ticker?.trim() || r.investmentName || '—'
   const initials = (r.ticker ?? r.investmentName ?? '?')
     .replace(/\s/g, '')
     .slice(0, 2)
     .toUpperCase()
-  const unitLabelUpper =
+  const unitLabel =
     r.currency === 'BRL'
       ? 'PREÇO UNITÁRIO (R$)'
       : r.currency === 'USD'
@@ -64,82 +67,90 @@ export function AddToPositionModal({ modal, addToPos }: Props) {
         </div>
 
         <div className="flex flex-col gap-6">
-          <label className="block">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-outline">
-              Quantidade adicional
-            </span>
-            <div className="relative mt-2">
-              <input
-                ref={addToPos.qtyInputRef}
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                aria-invalid={addToPos.error?.includes('quantidade') ?? false}
-                value={addToPos.additionalQty}
-                onChange={(e) => {
-                  addToPos.setError(null)
-                  addToPos.setAdditionalQty(e.target.value.replace(/-/g, ''))
-                }}
-                className={`w-full border-0 border-b-2 bg-transparent py-2.5 pr-8 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary ${
-                  addToPos.error?.includes('quantidade')
-                    ? 'border-error focus:border-error'
-                    : 'border-outline-variant/50'
-                }`}
+          {isRF ? (
+            <>
+              <CurrencyInput
+                value={addToPos.additionalCapital}
+                currency="BRL"
+                label="Valor do investimento (R$)"
+                hasError={addToPos.error?.includes('valor') ?? false}
+                onChange={(v) => { addToPos.setError(null); addToPos.setAdditionalCapital(v) }}
               />
-              {addToPos.error?.includes('quantidade') && (
-                <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-error" aria-hidden>
-                  <span className="material-symbols-outlined text-xl">error</span>
+              <label className="block">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-outline">
+                  Data da compra (opcional)
                 </span>
-              )}
-            </div>
-          </label>
-
-          <label className="block">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-outline">
-              {unitLabelUpper}
-            </span>
-            <div className="relative mt-2">
-              <input
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                aria-invalid={addToPos.error?.includes('preço') ?? false}
-                value={addToPos.displayUnitValue(r.currency)}
-                onMouseDown={(e) => addToPos.onUnitMouseDown(e)}
-                onFocus={(e) => addToPos.onUnitFocus(e, r.currency)}
-                onMouseUp={(e) => addToPos.onUnitMouseUp(e)}
-                onChange={(e) => addToPos.onUnitChange(e, r.currency)}
-                onBlur={() => addToPos.onUnitBlur(r.currency)}
-                className={`w-full border-0 border-b-2 bg-transparent py-2.5 pr-8 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary ${
-                  addToPos.error?.includes('preço')
-                    ? 'border-error focus:border-error'
-                    : 'border-outline-variant/50'
-                }`}
-              />
-              {addToPos.error?.includes('preço') && (
-                <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-error" aria-hidden>
-                  <span className="material-symbols-outlined text-xl">error</span>
+                <div className="relative mt-2 flex items-center border-b-2 border-outline-variant/50 focus-within:border-primary">
+                  <input
+                    type="date"
+                    value={addToPos.lastOpDate}
+                    onChange={(e) => addToPos.setLastOpDate(e.target.value)}
+                    className="w-full flex-1 cursor-pointer border-0 bg-transparent py-2.5 pr-10 text-sm font-semibold text-on-surface outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                  />
+                  <span className="pointer-events-none absolute right-0 text-outline" aria-hidden>
+                    <span className="material-symbols-outlined text-[22px]">calendar_month</span>
+                  </span>
+                </div>
+              </label>
+            </>
+          ) : (
+            <>
+              <label className="block">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-outline">
+                  Quantidade adicional
                 </span>
-              )}
-            </div>
-          </label>
+                <div className="relative mt-2">
+                  <input
+                    ref={addToPos.qtyInputRef}
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    aria-invalid={addToPos.error?.includes('quantidade') ?? false}
+                    value={addToPos.additionalQty}
+                    onChange={(e) => {
+                      addToPos.setError(null)
+                      addToPos.setAdditionalQty(e.target.value.replace(/-/g, ''))
+                    }}
+                    className={`w-full border-0 border-b-2 bg-transparent py-2.5 pr-8 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary ${
+                      addToPos.error?.includes('quantidade')
+                        ? 'border-error focus:border-error'
+                        : 'border-outline-variant/50'
+                    }`}
+                  />
+                  {addToPos.error?.includes('quantidade') && (
+                    <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-error" aria-hidden>
+                      <span className="material-symbols-outlined text-xl">error</span>
+                    </span>
+                  )}
+                </div>
+              </label>
 
-          <label className="block">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-outline">
-              Data da última operação (opcional)
-            </span>
-            <div className="relative mt-2 flex items-center border-b-2 border-outline-variant/50 focus-within:border-primary">
-              <input
-                type="date"
-                value={addToPos.lastOpDate}
-                onChange={(e) => addToPos.setLastOpDate(e.target.value)}
-                className="w-full flex-1 cursor-pointer border-0 bg-transparent py-2.5 pr-10 text-sm font-semibold text-on-surface outline-none [color-scheme:light] dark:[color-scheme:dark]"
+              <CurrencyInput
+                value={addToPos.unitPrice}
+                currency={r.currency}
+                label={unitLabel}
+                hasError={addToPos.error?.includes('preço') ?? false}
+                onChange={(v) => { addToPos.setError(null); addToPos.setUnitPrice(v) }}
               />
-              <span className="pointer-events-none absolute right-0 text-outline" aria-hidden>
-                <span className="material-symbols-outlined text-[22px]">calendar_month</span>
-              </span>
-            </div>
-          </label>
+
+              <label className="block">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-outline">
+                  Data da última operação (opcional)
+                </span>
+                <div className="relative mt-2 flex items-center border-b-2 border-outline-variant/50 focus-within:border-primary">
+                  <input
+                    type="date"
+                    value={addToPos.lastOpDate}
+                    onChange={(e) => addToPos.setLastOpDate(e.target.value)}
+                    className="w-full flex-1 cursor-pointer border-0 bg-transparent py-2.5 pr-10 text-sm font-semibold text-on-surface outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                  />
+                  <span className="pointer-events-none absolute right-0 text-outline" aria-hidden>
+                    <span className="material-symbols-outlined text-[22px]">calendar_month</span>
+                  </span>
+                </div>
+              </label>
+            </>
+          )}
         </div>
 
         {addToPos.error && (

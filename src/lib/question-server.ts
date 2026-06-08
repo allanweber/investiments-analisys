@@ -8,7 +8,8 @@ import {
   normalizeQuestionPrompt,
 } from '@/db/default-question-bank'
 import { investmentAnswer, investmentType, question } from '@/db/schema'
-import { getDb, idInput, requireUserId, uuid } from '@/lib/server-utils'
+import { getDb, requireUserId } from '@/lib/db-server'
+import { idInput, uuid } from '@/lib/server-utils'
 
 const listQuestionsInput = z.object({ typeId: uuid })
 

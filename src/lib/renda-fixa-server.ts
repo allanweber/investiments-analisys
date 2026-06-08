@@ -4,120 +4,13 @@ import { z } from 'zod'
 
 import { investment, portfolioHolding, rendaFixaDetail, rendaFixaValuation } from '@/db/schema'
 import { ensureBcbRatesForDisplay, refreshBcbRatesIfStale } from '@/lib/market-data/bcb-refresh'
-import type { BcbRates } from '@/lib/market-data/providers/bcb'
-import { calculateInvestment } from '@/lib/renda-fixa/products'
-import type { Indexer, ProductType } from '@/lib/renda-fixa/products'
-import { getDb, requireUserId, uuid } from '@/lib/server-utils'
+import { buildRendaFixaValuationRow } from '@/lib/renda-fixa-valuation'
+import { getDb, requireUserId } from '@/lib/db-server'
+import { uuid } from '@/lib/server-utils'
+
+export type { RendaFixaDetailInput, RendaFixaValuationRow } from '@/lib/renda-fixa-valuation'
 
 type Db = Awaited<ReturnType<typeof getDb>>
-
-export type RendaFixaDetailInput = {
-  productType: string
-  indexer: string
-  capital: string
-  annualRate: string
-  purchaseDate: Date
-  multiplier: string | null
-}
-
-export type RendaFixaValuationRow = {
-  grossAmount: string
-  grossProfit: string
-  iof: string
-  ir: string
-  netAmount: string
-  netProfit: string
-  netRate: string
-  calendarDays: number
-  liquidityBlocked: boolean
-  carenciaDays: number | null
-  liquidityReason: string | null
-  indexerAnnual: string | null
-  computedAt: Date
-}
-
-/**
- * Weekday-only business day approximation.
- * Brazil has national holidays that further reduce business days; a proper SELIC/CDI
- * calendar is not yet available in this codebase. The approximation is accurate enough
- * for display purposes and consistent with the 252-day convention used in calculateInvestment.
- */
-export function approxBusinessDays(from: Date, to: Date): number {
-  const msPerDay = 86_400_000
-  const totalDays = Math.max(0, Math.floor((to.getTime() - from.getTime()) / msPerDay))
-  const weeks = Math.floor(totalDays / 7)
-  const remainder = totalDays % 7
-  const fromDay = from.getDay()
-  let weekendDays = weeks * 2
-  for (let i = 0; i < remainder; i++) {
-    const d = (fromDay + i) % 7
-    if (d === 0 || d === 6) weekendDays++
-  }
-  return Math.max(0, totalDays - weekendDays)
-}
-
-/** Pure function: given a detail row, BCB rates, and a reference date, returns the valuation row to persist. */
-export function buildRendaFixaValuationRow(detail: RendaFixaDetailInput, rates: BcbRates, today: Date): RendaFixaValuationRow {
-  const purchaseDate = new Date(detail.purchaseDate)
-  const calendarDays = Math.max(0, Math.floor((today.getTime() - purchaseDate.getTime()) / 86_400_000))
-  const businessDays = approxBusinessDays(purchaseDate, today)
-  const capital = Number(detail.capital)
-  const indexer = detail.indexer as Indexer
-
-  // For CDI/Selic, annualRate comes from BCB at valuation time (these products float daily).
-  // For pre/ipca/igpm, the contracted rate is stored in detail.annualRate.
-  const annualRate =
-    indexer === 'cdi' ? rates.cdiAnnual
-    : indexer === 'selic' ? rates.selicAnnual
-    : Number(detail.annualRate)
-
-  const monthlyRates =
-    indexer === 'ipca' ? rates.ipcaMonthly
-    : indexer === 'igpm' ? rates.igpmMonthly
-    : undefined
-
-  const indexRate =
-    indexer === 'ipca' ? rates.ipcaAccumulated12m
-    : indexer === 'igpm' ? rates.igpmAccumulated12m
-    : undefined
-
-  const indexerAnnual =
-    indexer === 'cdi' ? rates.cdiAnnual
-    : indexer === 'selic' ? rates.selicAnnual
-    : indexer === 'ipca' ? rates.ipcaAccumulated12m
-    : indexer === 'igpm' ? rates.igpmAccumulated12m
-    : null
-
-  const result = calculateInvestment({
-    productType: detail.productType as ProductType,
-    indexer,
-    capital,
-    annualRate,
-    calendarDays,
-    businessDays,
-    multiplier: detail.multiplier != null ? Number(detail.multiplier) : undefined,
-    monthlyRates,
-    indexRate,
-  })
-
-  const carenciaDays = Number.isFinite(result.liquidity.carenciaDays) ? result.liquidity.carenciaDays : null
-
-  return {
-    grossAmount: String(result.grossAmount),
-    grossProfit: String(result.grossProfit),
-    iof: String(result.iof),
-    ir: String(result.ir),
-    netAmount: String(result.netAmount),
-    netProfit: String(result.netProfit),
-    netRate: String(result.netRate),
-    calendarDays: result.calendarDays,
-    liquidityBlocked: result.liquidity.blocked,
-    carenciaDays,
-    liquidityReason: result.liquidity.reason ?? null,
-    indexerAnnual: indexerAnnual != null ? String(indexerAnnual) : null,
-    computedAt: today,
-  }
-}
 
 async function computeAndSaveValuation(db: Db, userId: string, investmentId: string): Promise<void> {
   const [detail] = await db
@@ -155,7 +48,7 @@ const productTypeEnum = z.enum([
   'debenture-comum',
 ])
 
-const indexerEnum = z.enum(['pre', 'cdi', 'selic', 'ipca', 'igpm'])
+const indexerEnum = z.enum(['pre', 'cdi', 'selic', 'selic-spread', 'ipca', 'igpm'])
 
 const rendaFixaHoldingInput = z.object({
   investmentId: uuid,
@@ -172,8 +65,8 @@ const rendaFixaHoldingInput = z.object({
   annualRate: z.number().min(0),
   /** ISO datetime string. */
   purchaseDate: z.string().datetime(),
-  /** ISO datetime string. */
-  maturityDate: z.string().datetime(),
+  /** ISO datetime string. Null when no maturity date is known (e.g. open-ended Tesouro). */
+  maturityDate: z.string().datetime().optional().nullable(),
   /** CDI multiplier (e.g. 1.10 for 110% CDI). Required when indexer is cdi or selic. */
   multiplier: z.number().positive().optional(),
   broker: z.string().min(1).optional(),
@@ -239,7 +132,7 @@ export const upsertRendaFixaHoldingFn = createServerFn({ method: 'POST' })
         capital: String(data.capital),
         annualRate: String(data.annualRate),
         purchaseDate: new Date(data.purchaseDate),
-        maturityDate: new Date(data.maturityDate),
+        maturityDate: data.maturityDate ? new Date(data.maturityDate) : null,
         multiplier: data.multiplier != null ? String(data.multiplier) : null,
       })
       .onConflictDoUpdate({
@@ -250,7 +143,7 @@ export const upsertRendaFixaHoldingFn = createServerFn({ method: 'POST' })
           capital: String(data.capital),
           annualRate: String(data.annualRate),
           purchaseDate: new Date(data.purchaseDate),
-          maturityDate: new Date(data.maturityDate),
+          maturityDate: data.maturityDate ? new Date(data.maturityDate) : null,
           multiplier: data.multiplier != null ? String(data.multiplier) : null,
           updatedAt: new Date(),
         },
@@ -285,6 +178,46 @@ export const deleteRendaFixaHoldingFn = createServerFn({ method: 'POST' })
       .where(and(eq(portfolioHolding.userId, userId), eq(portfolioHolding.investmentId, data.investmentId)))
 
     return { ok: true }
+  })
+
+const getRendaFixaDetailInput = z.object({ investmentId: uuid })
+
+export const getRendaFixaDetailFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => getRendaFixaDetailInput.parse(data))
+  .handler(async ({ data }) => {
+    const [userId, db] = await Promise.all([requireUserId(), getDb()])
+
+    const [row] = await db
+      .select({
+        investment: { id: investment.id, name: investment.name },
+        detail: {
+          productType: rendaFixaDetail.productType,
+          indexer: rendaFixaDetail.indexer,
+          capital: rendaFixaDetail.capital,
+          annualRate: rendaFixaDetail.annualRate,
+          purchaseDate: rendaFixaDetail.purchaseDate,
+          maturityDate: rendaFixaDetail.maturityDate,
+          multiplier: rendaFixaDetail.multiplier,
+        },
+        broker: portfolioHolding.broker,
+      })
+      .from(rendaFixaDetail)
+      .innerJoin(investment, eq(rendaFixaDetail.investmentId, investment.id))
+      .innerJoin(
+        portfolioHolding,
+        and(
+          eq(portfolioHolding.userId, rendaFixaDetail.userId),
+          eq(portfolioHolding.investmentId, rendaFixaDetail.investmentId),
+        ),
+      )
+      .where(
+        and(
+          eq(rendaFixaDetail.userId, userId),
+          eq(rendaFixaDetail.investmentId, data.investmentId),
+        ),
+      )
+
+    return row ?? null
   })
 
 /**

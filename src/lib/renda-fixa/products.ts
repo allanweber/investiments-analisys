@@ -18,7 +18,7 @@ export type ProductType =
   | 'debenture-incentivada'
   | 'debenture-comum'
 
-export type Indexer = 'pre' | 'cdi' | 'selic' | 'ipca' | 'igpm'
+export type Indexer = 'pre' | 'cdi' | 'selic' | 'selic-spread' | 'ipca' | 'igpm'
 
 export type ProductRule = {
   taxExempt: boolean
@@ -38,7 +38,7 @@ export const PRODUCT_RULES: Record<ProductType, ProductRule> = {
     hasFgc: true,
     carenciaDays: 0,
     usesMtm: false,
-    allowedIndexers: ['pre', 'cdi', 'selic', 'ipca', 'igpm'],
+    allowedIndexers: ['pre', 'cdi', 'selic', 'selic-spread', 'ipca', 'igpm'],
   },
   lci: {
     taxExempt: true,
@@ -78,7 +78,7 @@ export const PRODUCT_RULES: Record<ProductType, ProductRule> = {
     hasFgc: false,
     carenciaDays: 0,
     usesMtm: false,
-    allowedIndexers: ['selic'],
+    allowedIndexers: ['selic-spread'],
   },
   'tesouro-prefixado': {
     taxExempt: false,
@@ -254,8 +254,8 @@ export function calculateInvestment(input: CalculateInvestmentInput): Investment
     return { ...result, productType: input.productType, indexer, rule, liquidity }
   }
 
-  // Daily-rate (CDI / Selic)
-  if (indexer === 'cdi' || indexer === 'selic') {
+  // Daily-rate (CDI / Selic / Selic+spread)
+  if (indexer === 'cdi' || indexer === 'selic' || indexer === 'selic-spread') {
     if (businessDays == null) {
       throw new Error(`'businessDays' is required for indexer '${indexer}'`)
     }
@@ -264,7 +264,7 @@ export function calculateInvestment(input: CalculateInvestmentInput): Investment
       annualRate,
       businessDays,
       calendarDays,
-      multiplier,
+      multiplier: indexer !== 'selic-spread' ? multiplier : undefined,
       hasIof,
       isTaxExempt,
     })

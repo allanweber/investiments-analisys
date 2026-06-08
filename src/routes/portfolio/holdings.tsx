@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 import { useDisplayCurrency } from '@/hooks/use-display-currency'
 import { authClient } from '@/lib/auth-client'
+import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
 import { messages as m } from '@/messages'
 
 import { DonutAllocation } from '@/components/portfolio/holdings/DonutAllocation'
@@ -18,9 +19,10 @@ import { useHoldingForm } from '@/components/portfolio/holdings/hooks/use-holdin
 import { useHoldingModal } from '@/components/portfolio/holdings/hooks/use-holding-modal'
 import { useHoldingsData } from '@/components/portfolio/holdings/hooks/use-holdings-data'
 import { useHoldingsFilters } from '@/components/portfolio/holdings/hooks/use-holdings-filters'
+import { useRendaFixaForm } from '@/components/portfolio/holdings/hooks/use-renda-fixa-form'
+import { AddRendaFixaModal } from '@/components/portfolio/holdings/modals/AddRendaFixaModal'
 import { ChooseAssetClassModal } from '@/components/portfolio/holdings/modals/ChooseAssetClassModal'
 import { DeleteConfirmModal } from '@/components/portfolio/holdings/modals/DeleteConfirmModal'
-import { FixedIncomeComingSoonModal } from '@/components/portfolio/holdings/modals/FixedIncomeComingSoonModal'
 import { AddEditHoldingModal } from '@/components/portfolio/holdings/modals/AddEditHoldingModal'
 import { AddToPositionModal } from '@/components/portfolio/holdings/modals/AddToPositionModal'
 
@@ -46,6 +48,7 @@ function HoldingsPage() {
     displayCurrency,
     refresh: holdingsData.refresh,
   })
+  const rfForm = useRendaFixaForm({ modal, refresh: holdingsData.refresh })
   const addToPos = useAddToPosition({ modal, refresh: holdingsData.refresh })
 
   const handledAddRef = useRef(false)
@@ -129,7 +132,12 @@ function HoldingsPage() {
             quotesStale={holdingsData.quotesStale}
             displayCurrency={displayCurrency}
             deletingInvestmentId={form.deletingInvestmentId}
-            onEdit={form.openEditFromRow}
+            onEdit={(r) => {
+              if (isFixedIncomeTipo(Boolean(r.fixedIncome), r.investmentTypeName))
+                modal.openEditFixedIncome(r)
+              else
+                form.openEditFromRow(r)
+            }}
             onAddShares={modal.openAddToPosition}
             onDelete={form.requestDelete}
           />
@@ -139,7 +147,7 @@ function HoldingsPage() {
       )}
 
       <ChooseAssetClassModal modal={modal} form={form} />
-      <FixedIncomeComingSoonModal modal={modal} />
+      <AddRendaFixaModal modal={modal} rfForm={rfForm} />
       <AddEditHoldingModal modal={modal} form={form} rows={holdingsData.rows} />
       <AddToPositionModal modal={modal} addToPos={addToPos} />
       <DeleteConfirmModal

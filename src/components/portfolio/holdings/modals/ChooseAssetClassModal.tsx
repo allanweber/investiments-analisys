@@ -57,7 +57,7 @@ export function ChooseAssetClassModal({ modal, form }: Props) {
           <button
             type="button"
             className="flex w-full items-start gap-4 rounded-2xl bg-surface-container-low p-5 text-left shadow-md ring-1 ring-outline-variant/10 transition-colors hover:bg-surface-container-high"
-            onClick={modal.openFixedIncomeComingSoon}
+            onClick={modal.openAddFixedIncome}
           >
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-container/25 text-primary-container">
               <span className="material-symbols-outlined text-2xl">savings</span>
