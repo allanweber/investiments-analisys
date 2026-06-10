@@ -53,6 +53,10 @@ A Brazilian personal investment portfolio tool. Two main capabilities:
 | **ProductType** | One of 12 fixed-income product codes: cdb · lci · lca · cri · cra · tesouro-selic · tesouro-prefixado · tesouro-ipca · tesouro-renda-mais · tesouro-educa-mais · debenture-incentivada · debenture-comum |
 | **Indexer** | Rate index used for a renda fixa product: pre · cdi · selic · ipca · igpm |
 | **Multiplier** | CDI/Selic multiplier stored in RendaFixaDetail (e.g. 1.10 = 110% CDI). Null for non-CDI/Selic indexers. |
+| **AporteSimulation** / simulação de aporte | A one-shot calculation that distributes a contribution amount across investments based on allocation drift. Input: currency + amount. Output: list of ContributionSuggestions. |
+| **ContributionSuggestion** | One line in an AporteSimulation result: investment name, suggested amount (in the asset's native currency), and % of total contribution. |
+| **EligibleInvestment** | An investment with score > 0 within an under-allocated type. Only eligible investments receive contribution allocation. |
+| **PriorityInvestment** | An eligible investment with score ≥ 60 (PRIORITY_SCORE_THRESHOLD). When any priority investments exist in a type, only they receive allocation for that type. |
 
 ---
 

@@ -395,6 +395,28 @@ const core = {
     rendaFixaMaturityBeforePurchase: 'O vencimento deve ser posterior à data de aplicação.',
     rendaFixaCreateError: 'Não foi possível registrar o investimento. Tente novamente.',
   },
+  aporte: {
+    title: 'Simulação de Aporte',
+    subtitle: 'Informe a moeda e o valor para calcular como distribuir seu aporte.',
+    currencyLabel: 'Moeda do aporte',
+    amountLabel: 'Valor do aporte',
+    amountPlaceholder: 'Ex.: 1000',
+    calcularButton: 'Calcular',
+    calculating: 'Calculando…',
+    colInvestimento: 'Investimento',
+    colValor: 'Valor sugerido',
+    colUnidades: 'Unidades',
+    colPct: '% do aporte',
+    colAlocacaoAntes: 'Antes',
+    colAlocacaoDepois: 'Depois',
+    colMeta: 'Meta',
+    noTargets: 'Defina seus alvos por categoria em Portfólio antes de simular um aporte.',
+    noEligible: 'Nenhum investimento com pontuação suficiente para as categorias abaixo do alvo.',
+    missingQuoteTooltip: 'Cotação não disponível — valor estimado na moeda do aporte.',
+    amountRequired: 'Informe um valor maior que zero.',
+    errorCalc: 'Não foi possível calcular o aporte. Tente novamente.',
+    dash: '—',
+  },
 } as const
 
 export const ptBR = core

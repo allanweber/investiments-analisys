@@ -1,6 +1,5 @@
 ---
-
-## name: Financial Architect UI Design
+name: financial-architect-design
 description: UI and visual design rules for The Financial Architect — follow DESIGN.md and design/*.html mocks. Use this for ANY UI work.
 
 # Financial Architect — design rules

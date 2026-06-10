@@ -20,6 +20,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortfolioHoldingsRouteImport } from './routes/portfolio/holdings'
+import { Route as PortfolioAporteRouteImport } from './routes/portfolio/aporte'
 import { Route as TiposTypeIdPerguntasRouteImport } from './routes/tipos/$typeId/perguntas'
 import { Route as InvestimentosIdPontuacaoRouteImport } from './routes/investimentos/$id/pontuacao'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -79,6 +80,11 @@ const PortfolioHoldingsRoute = PortfolioHoldingsRouteImport.update({
   path: '/holdings',
   getParentRoute: () => PortfolioRoute,
 } as any)
+const PortfolioAporteRoute = PortfolioAporteRouteImport.update({
+  id: '/aporte',
+  path: '/aporte',
+  getParentRoute: () => PortfolioRoute,
+} as any)
 const TiposTypeIdPerguntasRoute = TiposTypeIdPerguntasRouteImport.update({
   id: '/$typeId/perguntas',
   path: '/$typeId/perguntas',
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/tipos': typeof TiposRouteWithChildren
   '/verify-email': typeof VerifyEmailRoute
+  '/portfolio/aporte': typeof PortfolioAporteRoute
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/tipos': typeof TiposRouteWithChildren
   '/verify-email': typeof VerifyEmailRoute
+  '/portfolio/aporte': typeof PortfolioAporteRoute
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/tipos': typeof TiposRouteWithChildren
   '/verify-email': typeof VerifyEmailRoute
+  '/portfolio/aporte': typeof PortfolioAporteRoute
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/tipos'
     | '/verify-email'
+    | '/portfolio/aporte'
     | '/portfolio/holdings'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/tipos'
     | '/verify-email'
+    | '/portfolio/aporte'
     | '/portfolio/holdings'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/tipos'
     | '/verify-email'
+    | '/portfolio/aporte'
     | '/portfolio/holdings'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
@@ -289,6 +301,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortfolioHoldingsRouteImport
       parentRoute: typeof PortfolioRoute
     }
+    '/portfolio/aporte': {
+      id: '/portfolio/aporte'
+      path: '/aporte'
+      fullPath: '/portfolio/aporte'
+      preLoaderRoute: typeof PortfolioAporteRouteImport
+      parentRoute: typeof PortfolioRoute
+    }
     '/tipos/$typeId/perguntas': {
       id: '/tipos/$typeId/perguntas'
       path: '/$typeId/perguntas'
@@ -326,10 +345,12 @@ const InvestimentosRouteWithChildren = InvestimentosRoute._addFileChildren(
 )
 
 interface PortfolioRouteChildren {
+  PortfolioAporteRoute: typeof PortfolioAporteRoute
   PortfolioHoldingsRoute: typeof PortfolioHoldingsRoute
 }
 
 const PortfolioRouteChildren: PortfolioRouteChildren = {
+  PortfolioAporteRoute: PortfolioAporteRoute,
   PortfolioHoldingsRoute: PortfolioHoldingsRoute,
 }
 

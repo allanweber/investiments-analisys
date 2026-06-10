@@ -152,7 +152,7 @@ function PontuacaoPage() {
         return
       }
       await router.invalidate()
-      await router.navigate({ to: '/investimentos' })
+      window.history.back()
     } finally {
       setBusy(false)
     }
@@ -237,8 +237,8 @@ function PontuacaoPage() {
       )}
 
       <div className="mt-8 flex w-full flex-wrap items-center justify-between gap-3">
-        <Button type="button" variant="outline" asChild className="border-outline-variant/30">
-          <Link to="/investimentos">{m.investments.backToList}</Link>
+        <Button type="button" variant="outline" className="border-outline-variant/30" onClick={() => window.history.back()}>
+          {m.investments.backToList}
         </Button>
         <Button
           type="button"

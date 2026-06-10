@@ -139,7 +139,7 @@ function PortfolioPage() {
                   Ver posições
                 </Link>
                 <Link
-                  to="/portfolio/holdings"
+                  to="/portfolio/aporte"
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-md no-underline transition-opacity hover:opacity-95 sm:order-1"
                 >
                   <span className="material-symbols-outlined text-[20px] leading-none">add</span>
