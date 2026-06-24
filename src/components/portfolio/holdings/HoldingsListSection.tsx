@@ -65,7 +65,7 @@ export function HoldingsListSection({
     page, setPage, pageCount, pageRows, processedRows, typeFilterOptions, currencyFilterOptions } = filters
 
   return (
-    <section className="rounded-2xl bg-surface-container-lowest p-6 md:p-8 lg:col-span-2">
+    <section className="rounded-2xl bg-surface-container-lowest p-3 md:p-8 lg:col-span-2">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="font-headline text-base font-extrabold text-on-surface">Principais Ativos</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -126,7 +126,7 @@ export function HoldingsListSection({
               className="flex overflow-hidden rounded-2xl bg-surface-container-low"
             >
               <div
-                className="min-w-0 flex-1 cursor-pointer p-4 text-left outline-none transition-colors hover:bg-surface-container-high/30 focus-visible:ring-2 focus-visible:ring-primary"
+                className="min-w-0 flex-1 cursor-pointer p-3 text-left outline-none transition-colors hover:bg-surface-container-high/30 focus-visible:ring-2 focus-visible:ring-primary"
                 role="button"
                 tabIndex={0}
                 onClick={() => onEdit(r)}
@@ -141,15 +141,15 @@ export function HoldingsListSection({
                     </p>
                     <p className="text-xs text-outline">{r.investmentTypeName}</p>
                   </div>
-                  <span className={`text-xs font-bold uppercase ${statusClass}`}>{label}</span>
+                  <span className={`shrink-0 whitespace-nowrap text-xs font-bold uppercase ${statusClass}`}>{label}</span>
                 </div>
-                <div className="mt-3 flex justify-between text-sm">
-                  <span className="text-outline">Quantidade</span>
-                  <span className="font-semibold tabular-nums text-on-surface">{fmtQuantity(r.quantity)}</span>
+                <div className="mt-3 flex justify-between gap-2 text-sm">
+                  <span className="shrink-0 text-outline">Quantidade</span>
+                  <span className="whitespace-nowrap font-semibold tabular-nums text-on-surface">{fmtQuantity(r.quantity)}</span>
                 </div>
-                <div className="mt-1 flex justify-between text-sm">
-                  <span className="text-outline">Variação</span>
-                  <span className={`font-semibold ${varColorClass(r)}`}>
+                <div className="mt-1 flex justify-between gap-2 text-sm">
+                  <span className="shrink-0 text-outline">Variação</span>
+                  <span className={`whitespace-nowrap font-semibold ${varColorClass(r)}`}>
                     <span className="inline-flex items-center gap-0.5">
                       {dir && (
                         <span className="material-symbols-outlined text-[10px] leading-none">
@@ -160,28 +160,29 @@ export function HoldingsListSection({
                     </span>
                   </span>
                 </div>
-                <div className="mt-1 flex justify-between text-sm">
-                  <span className="text-outline">{m.portfolio.holdingsNativeValue}</span>
-                  <span className="font-bold text-on-surface">
+                <div className="mt-1 flex justify-between gap-2 text-sm">
+                  <span className="shrink text-outline">Valor nativo</span>
+                  <span className="whitespace-nowrap font-bold text-on-surface">
                     {r.marketValueNative == null ? '—' : fmtMoney(r.marketValueNative, r.currency)}
                   </span>
                 </div>
-                <div className="mt-1 flex justify-between text-sm">
-                  <span className="text-outline">{m.portfolio.holdingsDisplayValue(displayCurrency)}</span>
-                  <span className="font-bold text-on-surface">
+                <div className="mt-1 flex justify-between gap-2 text-sm">
+                  <span className="shrink text-outline">Valor ({displayCurrency})</span>
+                  <span className="whitespace-nowrap font-bold text-on-surface">
                     {r.fxUnavailable || r.marketValueDisplay == null
                       ? '—'
                       : fmtMoney(r.marketValueDisplay, displayCurrency)}
                   </span>
                 </div>
               </div>
-              <div className="flex shrink-0 flex-col justify-center gap-1 bg-surface-container py-2 pr-2 pl-1">
+              <div className="flex shrink-0 flex-col justify-center gap-1 bg-surface-container px-1 py-2">
                 <button
                   type="button"
-                  className="inline-flex min-h-11 items-center justify-center rounded-xl px-3 text-center text-xs font-bold text-primary hover:bg-primary/10"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-primary hover:bg-primary/10"
+                  aria-label="Adicionar cotas"
                   onClick={(e) => { e.stopPropagation(); onAddShares(r) }}
                 >
-                  Adicionar cotas
+                  <span className="material-symbols-outlined text-[22px]">add_circle</span>
                 </button>
                 <button
                   type="button"
@@ -204,11 +205,11 @@ export function HoldingsListSection({
           <thead className="text-[10px] font-bold uppercase tracking-widest text-outline">
             <tr>
               <th className="py-2 text-left">Ativo</th>
-              <th className="py-2 text-right">Quantidade</th>
+              <th className="hidden py-2 text-right lg:table-cell">Quantidade</th>
               <th className="py-2 text-right">{m.portfolio.holdingsNativeValue}</th>
               <th className="py-2 text-right">{m.portfolio.holdingsDisplayValue(displayCurrency)}</th>
               <th className="py-2 text-right">Variação</th>
-              <th className="py-2 text-right">Preço atual</th>
+              <th className="hidden py-2 text-right lg:table-cell">Preço atual</th>
               <th className="py-2 text-right">Status</th>
               <th className="min-w-[7rem] py-2 text-right"><span className="sr-only">Ações</span></th>
             </tr>
@@ -253,7 +254,7 @@ export function HoldingsListSection({
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 text-right tabular-nums text-on-surface">{fmtQuantity(r.quantity)}</td>
+                  <td className="hidden py-3 text-right tabular-nums text-on-surface lg:table-cell">{fmtQuantity(r.quantity)}</td>
                   <td className="py-3 text-right font-semibold text-on-surface">
                     {r.marketValueNative == null ? '—' : fmtMoney(r.marketValueNative, r.currency)}
                   </td>
@@ -272,13 +273,13 @@ export function HoldingsListSection({
                       <span>{varPctText(r)}</span>
                     </span>
                   </td>
-                  <td className="py-3 text-right text-on-surface">
+                  <td className="hidden py-3 text-right text-on-surface lg:table-cell">
                     {r.quoteStatus === 'BOOK_VALUE'
                       ? (r.marketValueNative == null ? '—' : fmtMoney(r.marketValueNative, r.currency))
                       : (r.lastPrice == null ? '—' : fmtMoney(r.lastPrice, r.currency))}
                   </td>
                   <td className="py-3 text-right">
-                    <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${statusPillClass}`}>
+                    <span className={`whitespace-nowrap rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${statusPillClass}`}>
                       {label}
                     </span>
                   </td>
@@ -286,10 +287,11 @@ export function HoldingsListSection({
                     <div className="flex items-center justify-end gap-2">
                       <button
                         type="button"
-                        className="rounded-full px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/10"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-full text-primary hover:bg-primary/10"
+                        aria-label="Adicionar cotas"
                         onClick={() => onAddShares(r)}
                       >
-                        Adicionar cotas
+                        <span className="material-symbols-outlined text-[22px]">add_circle</span>
                       </button>
                       <button
                         type="button"

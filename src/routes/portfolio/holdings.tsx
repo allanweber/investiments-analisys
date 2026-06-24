@@ -79,7 +79,7 @@ function HoldingsPage() {
   if (!session?.user) return <Navigate to="/login" />
 
   return (
-    <main className="w-full max-w-7xl px-4 py-8 sm:p-8 lg:p-12">
+    <main className="w-full max-w-7xl px-3 py-4 sm:p-8 lg:p-12">
       {holdingsData.quotesStale && <StaleQuotesBanner onReconnect={holdingsData.refreshQuotes} />}
 
       <HoldingsPageHeader
