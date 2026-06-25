@@ -52,8 +52,10 @@ const PUBLIC_AUTH_PATHS = [
 ] as const
 
 function isPublicAuthPath(pathname: string) {
-  return PUBLIC_AUTH_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  return (
+    PUBLIC_AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`)) ||
+    pathname === '/admin' ||
+    pathname.startsWith('/admin/')
   )
 }
 

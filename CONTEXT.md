@@ -57,6 +57,8 @@ A Brazilian personal investment portfolio tool. Two main capabilities:
 | **ContributionSuggestion** | One line in an AporteSimulation result: investment name, suggested amount (in the asset's native currency), and % of total contribution. |
 | **EligibleInvestment** | An investment with score > 0 within an under-allocated type. Only eligible investments receive contribution allocation. |
 | **PriorityInvestment** | An eligible investment with score ≥ 60 (PRIORITY_SCORE_THRESHOLD). When any priority investments exist in a type, only they receive allocation for that type. |
+| **AdminSession** | A short-lived signed cookie (JWT, 4h TTL) issued after successful admin login. Completely separate from Better Auth — no DB row. Signed with `ADMIN_SECRET`. |
+| **BlockedUser** | A regular app user with `banned = true` in the `user` table (Better Auth's ban field). Active sessions are immediately invalidated on block; data is preserved. |
 
 ---
 

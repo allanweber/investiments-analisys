@@ -20,6 +20,11 @@ export const user = pgTable('user', {
   image: varchar('image', { length: 2048 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  role: varchar('role', { length: 50 }),
+  banned: boolean('banned').default(false),
+  banReason: varchar('ban_reason', { length: 512 }),
+  banExpires: timestamp('ban_expires', { withTimezone: true }),
+  lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
 })
 
 export const session = pgTable('session', {
@@ -33,6 +38,7 @@ export const session = pgTable('session', {
   userId: varchar('user_id', { length: 255 })
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
+  impersonatedBy: varchar('impersonated_by', { length: 255 }),
 })
 
 export const account = pgTable('account', {

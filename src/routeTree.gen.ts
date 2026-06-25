@@ -17,8 +17,10 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as InvestimentosRouteImport } from './routes/investimentos'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as PortfolioHoldingsRouteImport } from './routes/portfolio/holdings'
 import { Route as PortfolioAporteRouteImport } from './routes/portfolio/aporte'
 import { Route as TiposTypeIdPerguntasRouteImport } from './routes/tipos/$typeId/perguntas'
@@ -65,6 +67,11 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
@@ -74,6 +81,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const PortfolioHoldingsRoute = PortfolioHoldingsRouteImport.update({
   id: '/holdings',
@@ -105,6 +117,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/investimentos': typeof InvestimentosRouteWithChildren
@@ -115,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/verify-email': typeof VerifyEmailRoute
   '/portfolio/aporte': typeof PortfolioAporteRoute
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
+  '/admin/': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
   '/tipos/$typeId/perguntas': typeof TiposTypeIdPerguntasRoute
@@ -132,6 +146,7 @@ export interface FileRoutesByTo {
   '/verify-email': typeof VerifyEmailRoute
   '/portfolio/aporte': typeof PortfolioAporteRoute
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
+  '/admin': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
   '/tipos/$typeId/perguntas': typeof TiposTypeIdPerguntasRoute
@@ -140,6 +155,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/investimentos': typeof InvestimentosRouteWithChildren
@@ -150,6 +166,7 @@ export interface FileRoutesById {
   '/verify-email': typeof VerifyEmailRoute
   '/portfolio/aporte': typeof PortfolioAporteRoute
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
+  '/admin/': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
   '/tipos/$typeId/perguntas': typeof TiposTypeIdPerguntasRoute
@@ -159,6 +176,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/admin'
     | '/dashboard'
     | '/forgot-password'
     | '/investimentos'
@@ -169,6 +187,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/portfolio/aporte'
     | '/portfolio/holdings'
+    | '/admin/'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
     | '/tipos/$typeId/perguntas'
@@ -186,6 +205,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/portfolio/aporte'
     | '/portfolio/holdings'
+    | '/admin'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
     | '/tipos/$typeId/perguntas'
@@ -193,6 +213,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/admin'
     | '/dashboard'
     | '/forgot-password'
     | '/investimentos'
@@ -203,6 +224,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/portfolio/aporte'
     | '/portfolio/holdings'
+    | '/admin/'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
     | '/tipos/$typeId/perguntas'
@@ -211,6 +233,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  AdminRoute: typeof AdminRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   InvestimentosRoute: typeof InvestimentosRouteWithChildren
@@ -280,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/about': {
       id: '/about'
       path: '/about'
@@ -293,6 +323,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/portfolio/holdings': {
       id: '/portfolio/holdings'
@@ -331,6 +368,16 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AdminRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface InvestimentosRouteChildren {
   InvestimentosIdPontuacaoRoute: typeof InvestimentosIdPontuacaoRoute
@@ -371,6 +418,7 @@ const TiposRouteWithChildren = TiposRoute._addFileChildren(TiposRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  AdminRoute: AdminRouteWithChildren,
   DashboardRoute: DashboardRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   InvestimentosRoute: InvestimentosRouteWithChildren,

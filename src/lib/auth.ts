@@ -2,7 +2,7 @@ import { betterAuth } from 'better-auth'
 
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 
-import { emailOTP } from 'better-auth/plugins'
+import { admin, emailOTP } from 'better-auth/plugins'
 
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 
@@ -159,9 +159,37 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
 
       },
 
+      session: {
+
+        create: {
+
+          after: async (session) => {
+
+            const { db } = await import('@/db')
+
+            const { user } = await import('@/db/schema')
+
+            const { eq } = await import('drizzle-orm')
+
+            await db
+
+              .update(user)
+
+              .set({ lastLoginAt: new Date() })
+
+              .where(eq(user.id, session.userId))
+
+          },
+
+        },
+
+      },
+
     },
 
     plugins: [
+
+      admin(),
 
       emailOTP({
 
@@ -195,6 +223,21 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
 
   authInstance = instance as unknown as ReturnType<typeof betterAuth>
 
+  void seedAdminRole(authInstance)
+
   return authInstance
 
+}
+
+async function seedAdminRole(_auth: ReturnType<typeof betterAuth>) {
+  const adminEmail = process.env.ADMIN_EMAIL
+  if (!adminEmail) return
+  try {
+    const { db } = await import('@/db')
+    const { user } = await import('@/db/schema')
+    const { eq } = await import('drizzle-orm')
+    await db.update(user).set({ role: 'admin' }).where(eq(user.email, adminEmail))
+  } catch {
+    // non-fatal — user may not exist yet; will be promoted on next boot after signup
+  }
 }
