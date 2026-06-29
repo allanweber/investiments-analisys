@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { messages as m } from '@/messages'
 
 import type { UseHoldingFormResult } from '../hooks/use-holding-form'
@@ -19,12 +20,20 @@ export function AddEditHoldingModal({ modal, form, rows }: Props) {
   const { state } = modal
   const isOpen = state.kind === 'add' || state.kind === 'edit'
   const panelRef = useModalFocus(modal.close, isOpen)
-  if (!isOpen) return null
 
-  const isEdit = state.kind === 'edit'
   const { form: f, setForm, invOptions, typeOptions, variableInvOptions, variableTypeOptions,
     quantityError, setQuantityError, saveHoldingError, setInvestmentPickManual,
     tickerInvestHint, canSaveAddHolding, addModalTickerInputRef, saveHolding } = form
+
+  const [rawQty, setRawQty] = useState('')
+  const [qtyFocused, setQtyFocused] = useState(false)
+  useEffect(() => {
+    if (!qtyFocused) setRawQty(f.quantity === 0 ? '' : String(f.quantity))
+  }, [f.quantity, qtyFocused])
+
+  if (!isOpen) return null
+
+  const isEdit = state.kind === 'edit'
 
   const selectedOpt = invOptions?.find((o) => o.id === f.investmentId)
   const existingHoldingForAdd =
@@ -173,17 +182,32 @@ export function AddEditHoldingModal({ modal, form, rows }: Props) {
             <input
               id="holding-qty-input"
               type="text"
-              inputMode="numeric"
+              inputMode="decimal"
               autoComplete="off"
               aria-invalid={quantityError}
-              value={f.quantity === 0 ? '' : String(f.quantity)}
+              value={rawQty}
+              onFocus={() => {
+                setQtyFocused(true)
+                setRawQty(f.quantity === 0 ? '' : String(f.quantity))
+              }}
+              onBlur={() => {
+                setQtyFocused(false)
+                const n = parseFloat(rawQty)
+                const qty = Number.isFinite(n) && n > 0 ? n : 0
+                setForm({ ...f, quantity: qty })
+                setRawQty(qty === 0 ? '' : String(qty))
+              }}
               onChange={(e) => {
                 if (invOptions === null) return
                 setQuantityError(false)
-                const raw = e.target.value.replace(/\D/g, '').slice(0, 12)
-                if (raw === '') { setForm({ ...f, quantity: 0 }); return }
-                const n = parseInt(raw, 10)
-                setForm({ ...f, quantity: Number.isFinite(n) && n >= 0 ? n : 0 })
+                const raw = e.target.value.replace(',', '.').replace(/[^0-9.]/g, '')
+                const parts = raw.split('.')
+                const sanitized = parts.length > 1
+                  ? parts[0] + '.' + parts.slice(1).join('').slice(0, 4)
+                  : parts[0]
+                setRawQty(sanitized)
+                const n = parseFloat(sanitized)
+                if (Number.isFinite(n) && n >= 0) setForm({ ...f, quantity: n })
               }}
               disabled={invOptions === null}
               className={`mt-2 w-full border-0 border-b-2 bg-transparent px-0 py-2.5 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary disabled:opacity-50 ${
