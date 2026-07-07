@@ -47,8 +47,7 @@ const core = {
     wait: 'Aguarde',
     pontuar: 'Pontuar',
     scorePtsAbbrev: (n: number) => `${n} pts`,
-    linesBadge: (n: number) =>
-      `${n} linha${n === 1 ? '' : 's'}`,
+    linesBadge: (n: number) => `${n} linha${n === 1 ? '' : 's'}`,
     ordinalSuffix: 'º',
     dash: '—',
     loading: 'A carregar…',
@@ -67,17 +66,52 @@ const core = {
     buttonAuto: 'Auto',
     buttonDark: 'Escuro',
     buttonLight: 'Claro',
-    ariaAuto:
-      'Tema: automático (sistema). Clique para mudar para tema claro.',
+    ariaAuto: 'Tema: automático (sistema). Clique para mudar para tema claro.',
     ariaResolved: (mode: 'dark' | 'light') =>
       `Tema: ${mode === 'dark' ? 'escuro' : 'claro'}. Clique para mudar.`,
   },
   headerUser: {
     signOut: 'Sair',
     signIn: 'Entrar',
+    account: 'Conta',
     userAvatarAlt: (name: string) => `Foto de perfil de ${name}`,
     userAvatarAltAnonymous: 'Foto de perfil',
     avatarFallbackInitial: '?',
+  },
+  account: {
+    title: 'Conta',
+    tabProfile: 'Perfil',
+    tabSettings: 'Configurações',
+    backToApp: 'Voltar ao app',
+    profileComingSoonTitle: 'Em breve',
+    profileComingSoonDesc:
+      'A edição de perfil ainda não está disponível. Volte em breve.',
+    aiSettingsTitle: 'Configurações de IA',
+    aiSettingsDesc:
+      'Adicione suas próprias chaves de API para usar modelos de IA no app. Suas chaves são armazenadas de forma criptografada.',
+    claudeLabel: 'Claude (Anthropic)',
+    claudeInputPlaceholder: 'sk-ant-...',
+    claudeSavedHint: (lastFour: string) =>
+      `Chave salva: sk-ant-••••••••${lastFour}`,
+    claudeHowToTitle: 'Como obter sua chave de API',
+    claudeHowToStep1: 'Acesse o console da Anthropic e faça login.',
+    claudeHowToStep2: 'Vá em “API Keys” e clique em “Create Key”.',
+    claudeHowToStep3: 'Copie a chave gerada e cole no campo acima.',
+    claudeHowToLink: 'console.anthropic.com/settings/keys',
+    save: 'Salvar',
+    saving: 'Salvando…',
+    replace: 'Substituir',
+    remove: 'Remover',
+    removing: 'Removendo…',
+    cancel: 'Cancelar',
+    saveError: 'Não foi possível salvar a chave. Tente novamente.',
+    removeError: 'Não foi possível remover a chave. Tente novamente.',
+    comingSoon: 'Em breve',
+    openaiLabel: 'OpenAI',
+    geminiLabel: 'Gemini (Google)',
+    moreSettingsTitle: 'Mais configurações',
+    moreSettingsDesc:
+      'Novas opções de personalização chegarão em breve por aqui.',
   },
   footer: {
     copyright: (year: number, holder: string) =>
@@ -136,8 +170,7 @@ const core = {
     placeholderOtp: '000000',
     submitVerifyEmail: 'Confirmar e entrar',
     resendOtp: 'Reenviar código',
-    resendOtpCooldown: (seconds: number) =>
-      `Aguarde ${seconds}s para reenviar`,
+    resendOtpCooldown: (seconds: number) => `Aguarde ${seconds}s para reenviar`,
     verifyEmailSuccess: 'E-mail confirmado. Faça login para continuar.',
     linkChangeEmail: 'Usar outro e-mail',
     forgotPasswordTitle: 'Recuperar senha',
@@ -151,8 +184,7 @@ const core = {
     labelNewPassword: 'Nova senha',
     labelConfirmPassword: 'Confirmar senha',
     submitResetPassword: 'Redefinir senha',
-    resetPasswordSuccess:
-      'Senha redefinida. Entre com sua nova senha.',
+    resetPasswordSuccess: 'Senha redefinida. Entre com sua nova senha.',
     loginAfterResetHint: 'Sua senha foi atualizada.',
     emailOtpSubjectVerify: 'Confirme seu e-mail — The Financial Architect',
     emailOtpBodyVerify: (otp: string) =>
@@ -208,14 +240,12 @@ const core = {
   about: {
     kicker: 'Sobre',
     title: 'Um ponto de partida enxuto com espaço para crescer.',
-    body:
-      'TanStack Start oferece rotas tipadas, server functions e padrões modernos de SSR. Use como base e acrescente rotas, estilo e integrações.',
+    body: 'TanStack Start oferece rotas tipadas, server functions e padrões modernos de SSR. Use como base e acrescente rotas, estilo e integrações.',
   },
   notFound: {
     code: '404',
     title: 'Página não encontrada',
-    body:
-      'O endereço não corresponde a nenhuma rota. Volte ao painel ou à página inicial.',
+    body: 'O endereço não corresponde a nenhuma rota. Volte ao painel ou à página inicial.',
     ctaDashboard: 'Painel',
     ctaHome: 'Início',
   },
@@ -258,8 +288,7 @@ const core = {
     totalAnsweredOnly: 'Total (apenas perguntas respondidas):',
     pointsWord: 'pontos',
     activeQuestionsCount: (n: number) => `Perguntas ativas: ${n}`,
-    noActiveQuestions:
-      'Este tipo não tem perguntas ativas.',
+    noActiveQuestions: 'Este tipo não tem perguntas ativas.',
     linkManageQuestions: 'Gerenciar perguntas',
     notFound: 'Investimento não encontrado.',
     backToList: 'Voltar para a lista',
@@ -304,8 +333,7 @@ const core = {
     restoreNoPack: 'Este tipo não tem conjunto padrão de perguntas.',
     restoreFailed: 'Não foi possível restaurar.',
     restoreNone: 'Nada a restaurar: todas as perguntas padrão já existem.',
-    restoreAdded: (n: number) =>
-      `${n} pergunta(s) padrão adicionada(s).`,
+    restoreAdded: (n: number) => `${n} pergunta(s) padrão adicionada(s).`,
     deleteConfirm:
       'Excluir esta pergunta? Se existirem respostas em investimentos, a exclusão será bloqueada.',
     deleteBlocked:
@@ -324,20 +352,20 @@ const core = {
     thTexto: 'Pergunta',
   },
   scoring: {
-    legend:
-      'Sim = +1 · Não = −1 · Não respondida = 0 (não entra na soma)',
+    legend: 'Sim = +1 · Não = −1 · Não respondida = 0 (não entra na soma)',
   },
   portfolio: {
     displayCurrencyLabel: 'Moeda de exibição',
     subtitleConverted:
       'Totais convertidos para a moeda selecionada. Veja o detalhamento por moeda do ativo abaixo.',
-    fxStaleWarning: 'Taxas de câmbio desatualizadas; exibindo última cotação disponível.',
-    fxPartialTotals: 'Alguns valores não puderam ser convertidos por falta de taxa.',
+    fxStaleWarning:
+      'Taxas de câmbio desatualizadas; exibindo última cotação disponível.',
+    fxPartialTotals:
+      'Alguns valores não puderam ser convertidos por falta de taxa.',
     byCurrencyTitle: 'Por moeda',
     byCurrencySubtitle:
       'Totais na moeda original de cada posição, sem misturar denominações entre cartões.',
-    byCurrencyHoldings: (n: number) =>
-      `${n} posição${n === 1 ? '' : 'ões'}`,
+    byCurrencyHoldings: (n: number) => `${n} posição${n === 1 ? '' : 'ões'}`,
     byCurrencyPctLabel: (display: string) => `da carteira em ${display}`,
     holdingsNativeValue: 'Valor (moeda do ativo)',
     holdingsDisplayValue: (currency: string) => `Valor (${currency})`,
@@ -347,7 +375,8 @@ const core = {
     chooseAssetClassSubtitle:
       'Escolha a classe do ativo. O formulário de cadastro depende do tipo.',
     chooseVariableIncome: 'Renda variável',
-    chooseVariableIncomeHint: 'Ações, FIIs, ETFs e outros ativos com cotação de mercado.',
+    chooseVariableIncomeHint:
+      'Ações, FIIs, ETFs e outros ativos com cotação de mercado.',
     chooseFixedIncome: 'Renda fixa',
     chooseFixedIncomeHint: 'Títulos, CDBs e similares sem ticker de bolsa.',
     addVariableBanner:
@@ -392,12 +421,15 @@ const core = {
     rendaFixaRateRequired: 'Informe a taxa contratada.',
     rendaFixaPurchaseDateRequired: 'Informe a data de aplicação.',
     rendaFixaMaturityDateRequired: 'Informe a data de vencimento.',
-    rendaFixaMaturityBeforePurchase: 'O vencimento deve ser posterior à data de aplicação.',
-    rendaFixaCreateError: 'Não foi possível registrar o investimento. Tente novamente.',
+    rendaFixaMaturityBeforePurchase:
+      'O vencimento deve ser posterior à data de aplicação.',
+    rendaFixaCreateError:
+      'Não foi possível registrar o investimento. Tente novamente.',
   },
   aporte: {
     title: 'Simulação de Aporte',
-    subtitle: 'Informe a moeda e o valor para calcular como distribuir seu aporte.',
+    subtitle:
+      'Informe a moeda e o valor para calcular como distribuir seu aporte.',
     currencyLabel: 'Moeda do aporte',
     amountLabel: 'Valor do aporte',
     amountPlaceholder: 'Ex.: 1000',
@@ -410,9 +442,12 @@ const core = {
     colAlocacaoAntes: 'Antes',
     colAlocacaoDepois: 'Depois',
     colMeta: 'Meta',
-    noTargets: 'Defina seus alvos por categoria em Portfólio antes de simular um aporte.',
-    noEligible: 'Nenhum investimento com pontuação suficiente para as categorias abaixo do alvo.',
-    missingQuoteTooltip: 'Cotação não disponível — valor estimado na moeda do aporte.',
+    noTargets:
+      'Defina seus alvos por categoria em Portfólio antes de simular um aporte.',
+    noEligible:
+      'Nenhum investimento com pontuação suficiente para as categorias abaixo do alvo.',
+    missingQuoteTooltip:
+      'Cotação não disponível — valor estimado na moeda do aporte.',
     amountRequired: 'Informe um valor maior que zero.',
     errorCalc: 'Não foi possível calcular o aporte. Tente novamente.',
     dash: '—',

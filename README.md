@@ -1,4 +1,4 @@
-Welcome to your new TanStack Start app! 
+Welcome to your new TanStack Start app!
 
 # Getting Started
 
@@ -84,10 +84,22 @@ pnpm check
 ## Setting up Better Auth
 
 1. Generate and set the `BETTER_AUTH_SECRET` environment variable in your `.env.local`:
-  ```bash
-   pnpm dlx @better-auth/cli secret
-  ```
+
+```bash
+ pnpm dlx @better-auth/cli secret
+```
+
 2. Visit the [Better Auth documentation](https://www.better-auth.com) to unlock the full potential of authentication in your app.
+
+### Encrypting stored settings (AI provider API keys)
+
+User-supplied LLM API keys (Account → Settings → AI Settings) are encrypted at rest with AES-256-GCM using the `SETTINGS_ENCRYPTION_KEY` environment variable.
+
+1. Generate a key and set it in your `.env.local`:
+   ```bash
+   openssl rand -hex 32
+   ```
+2. Set the result as `SETTINGS_ENCRYPTION_KEY` in `.env.local` (and in production). Losing or rotating this key makes previously stored keys undecryptable, so users would need to re-enter them.
 
 ### Adding a Database (Optional)
 
@@ -95,15 +107,15 @@ Better Auth can work in stateless mode, but to persist user data, add a database
 
 ```typescript
 // src/lib/auth.ts
-import { betterAuth } from "better-auth";
-import { Pool } from "pg";
+import { betterAuth } from 'better-auth'
+import { Pool } from 'pg'
 
 export const auth = betterAuth({
   database: new Pool({
     connectionString: process.env.DATABASE_URL,
   }),
   // ... rest of config
-});
+})
 ```
 
 Then run migrations:
@@ -137,7 +149,7 @@ Now that you have two routes you can use a `Link` component to navigate between 
 To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
 
 ```tsx
-import { Link } from "@tanstack/react-router";
+import { Link } from '@tanstack/react-router'
 ```
 
 Then anywhere in your JSX you can use it like so:
@@ -205,11 +217,11 @@ const getServerTime = createServerFn({
 // Use in a component
 function MyComponent() {
   const [time, setTime] = useState('')
-  
+
   useEffect(() => {
     getServerTime().then(setTime)
   }, [])
-  
+
   return <div>Server time: {time}</div>
 }
 ```
@@ -278,3 +290,4 @@ Make sure you have a PostgreSQL database set up in docker
 
 ```bash
 docker run --name investiments -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=investiments -p 5433:5432 -d postgres
+```

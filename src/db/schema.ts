@@ -18,8 +18,12 @@ export const user = pgTable('user', {
   email: varchar('email', { length: 320 }).notNull().unique(),
   emailVerified: boolean('email_verified').notNull().default(false),
   image: varchar('image', { length: 2048 }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
   role: varchar('role', { length: 50 }),
   banned: boolean('banned').default(false),
   banReason: varchar('ban_reason', { length: 512 }),
@@ -31,8 +35,12 @@ export const session = pgTable('session', {
   id: varchar('id', { length: 255 }).primaryKey(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   token: varchar('token', { length: 512 }).notNull().unique(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
   ipAddress: varchar('ip_address', { length: 45 }),
   userAgent: varchar('user_agent', { length: 1024 }),
   userId: varchar('user_id', { length: 255 })
@@ -51,12 +59,20 @@ export const account = pgTable('account', {
   accessToken: varchar('access_token', { length: 4096 }),
   refreshToken: varchar('refresh_token', { length: 4096 }),
   idToken: varchar('id_token', { length: 4096 }),
-  accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }),
-  refreshTokenExpiresAt: timestamp('refresh_token_expires_at', { withTimezone: true }),
+  accessTokenExpiresAt: timestamp('access_token_expires_at', {
+    withTimezone: true,
+  }),
+  refreshTokenExpiresAt: timestamp('refresh_token_expires_at', {
+    withTimezone: true,
+  }),
   scope: varchar('scope', { length: 512 }),
   password: varchar('password', { length: 256 }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 })
 
 export const verification = pgTable('verification', {
@@ -64,8 +80,12 @@ export const verification = pgTable('verification', {
   identifier: varchar('identifier', { length: 320 }).notNull(),
   value: varchar('value', { length: 512 }).notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 })
 
 // —— Domain ——
@@ -78,8 +98,12 @@ export const investmentType = pgTable('investment_type', {
   /** CDB, LCI, tesouro, etc.: sem cotação de mercado (brapi/yfinance). */
   fixedIncome: boolean('fixed_income').notNull().default(false),
   sortOrder: integer('sort_order').notNull().default(0),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 })
 
 export const question = pgTable('question', {
@@ -93,8 +117,12 @@ export const question = pgTable('question', {
   prompt: varchar('prompt', { length: 500 }).notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
   active: boolean('active').notNull().default(true),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 })
 
 export const investment = pgTable('investment', {
@@ -106,8 +134,12 @@ export const investment = pgTable('investment', {
     .notNull()
     .references(() => investmentType.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 200 }).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 })
 
 export const investmentAnswer = pgTable(
@@ -120,8 +152,12 @@ export const investmentAnswer = pgTable(
       .notNull()
       .references(() => question.id, { onDelete: 'cascade' }),
     valueYes: boolean('value_yes').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.investmentId, t.questionId] })],
 )
@@ -141,8 +177,12 @@ export const portfolioHolding = pgTable(
     currency: varchar('currency', { length: 3 }).notNull(),
     broker: varchar('broker', { length: 100 }),
     lastOperationAt: timestamp('last_operation_at', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.investmentId] })],
 )
@@ -158,8 +198,12 @@ export const userAllocationProfile = pgTable('user_allocation_profile', {
     .primaryKey()
     .references(() => user.id, { onDelete: 'cascade' }),
   targets: jsonb('targets').$type<UserAllocationTargetsJson>().notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 })
 
 export const marketQuote = pgTable(
@@ -172,7 +216,9 @@ export const marketQuote = pgTable(
     logoUrl: varchar('logo_url', { length: 2048 }),
     price: numeric('price', { precision: 24, scale: 8 }),
     asOf: timestamp('as_of', { withTimezone: true }),
-    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   () => [],
 )
@@ -187,7 +233,9 @@ export const fxRate = pgTable(
     yahooSymbol: varchar('yahoo_symbol', { length: 30 }).notNull(),
     rate: numeric('rate', { precision: 24, scale: 8 }).notNull(),
     asOf: timestamp('as_of', { withTimezone: true }),
-    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.baseCurrency, t.quoteCurrency] })],
 )
@@ -200,7 +248,9 @@ export const marketRate = pgTable('market_rate', {
   monthly: jsonb('monthly'),
   accumulated12m: numeric('accumulated_12m', { precision: 24, scale: 8 }),
   asOf: timestamp('as_of', { withTimezone: true }),
-  fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  fetchedAt: timestamp('fetched_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 })
 
 /**
@@ -230,8 +280,12 @@ export const rendaFixaDetail = pgTable(
     maturityDate: timestamp('maturity_date', { withTimezone: true }),
     /** CDI multiplier (e.g. 1.10 = 110% CDI). Null for non-CDI/Selic indexers. */
     multiplier: numeric('multiplier', { precision: 10, scale: 6 }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.investmentId] })],
 )
@@ -264,7 +318,9 @@ export const rendaFixaValuation = pgTable(
     liquidityReason: varchar('liquidity_reason', { length: 100 }),
     /** BCB annual rate used at compute time (CDI, Selic, IPCA-12m, or IGP-M-12m). Null for prefixado. */
     indexerAnnual: numeric('indexer_annual', { precision: 24, scale: 8 }),
-    computedAt: timestamp('computed_at', { withTimezone: true }).notNull().defaultNow(),
+    computedAt: timestamp('computed_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.investmentId] })],
 )
@@ -280,6 +336,7 @@ export const userRelations = relations(user, ({ many, one }) => ({
     fields: [user.id],
     references: [userAllocationProfile.userId],
   }),
+  apiKeys: many(userApiKey),
 }))
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -290,11 +347,14 @@ export const accountRelations = relations(account, ({ one }) => ({
   user: one(user, { fields: [account.userId], references: [user.id] }),
 }))
 
-export const investmentTypeRelations = relations(investmentType, ({ one, many }) => ({
-  user: one(user, { fields: [investmentType.userId], references: [user.id] }),
-  questions: many(question),
-  investments: many(investment),
-}))
+export const investmentTypeRelations = relations(
+  investmentType,
+  ({ one, many }) => ({
+    user: one(user, { fields: [investmentType.userId], references: [user.id] }),
+    questions: many(question),
+    investments: many(investment),
+  }),
+)
 
 export const questionRelations = relations(question, ({ one, many }) => ({
   user: one(user, { fields: [question.userId], references: [user.id] }),
@@ -315,35 +375,97 @@ export const investmentRelations = relations(investment, ({ one, many }) => ({
   holding: many(portfolioHolding),
 }))
 
-export const investmentAnswerRelations = relations(investmentAnswer, ({ one }) => ({
-  investment: one(investment, {
-    fields: [investmentAnswer.investmentId],
-    references: [investment.id],
+export const investmentAnswerRelations = relations(
+  investmentAnswer,
+  ({ one }) => ({
+    investment: one(investment, {
+      fields: [investmentAnswer.investmentId],
+      references: [investment.id],
+    }),
+    question: one(question, {
+      fields: [investmentAnswer.questionId],
+      references: [question.id],
+    }),
   }),
-  question: one(question, {
-    fields: [investmentAnswer.questionId],
-    references: [question.id],
+)
+
+export const portfolioHoldingRelations = relations(
+  portfolioHolding,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [portfolioHolding.userId],
+      references: [user.id],
+    }),
+    investment: one(investment, {
+      fields: [portfolioHolding.investmentId],
+      references: [investment.id],
+    }),
   }),
-}))
+)
 
-export const portfolioHoldingRelations = relations(portfolioHolding, ({ one }) => ({
-  user: one(user, { fields: [portfolioHolding.userId], references: [user.id] }),
-  investment: one(investment, {
-    fields: [portfolioHolding.investmentId],
-    references: [investment.id],
+export const rendaFixaDetailRelations = relations(
+  rendaFixaDetail,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [rendaFixaDetail.userId],
+      references: [user.id],
+    }),
+    investment: one(investment, {
+      fields: [rendaFixaDetail.investmentId],
+      references: [investment.id],
+    }),
   }),
-}))
+)
 
-export const rendaFixaDetailRelations = relations(rendaFixaDetail, ({ one }) => ({
-  user: one(user, { fields: [rendaFixaDetail.userId], references: [user.id] }),
-  investment: one(investment, { fields: [rendaFixaDetail.investmentId], references: [investment.id] }),
-}))
+export const rendaFixaValuationRelations = relations(
+  rendaFixaValuation,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [rendaFixaValuation.userId],
+      references: [user.id],
+    }),
+    investment: one(investment, {
+      fields: [rendaFixaValuation.investmentId],
+      references: [investment.id],
+    }),
+  }),
+)
 
-export const rendaFixaValuationRelations = relations(rendaFixaValuation, ({ one }) => ({
-  user: one(user, { fields: [rendaFixaValuation.userId], references: [user.id] }),
-  investment: one(investment, { fields: [rendaFixaValuation.investmentId], references: [investment.id] }),
-}))
+export const userAllocationProfileRelations = relations(
+  userAllocationProfile,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [userAllocationProfile.userId],
+      references: [user.id],
+    }),
+  }),
+)
 
-export const userAllocationProfileRelations = relations(userAllocationProfile, ({ one }) => ({
-  user: one(user, { fields: [userAllocationProfile.userId], references: [user.id] }),
+/** LLM providers a user can store an API key for. Only 'claude' is wired to any real usage today. */
+export const aiProvider = ['claude', 'openai', 'gemini'] as const
+export type AiProvider = (typeof aiProvider)[number]
+
+export const userApiKey = pgTable(
+  'user_api_key',
+  {
+    userId: varchar('user_id', { length: 255 })
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    provider: varchar('provider', { length: 20 }).$type<AiProvider>().notNull(),
+    /** AES-256-GCM ciphertext, base64: iv + authTag + encrypted key. */
+    encryptedKey: varchar('encrypted_key', { length: 2048 }).notNull(),
+    /** Last 4 chars of the plaintext key, shown as a masked hint in the UI. */
+    lastFour: varchar('last_four', { length: 4 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.provider] })],
+)
+
+export const userApiKeyRelations = relations(userApiKey, ({ one }) => ({
+  user: one(user, { fields: [userApiKey.userId], references: [user.id] }),
 }))

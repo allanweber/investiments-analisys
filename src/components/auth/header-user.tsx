@@ -1,3 +1,10 @@
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { authClient } from '@/lib/auth-client'
 import { messages as m } from '@/messages'
 import { Link } from '@tanstack/react-router'
@@ -21,32 +28,42 @@ export default function BetterAuthHeader({ variant = 'default' }: Props) {
   if (session?.user) {
     if (variant === 'topbar') {
       return (
-        <div className="flex items-center gap-2 pl-2 sm:border-l sm:border-outline-variant/30 sm:pl-4">
-          {session.user.image ? (
-            <img
-              src={session.user.image}
-              alt={
-                session.user.name
-                  ? m.headerUser.userAvatarAlt(session.user.name)
-                  : m.headerUser.userAvatarAltAnonymous
-              }
-              className="h-8 w-8 rounded-full object-cover"
-            />
-          ) : (
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-high font-body text-xs font-semibold text-on-surface">
-              {session.user.name?.charAt(0).toUpperCase() ||
-                m.headerUser.avatarFallbackInitial}
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              void authClient.signOut()
-            }}
-            className="hidden text-xs font-medium uppercase tracking-wider text-outline transition-colors hover:text-on-surface sm:inline"
-          >
-            {m.headerUser.signOut}
-          </button>
+        <div className="flex items-center pl-2 sm:border-l sm:border-outline-variant/30 sm:pl-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+              {session.user.image ? (
+                <img
+                  src={session.user.image}
+                  alt={
+                    session.user.name
+                      ? m.headerUser.userAvatarAlt(session.user.name)
+                      : m.headerUser.userAvatarAltAnonymous
+                  }
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-high font-body text-xs font-semibold text-on-surface">
+                  {session.user.name?.charAt(0).toUpperCase() ||
+                    m.headerUser.avatarFallbackInitial}
+                </div>
+              )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem asChild>
+                <Link to="/account" className="no-underline">
+                  {m.headerUser.account}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() => {
+                  void authClient.signOut()
+                }}
+              >
+                {m.headerUser.signOut}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       )
     }
