@@ -72,10 +72,12 @@ export default defineConfig({
             'cache-control': 'private, no-cache, must-revalidate',
           },
         },
-        // Non-fingerprinted CSS: allow revalidation so deploys pick up new styles without stale immutable cache.
+        // Non-fingerprinted CSS: must-revalidate on every request (ETag-based 304s keep this cheap),
+        // otherwise `max-age` lets browsers serve a stale copy for its whole duration with zero
+        // network check, so new CSS from a deploy silently never shows up until the cache expires.
         '/assets/app.css': {
           headers: {
-            'cache-control': 'public, max-age=86400, must-revalidate',
+            'cache-control': 'public, no-cache, must-revalidate',
           },
         },
         '/assets/**': {
