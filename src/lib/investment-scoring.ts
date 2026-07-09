@@ -51,6 +51,8 @@ export type InvestmentOverviewRow = {
   score: number
   activeQuestionCount: number
   answeredActiveCount: number
+  /** Most recent AI check across this investment's questions, if any has ever run. */
+  lastAiCheckedAt: string | null
 }
 
 export async function loadInvestmentOverviewRows(userId: string): Promise<InvestmentOverviewRow[]> {
@@ -77,9 +79,19 @@ export async function loadInvestmentOverviewRows(userId: string): Promise<Invest
       investmentId: investmentAnswer.investmentId,
       questionId: investmentAnswer.questionId,
       valueYes: investmentAnswer.valueYes,
+      aiCheckedAt: investmentAnswer.aiCheckedAt,
     })
     .from(investmentAnswer)
     .where(inArray(investmentAnswer.investmentId, invIds))
+
+  const lastAiCheckedAtByInvestmentId = new Map<string, Date>()
+  for (const a of answers) {
+    if (!a.aiCheckedAt) continue
+    const current = lastAiCheckedAtByInvestmentId.get(a.investmentId)
+    if (!current || a.aiCheckedAt > current) {
+      lastAiCheckedAtByInvestmentId.set(a.investmentId, a.aiCheckedAt)
+    }
+  }
 
   const questions = await db
     .select()
@@ -104,8 +116,9 @@ export async function loadInvestmentOverviewRows(userId: string): Promise<Invest
     const answerForInv = new Map<string, boolean>()
     for (const q of activeQs) {
       const key = ansKey(r.id, q.id)
-      if (ansMap.has(key)) {
-        answerForInv.set(q.id, ansMap.get(key)!)
+      const v = ansMap.get(key)
+      if (v != null) {
+        answerForInv.set(q.id, v)
       }
     }
     const { score, answeredActiveCount, activeQuestionCount } =
@@ -113,11 +126,13 @@ export async function loadInvestmentOverviewRows(userId: string): Promise<Invest
         activeQs.map((q) => q.id),
         answerForInv,
       )
+    const lastAiCheckedAt = lastAiCheckedAtByInvestmentId.get(r.id)
     return {
       ...r,
       score,
       activeQuestionCount,
       answeredActiveCount,
+      lastAiCheckedAt: lastAiCheckedAt ? lastAiCheckedAt.toISOString() : null,
     }
   })
 }

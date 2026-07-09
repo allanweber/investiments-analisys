@@ -17,6 +17,7 @@ function makeInv(
     fixedIncome: false,
     activeQuestionCount: 1,
     answeredActiveCount: 1,
+    lastAiCheckedAt: null,
     ...overrides,
   }
 }

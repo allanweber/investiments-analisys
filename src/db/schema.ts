@@ -5,6 +5,7 @@ import {
   numeric,
   pgTable,
   primaryKey,
+  text,
   varchar,
   timestamp,
   uuid,
@@ -151,7 +152,12 @@ export const investmentAnswer = pgTable(
     questionId: uuid('question_id')
       .notNull()
       .references(() => question.id, { onDelete: 'cascade' }),
-    valueYes: boolean('value_yes').notNull(),
+    /** The user's real answer. Null means only an AI suggestion is on file — no answer given yet. */
+    valueYes: boolean('value_yes'),
+    /** Latest AI-suggested answer for this question, pending user review/apply. Null = no suggestion, or AI reported "unknown". */
+    aiSuggestedYes: boolean('ai_suggested_yes'),
+    aiReasoning: text('ai_reasoning'),
+    aiCheckedAt: timestamp('ai_checked_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

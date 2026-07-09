@@ -59,6 +59,9 @@ A Brazilian personal investment portfolio tool. Two main capabilities:
 | **PriorityInvestment** | An eligible investment with score ≥ 60 (PRIORITY_SCORE_THRESHOLD). When any priority investments exist in a type, only they receive allocation for that type. |
 | **AdminSession** | A short-lived signed cookie (JWT, 4h TTL) issued after successful admin login. Completely separate from Better Auth — no DB row. Signed with `ADMIN_SECRET`. |
 | **BlockedUser** | A regular app user with `banned = true` in the `user` table (Better Auth's ban field). Active sessions are immediately invalidated on block; data is preserved. |
+| **ComputedQuestion** | A Question whose answer is derived automatically from real financial data, not from user input or AI judgment (`kind = 'computed'`). Never sent to the AI scoring provider. See ADR-0001. |
+| **FundamentalMetric** | One of the built-in computed check types: `roe` (ROE > threshold in every available historical year), `revenue_growth` / `profit_growth` (YoY growth > threshold in every year of the last 5), `net_debt_ebitda` (Dív. Líquida/EBITDA < threshold in every year of the last 5). "Every year must pass," not an average. |
+| **CompanyFundamental** | Cached per-ticker, per-fiscal-year data (revenue, net income, equity, EBITDA, net debt) used to compute FundamentalMetric checks. Fetched from StatusInvest (primary) or Yahoo Finance (fallback) — never AI-researched. |
 
 ---
 
@@ -171,6 +174,9 @@ Fixed-income contract terms live in `renda_fixa_detail` (child of `portfolio_hol
 
 ### 8. BCB rate refresh is staleness-gated
 `refreshBcbRatesIfStale` (in `bcb-refresh.ts`) no-ops when the cache is fresh (default TTL: 24h, overridable via `BCB_REFRESH_HOURS`). It is called by `upsertRendaFixaHoldingFn` and `refreshRendaFixaValuationsFn`, and once per sweep in `quote-worker.ts`. Never force-refresh on every insert to avoid BCB rate-limiting.
+
+### 9. Objective financial ratios are never answered via AI
+ComputedQuestions (ROE, revenue/profit growth, Dív. Líquida/EBITDA) are computed from real fetched data (StatusInvest/Yahoo Finance), not sent to the AI scoring provider — even though they look like the same yes/no Question shape the AI answers. See ADR-0001.
 
 ---
 

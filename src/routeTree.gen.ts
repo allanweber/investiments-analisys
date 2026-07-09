@@ -25,6 +25,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as PortfolioHoldingsRouteImport } from './routes/portfolio/holdings'
 import { Route as PortfolioAporteRouteImport } from './routes/portfolio/aporte'
+import { Route as InvestimentosIaEmLoteRouteImport } from './routes/investimentos/ia-em-lote'
 import { Route as AccountSettingsRouteImport } from './routes/account/settings'
 import { Route as AccountProfileRouteImport } from './routes/account/profile'
 import { Route as TiposTypeIdPerguntasRouteImport } from './routes/tipos/$typeId/perguntas'
@@ -111,6 +112,11 @@ const PortfolioAporteRoute = PortfolioAporteRouteImport.update({
   path: '/aporte',
   getParentRoute: () => PortfolioRoute,
 } as any)
+const InvestimentosIaEmLoteRoute = InvestimentosIaEmLoteRouteImport.update({
+  id: '/ia-em-lote',
+  path: '/ia-em-lote',
+  getParentRoute: () => InvestimentosRoute,
+} as any)
 const AccountSettingsRoute = AccountSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/verify-email': typeof VerifyEmailRoute
   '/account/profile': typeof AccountProfileRoute
   '/account/settings': typeof AccountSettingsRoute
+  '/investimentos/ia-em-lote': typeof InvestimentosIaEmLoteRoute
   '/portfolio/aporte': typeof PortfolioAporteRoute
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/account/': typeof AccountIndexRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/verify-email': typeof VerifyEmailRoute
   '/account/profile': typeof AccountProfileRoute
   '/account/settings': typeof AccountSettingsRoute
+  '/investimentos/ia-em-lote': typeof InvestimentosIaEmLoteRoute
   '/portfolio/aporte': typeof PortfolioAporteRoute
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/account': typeof AccountIndexRoute
@@ -198,6 +206,7 @@ export interface FileRoutesById {
   '/verify-email': typeof VerifyEmailRoute
   '/account/profile': typeof AccountProfileRoute
   '/account/settings': typeof AccountSettingsRoute
+  '/investimentos/ia-em-lote': typeof InvestimentosIaEmLoteRoute
   '/portfolio/aporte': typeof PortfolioAporteRoute
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/account/': typeof AccountIndexRoute
@@ -223,6 +232,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/account/profile'
     | '/account/settings'
+    | '/investimentos/ia-em-lote'
     | '/portfolio/aporte'
     | '/portfolio/holdings'
     | '/account/'
@@ -244,6 +254,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/account/profile'
     | '/account/settings'
+    | '/investimentos/ia-em-lote'
     | '/portfolio/aporte'
     | '/portfolio/holdings'
     | '/account'
@@ -267,6 +278,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/account/profile'
     | '/account/settings'
+    | '/investimentos/ia-em-lote'
     | '/portfolio/aporte'
     | '/portfolio/holdings'
     | '/account/'
@@ -406,6 +418,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortfolioAporteRouteImport
       parentRoute: typeof PortfolioRoute
     }
+    '/investimentos/ia-em-lote': {
+      id: '/investimentos/ia-em-lote'
+      path: '/ia-em-lote'
+      fullPath: '/investimentos/ia-em-lote'
+      preLoaderRoute: typeof InvestimentosIaEmLoteRouteImport
+      parentRoute: typeof InvestimentosRoute
+    }
     '/account/settings': {
       id: '/account/settings'
       path: '/settings'
@@ -470,10 +489,12 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface InvestimentosRouteChildren {
+  InvestimentosIaEmLoteRoute: typeof InvestimentosIaEmLoteRoute
   InvestimentosIdPontuacaoRoute: typeof InvestimentosIdPontuacaoRoute
 }
 
 const InvestimentosRouteChildren: InvestimentosRouteChildren = {
+  InvestimentosIaEmLoteRoute: InvestimentosIaEmLoteRoute,
   InvestimentosIdPontuacaoRoute: InvestimentosIdPontuacaoRoute,
 }
 

@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, count, eq, sql } from 'drizzle-orm'
+import { and, asc, count, eq, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { investment, investmentAnswer, investmentType, question } from '@/db/schema'
@@ -54,17 +54,35 @@ export const loadInvestmentScoringFn = createServerFn({ method: 'POST' })
       .from(investmentAnswer)
       .where(eq(investmentAnswer.investmentId, data.investmentId))
 
-    const answerByQ = new Map(answers.map((a) => [a.questionId, a.valueYes]))
+    const answerByQ = new Map(
+      answers
+        .filter((a) => a.valueYes != null)
+        .map((a) => [a.questionId, a.valueYes as boolean]),
+    )
 
     const { score: total } = computeScoreFromActiveQuestions(
       activeQs.map((q) => q.id),
       answerByQ,
     )
 
+    const aiSuggestionByQuestionId = Object.fromEntries(
+      answers
+        .filter((a) => a.aiSuggestedYes != null || a.aiReasoning != null)
+        .map((a) => [
+          a.questionId,
+          {
+            suggestedYes: a.aiSuggestedYes,
+            reasoning: a.aiReasoning,
+            checkedAt: a.aiCheckedAt?.toISOString() ?? null,
+          },
+        ]),
+    )
+
     return {
       investment: inv,
       questions: activeQs,
       answerByQuestionId: Object.fromEntries(answerByQ),
+      aiSuggestionByQuestionId,
       total,
     }
   })
@@ -116,12 +134,25 @@ export const saveInvestmentScoringFn = createServerFn({ method: 'POST' })
 
     for (const a of data.answers) {
       if (a.valueYes === null) {
+        // Clear the real answer but keep the row if it still holds an AI suggestion.
+        await db
+          .update(investmentAnswer)
+          .set({ valueYes: null, updatedAt: new Date() })
+          .where(
+            and(
+              eq(investmentAnswer.investmentId, data.investmentId),
+              eq(investmentAnswer.questionId, a.questionId),
+            ),
+          )
         await db
           .delete(investmentAnswer)
           .where(
             and(
               eq(investmentAnswer.investmentId, data.investmentId),
               eq(investmentAnswer.questionId, a.questionId),
+              isNull(investmentAnswer.valueYes),
+              isNull(investmentAnswer.aiSuggestedYes),
+              isNull(investmentAnswer.aiReasoning),
             ),
           )
         continue

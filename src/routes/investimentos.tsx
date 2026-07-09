@@ -216,6 +216,15 @@ function InvestimentosPage() {
           <p className="mt-3 max-w-xl font-body leading-relaxed text-on-surface-variant">
             {m.investments.pageSubtitle}
           </p>
+          <Link
+            to="/investimentos/ia-em-lote"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary-container px-4 py-2.5 font-body text-sm font-semibold text-on-primary no-underline shadow-sm transition-colors hover:opacity-90"
+          >
+            <span className="material-symbols-outlined text-lg leading-none">
+              auto_awesome
+            </span>
+            {m.ai.bulkPageTitle}
+          </Link>
         </div>
       </header>
 
