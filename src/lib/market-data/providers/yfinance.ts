@@ -1,6 +1,8 @@
 import YahooFinance from 'yahoo-finance2'
 
 import type { MarketQuote, MarketQuoteInput, QuoteFetchResult, QuoteProvider } from '../types'
+import { DERIVED_NET_DEBT_EBITDA_LABEL, DERIVED_NET_DEBT_LABEL } from './statusinvest'
+import type { FundamentalYear } from './statusinvest'
 
 const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] })
 
@@ -214,4 +216,78 @@ export const yfinanceProvider: QuoteProvider = {
 
     return out
   },
+}
+
+/**
+ * B3 tickers always end in a digit (PETR4, VALE3, ITUB4, TAEE11, ...); US/other exchange
+ * tickers on Yahoo never do (AAPL, MSFT, ...) — only B3 symbols need the `.SA` suffix.
+ */
+function yahooSymbolFor(ticker: string): string {
+  const t = ticker.trim().toUpperCase()
+  if (t.endsWith('.SA')) return t
+  return /\d$/.test(t) ? `${t}.SA` : t
+}
+
+/**
+ * Fallback fundamentals source (used only when StatusInvest can't resolve the ticker).
+ * Yahoo's classic quoteSummary financial-statement modules are mostly empty since Nov 2024
+ * (per yahoo-finance2's own warning) — `fundamentalsTimeSeries` is the maintained replacement,
+ * but only covers the last ~4-5 fiscal years. Only exposes the handful of fields Yahoo's API
+ * gives us (keyed with the same labels StatusInvest uses, so a question's metricLabel matches
+ * either provider) — nowhere near StatusInvest's full line-item coverage.
+ */
+export async function fetchYahooFundamentals(ticker: string): Promise<FundamentalYear[]> {
+  const symbol = yahooSymbolFor(ticker)
+  const period1 = '2015-01-01'
+
+  let financials: any[] = []
+  let balanceSheet: any[] = []
+  try {
+    ;[financials, balanceSheet] = await Promise.all([
+      yahooFinance.fundamentalsTimeSeries(symbol, { period1, type: 'annual', module: 'financials' }),
+      yahooFinance.fundamentalsTimeSeries(symbol, { period1, type: 'annual', module: 'balance-sheet' }),
+    ])
+  } catch (e: any) {
+    logMarketDataProviderEvent({
+      level: 'error',
+      msg: 'yfinance -> fundamentals_error',
+      request: { symbol },
+      error: { message: typeof e?.message === 'string' ? e.message : 'Provider error' },
+    })
+    return []
+  }
+
+  const byYear = (rows: any[]) => {
+    const out = new Map<number, any>()
+    for (const row of rows) {
+      const date = row?.date instanceof Date ? row.date : new Date(row?.date)
+      if (Number.isNaN(date.getTime())) continue
+      out.set(date.getUTCFullYear(), row)
+    }
+    return out
+  }
+
+  const financialsByYear = byYear(financials)
+  const balanceSheetByYear = byYear(balanceSheet)
+  const years = [...new Set([...financialsByYear.keys(), ...balanceSheetByYear.keys()])].sort()
+
+  return years.map((fiscalYear) => {
+    const f = financialsByYear.get(fiscalYear)
+    const b = balanceSheetByYear.get(fiscalYear)
+    const netIncome = asNumber(f?.netIncome)
+    const equity = asNumber(b?.stockholdersEquity)
+    const netDebt = asNumber(b?.netDebt)
+    const ebitda = asNumber(f?.EBITDA)
+    return {
+      fiscalYear,
+      metrics: {
+        'Receita Líquida': asNumber(f?.totalRevenue),
+        'Lucro Líquido': netIncome,
+        EBITDA: ebitda,
+        [DERIVED_NET_DEBT_LABEL]: netDebt,
+        ROE: netIncome != null && equity ? (netIncome / equity) * 100 : null,
+        [DERIVED_NET_DEBT_EBITDA_LABEL]: netDebt != null && ebitda ? netDebt / ebitda : null,
+      },
+    }
+  })
 }

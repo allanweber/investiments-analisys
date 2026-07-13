@@ -12,6 +12,7 @@ import { FaDetailsCard, FaMobilePanel } from '@/components/fa/details-card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -22,7 +23,12 @@ import {
 } from '@/components/ui/select'
 import { authClient } from '@/lib/auth-client'
 import { messages as m } from '@/messages'
-import { createInvestmentsBulkFn, deleteInvestmentFn, updateInvestmentFn } from '@/lib/investment-server'
+import {
+  createInvestmentsBulkFn,
+  deleteInvestmentFn,
+  setInvestmentActiveFn,
+  updateInvestmentFn,
+} from '@/lib/investment-server'
 import { listInvestmentTypesOptionsFn } from '@/lib/investment-type-server'
 import { listInvestmentsOverviewFn } from '@/lib/scoring-server'
 
@@ -191,6 +197,16 @@ function InvestimentosPage() {
     setBusy(id)
     try {
       await deleteInvestmentFn({ data: { id } })
+      await refresh()
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const onToggleActive = async (id: string, active: boolean) => {
+    setBusy(id)
+    try {
+      await setInvestmentActiveFn({ data: { id, active } })
       await refresh()
     } finally {
       setBusy(null)
@@ -510,6 +526,23 @@ function InvestimentosPage() {
                     key={row.id}
                     summary={
                       <>
+                        <span
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex shrink-0 items-center gap-1.5"
+                        >
+                          <Switch
+                            checked={row.active}
+                            disabled={busy === row.id}
+                            title={m.investments.toggleActiveTitle(row.active)}
+                            onCheckedChange={(checked) =>
+                              void onToggleActive(row.id, checked)
+                            }
+                            className="border-outline-variant/50 data-[state=unchecked]:bg-surface-container-highest"
+                          />
+                          <span className="font-label text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">
+                            {row.active ? m.common.statusAtiva : m.common.statusInativa}
+                          </span>
+                        </span>
                         <span className="min-w-0 flex-1 font-semibold text-on-surface">
                           {row.name}
                         </span>
@@ -601,6 +634,7 @@ function InvestimentosPage() {
                       <th className="text-left">{m.investments.thPontos}</th>
                       <th className="text-left">{m.common.labelRespondidasAtivas}</th>
                       <th className="text-left">{m.common.labelPosicao}</th>
+                      <th className="text-left">{m.common.labelAtiva}</th>
                       <th className="text-right">{m.investments.thAcoes}</th>
                     </tr>
                   </thead>
@@ -632,6 +666,22 @@ function InvestimentosPage() {
                               {row.position}{m.common.ordinalSuffix}
                             </span>
                           )}
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={row.active}
+                              disabled={busy === row.id}
+                              title={m.investments.toggleActiveTitle(row.active)}
+                              onCheckedChange={(checked) =>
+                                void onToggleActive(row.id, checked)
+                              }
+                              className="border-outline-variant/50 data-[state=unchecked]:bg-surface-container-highest"
+                            />
+                            <span className="font-label text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">
+                              {row.active ? m.common.statusAtiva : m.common.statusInativa}
+                            </span>
+                          </div>
                         </td>
                         <td className="text-right">
                           {editId === row.id ? (

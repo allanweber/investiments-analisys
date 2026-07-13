@@ -15,6 +15,7 @@ function makeInv(
     typeName: 'Tipo',
     typeSortOrder: 1,
     fixedIncome: false,
+    active: true,
     activeQuestionCount: 1,
     answeredActiveCount: 1,
     lastAiCheckedAt: null,

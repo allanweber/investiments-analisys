@@ -107,6 +107,30 @@ export const investmentType = pgTable('investment_type', {
     .defaultNow(),
 })
 
+/**
+ * kind starts `null` and is never chosen by the user — an AI classification step (see
+ * `classify-question-server.ts`) fills it in the first time the question is used: 'metric'
+ * (answerable deterministically from fetched financial-statement data, see ADR-0001) or
+ * 'websearch' (needs the Claude web-search provider, `ai-scoring-server.ts`). Null is treated
+ * the same as 'websearch' everywhere until classification succeeds.
+ */
+export type MetricComparator = 'gt' | 'lt'
+export type MetricMode = 'level' | 'growth'
+/**
+ * Extracted from a question's free-text prompt by the AI classifier — supports any line item a
+ * provider exposes, not a fixed list. metricLabel is matched fuzzily against whatever labels are
+ * available for the ticker (e.g. "ROE", "Receita Líquida", "Dívida Líquida/Ebitda", "Margem
+ * Líquida"). mode 'level' compares the reported value directly; 'growth' compares the year-over-
+ * year % change of the value. windowYears null means "all available history".
+ */
+export type QuestionMetricSpec = {
+  metricLabel: string
+  mode: MetricMode
+  comparator: MetricComparator
+  threshold: number
+  windowYears: number | null
+}
+
 export const question = pgTable('question', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: varchar('user_id', { length: 255 })
@@ -118,6 +142,8 @@ export const question = pgTable('question', {
   prompt: varchar('prompt', { length: 500 }).notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
   active: boolean('active').notNull().default(true),
+  kind: varchar('kind', { length: 20 }),
+  metricSpec: jsonb('metric_spec').$type<QuestionMetricSpec>(),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -135,6 +161,7 @@ export const investment = pgTable('investment', {
     .notNull()
     .references(() => investmentType.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 200 }).notNull(),
+  active: boolean('active').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -258,6 +285,28 @@ export const marketRate = pgTable('market_rate', {
     .notNull()
     .defaultNow(),
 })
+
+/**
+ * Global per-ticker, per-fiscal-year, per-line-item fundamentals cache (no user_id) — feeds
+ * `metric`-kind Question checks. One row per (ticker, fiscalYear, metricLabel); metricLabel is
+ * the raw line-item/ratio label as reported by the provider (e.g. "ROE", "Receita Líquida",
+ * "Dívida Líquida/Ebitda") — not a fixed enum, so any statement line item a question references
+ * can be cached. Overwritten on each refresh — see ADR-0001.
+ */
+export const companyFundamental = pgTable(
+  'company_fundamental',
+  {
+    ticker: varchar('ticker', { length: 20 }).notNull(),
+    fiscalYear: integer('fiscal_year').notNull(),
+    metricLabel: varchar('metric_label', { length: 100 }).notNull(),
+    provider: varchar('provider', { length: 50 }).notNull(),
+    value: numeric('value', { precision: 24, scale: 8 }),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.ticker, t.fiscalYear, t.metricLabel] })],
+)
 
 /**
  * Fixed-income contract terms stored at purchase time.

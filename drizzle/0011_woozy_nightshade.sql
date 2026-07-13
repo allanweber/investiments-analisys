@@ -1,0 +1,1 @@
+ALTER TABLE "investment" ADD COLUMN "active" boolean DEFAULT true NOT NULL;

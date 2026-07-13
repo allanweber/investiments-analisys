@@ -175,6 +175,7 @@ function ResultsSection({ result }: { result: AporteSimulationResult }) {
                     <th className="px-4 py-2 text-right">{m.aporte.colValor}</th>
                     <th className="px-4 py-2 text-right">{m.aporte.colUnidades}</th>
                     <th className="px-4 py-2 text-right">{m.aporte.colPct}</th>
+                    <th className="px-4 py-2 text-right">{m.aporte.colScore}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -260,6 +261,7 @@ function SuggestionRow({ suggestion: s }: { suggestion: ContributionSuggestion }
       <td className="px-4 py-3 text-right tabular-nums text-on-surface">
         {s.contributionPct.toFixed(1)}%
       </td>
+      <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{s.score}</td>
     </tr>
   )
 }

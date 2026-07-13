@@ -48,6 +48,7 @@ export type InvestmentOverviewRow = {
   typeName: string
   typeSortOrder: number
   fixedIncome: boolean
+  active: boolean
   score: number
   activeQuestionCount: number
   answeredActiveCount: number
@@ -65,6 +66,7 @@ export async function loadInvestmentOverviewRows(userId: string): Promise<Invest
       typeName: investmentType.name,
       typeSortOrder: investmentType.sortOrder,
       fixedIncome: investmentType.fixedIncome,
+      active: investment.active,
     })
     .from(investment)
     .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))

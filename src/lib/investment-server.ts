@@ -133,6 +133,22 @@ export const updateInvestmentFn = createServerFn({ method: 'POST' })
     return { ok: true as const, row }
   })
 
+const setActiveInput = z.object({ id: uuid, active: z.boolean() })
+
+export const setInvestmentActiveFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => setActiveInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = await getDb()
+    const userId = await requireUserId()
+    const [row] = await db
+      .update(investment)
+      .set({ active: data.active })
+      .where(and(eq(investment.id, data.id), eq(investment.userId, userId)))
+      .returning()
+    if (!row) return { ok: false as const, code: 'NOT_FOUND' as const }
+    return { ok: true as const, row }
+  })
+
 export const deleteInvestmentFn = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => idInput.parse(data))
   .handler(async ({ data }) => {

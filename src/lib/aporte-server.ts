@@ -114,6 +114,7 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
     // --- Collect renda variável tickers for quote resolution ---
     const varQuoteInputs: MarketQuoteInput[] = []
     for (const inv of scoredInvestments) {
+      if (!inv.active) continue
       if (isFixedIncomeTipo(inv.fixedIncome, inv.typeName)) continue
       const holding = holdingByInvestmentId.get(inv.id)
       const ticker = holding?.ticker?.trim() || inv.name
@@ -158,13 +159,15 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
       contributionCurrency,
     )
 
+    const eligibleScoredInvestments = scoredInvestments.filter((inv) => inv.active)
+
     return simulateAporte({
       amount,
       contributionCurrency,
       portfolio: { total: portfolioTotal, byType },
       targetsMap,
       typeRows,
-      scoredInvestments,
+      scoredInvestments: eligibleScoredInvestments,
       holdingByInvestmentId,
       quoteBySymbol: quoteMap,
       fxMatrix: matrix,

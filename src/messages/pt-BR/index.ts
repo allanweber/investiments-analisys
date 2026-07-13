@@ -301,6 +301,9 @@ const core = {
     subZero: '0',
     subNegOne: '−1',
     subPlusOne: '+1',
+    toggleActiveTitle: (active: boolean) => (active ? 'Desativar' : 'Ativar'),
+    toggleActiveHint:
+      'Investimentos desativados não entram nas sugestões de aporte.',
   },
   types: {
     deleteConfirm: (label: string) =>
@@ -439,6 +442,7 @@ const core = {
     colValor: 'Valor sugerido',
     colUnidades: 'Unidades',
     colPct: '% do aporte',
+    colScore: 'Pontuação',
     colAlocacaoAntes: 'Antes',
     colAlocacaoDepois: 'Depois',
     colMeta: 'Meta',
@@ -456,6 +460,7 @@ const core = {
     runButton: 'Verificar com IA',
     running: 'Consultando IA…',
     suggestionLabel: 'Sugestão da IA',
+    computedLabel: 'Calculado automaticamente',
     suggestionYes: 'Sim',
     suggestionNo: 'Não',
     suggestionUnknown: 'Sem sugestão (informação insuficiente)',

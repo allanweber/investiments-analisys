@@ -16,6 +16,7 @@ export type ContributionSuggestion = {
   contributionCurrency: string
   units: number | null
   contributionPct: number
+  score: number
   missingQuote: boolean
   currentTypePct: number
   projectedTypePct: number
@@ -175,6 +176,7 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
             contributionCurrency,
             units: null,
             contributionPct: (rawAmount / amount) * 100,
+            score: inv.score,
             missingQuote: false,
             currentTypePct,
             projectedTypePct,
@@ -192,6 +194,7 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
             contributionCurrency,
             units: null,
             contributionPct: (rawAmount / amount) * 100,
+            score: inv.score,
             missingQuote: false,
             currentTypePct,
             projectedTypePct,
@@ -214,6 +217,7 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
             contributionCurrency,
             units: null,
             contributionPct: (rawAmount / amount) * 100,
+            score: inv.score,
             missingQuote: true,
             currentTypePct,
             projectedTypePct,
@@ -244,6 +248,7 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
           contributionCurrency,
           units,
           contributionPct: (rawAmount / amount) * 100,
+            score: inv.score,
           missingQuote: false,
           currentTypePct,
           projectedTypePct,

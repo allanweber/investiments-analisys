@@ -6,10 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 
 import { allocColorForType, fmtPct } from '@/components/portfolio/format'
-import {
-  defaultTargetsHundredRendaFixa,
-  redistributeAfterChange,
-} from '@/components/portfolio/redistribute-targets'
+import { cn } from '@/lib/utils'
 
 export type AllocationTargetRow = {
   investmentTypeId: string
@@ -27,7 +24,6 @@ type Props = {
 export function AllocationTargetsByCategory({ rows, onSave, saving }: Props) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<number[]>([])
-  const [clampHint, setClampHint] = useState(false)
 
   const sorted = useMemo(
     () =>
@@ -45,22 +41,12 @@ export function AllocationTargetsByCategory({ rows, onSave, saving }: Props) {
   }
 
   function beginEdit() {
-    const base = sorted.map((r) => r.targetPct)
-    const sum = base.reduce((a, b) => a + b, 0)
-    if (sorted.length === 0) {
-      setDraft([])
-    } else if (Math.abs(sum - 100) > 1) {
-      setDraft(defaultTargetsHundredRendaFixa(sorted))
-    } else {
-      setDraft(base.map((x) => Math.round(x)))
-    }
-    setClampHint(false)
+    setDraft(sorted.map((r) => Math.round(r.targetPct)))
     setEditing(true)
   }
 
   function cancelEdit() {
     setEditing(false)
-    setClampHint(false)
   }
 
   async function commit() {
@@ -73,11 +59,8 @@ export function AllocationTargetsByCategory({ rows, onSave, saving }: Props) {
   }
 
   function onSliderChange(index: number, raw: number[]) {
-    const nextVal = Math.round(raw[0] ?? 0)
-    const before = draft
-    const after = redistributeAfterChange(before, index, nextVal)
-    setClampHint(after[index] !== nextVal)
-    setDraft(after)
+    const nextVal = Math.max(0, Math.min(100, Math.round(raw[0] ?? 0)))
+    setDraft((prev) => prev.map((v, i) => (i === index ? nextVal : v)))
   }
 
   const displayPcts = editing ? draft : viewPcts.map((x) => Math.round(x))
@@ -109,7 +92,7 @@ export function AllocationTargetsByCategory({ rows, onSave, saving }: Props) {
               type="button"
               size="sm"
               onClick={() => void commit()}
-              disabled={saving || Math.abs(totalPct - 100) > 0.5}
+              disabled={saving || totalPct > 100}
             >
               {saving ? 'Salvando…' : 'Salvar'}
             </Button>
@@ -168,12 +151,17 @@ export function AllocationTargetsByCategory({ rows, onSave, saving }: Props) {
 
       <div className="mt-6 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-sm font-semibold text-outline">Total alvo acumulado:</span>
-        <span className="font-headline text-lg font-extrabold text-on-surface">{fmtPct(editing ? totalPct : viewSum)}</span>
+        <span
+          className={cn(
+            'font-headline text-lg font-extrabold',
+            editing && totalPct > 100 ? 'text-error' : 'text-on-surface',
+          )}
+        >
+          {fmtPct(editing ? totalPct : viewSum)}
+        </span>
       </div>
-      {editing && clampHint && (
-        <p className="mt-2 text-xs text-outline">
-          Ajuste limitado: outras categorias foram alteradas para manter 100%.
-        </p>
+      {editing && totalPct > 100 && (
+        <p className="mt-2 text-xs text-error">O total não pode ultrapassar 100%.</p>
       )}
     </div>
   )

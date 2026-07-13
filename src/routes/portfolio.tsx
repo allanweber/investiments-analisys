@@ -43,7 +43,7 @@ function PortfolioPage() {
 
   useEffect(() => {
     if (!session?.user) return
-    if (hasHoldingsKnown !== true) return
+    if (hasHoldingsKnown === null) return
     void loadPortfolioOverviewFn({ data: { displayCurrency } }).then((o) => setOverview(o))
   }, [session?.user, hasHoldingsKnown, displayCurrency])
 
@@ -91,7 +91,7 @@ function PortfolioPage() {
   }
 
   const hasHoldings = hasHoldingsKnown === true
-  const portfolioLoading = hasHoldingsKnown === null || (hasHoldings && overview === null)
+  const portfolioLoading = hasHoldingsKnown === null || overview === null
 
   const total = overview?.totals.marketValue ?? 0
   const totalTarget = overview?.totals.targetTotalPct ?? 0
@@ -177,6 +177,16 @@ function PortfolioPage() {
                 <span className="material-symbols-outlined text-[20px] leading-none">add</span>
                 Adicionar investimento
               </Link>
+            </section>
+          ) : null}
+
+          {!hasHoldings ? (
+            <section className="mx-auto mt-6 max-w-xl md:max-w-2xl">
+              <AllocationTargetsByCategory
+                rows={overview.targets}
+                onSave={handleSaveAllocationTargets}
+                saving={allocationSaving}
+              />
             </section>
           ) : (
             <>

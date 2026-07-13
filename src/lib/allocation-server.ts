@@ -82,7 +82,7 @@ export const saveAllocationTargetsBulkFn = createServerFn({ method: 'POST' })
     const userId = await requireUserId()
 
     const sum = data.targets.reduce((acc, t) => acc + clampPct(t.targetPct), 0)
-    if (Math.abs(sum - 100) > 0.02) {
+    if (sum > 100) {
       throw new Error('INVALID_ALLOCATION_SUM')
     }
 

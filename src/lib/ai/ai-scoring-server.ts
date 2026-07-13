@@ -3,6 +3,7 @@ import { and, asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { investment, investmentAnswer, investmentType, question, userApiKey } from '@/db/schema'
+import { classifyQuestionKind } from '@/lib/ai/classify-question-server'
 import { getAiScoringProvider } from '@/lib/ai/providers'
 import { AiScoringError } from '@/lib/ai/types'
 import type { AiScoringErrorCode } from '@/lib/ai/types'
@@ -42,7 +43,7 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
       investmentId: string
       investmentName: string
       fixedIncome: boolean
-      questions: Array<{ id: string; prompt: string }>
+      questions: Array<{ id: string; prompt: string; kind: string | null }>
     }> = []
 
     for (const investmentId of data.investmentIds) {
@@ -63,7 +64,7 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
       }
 
       const activeQuestions = await db
-        .select({ id: question.id, prompt: question.prompt })
+        .select({ id: question.id, prompt: question.prompt, kind: question.kind })
         .from(question)
         .where(
           and(
@@ -100,23 +101,61 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
       .where(and(eq(userApiKey.userId, userId), eq(userApiKey.provider, PROVIDER)))
       .limit(1)
     if (!keyRow) {
-      for (const e of eligible) results.set(e.investmentId, { ok: false, code: 'missing_api_key' })
+      for (const e of eligible) {
+        const hasNonMetric = e.questions.some((q) => q.kind !== 'metric')
+        results.set(e.investmentId, hasNonMetric ? { ok: false, code: 'missing_api_key' } : { ok: true, suggestions: [] })
+      }
       return toBatchItems()
     }
 
     const apiKey = await decryptSecret(keyRow.encryptedKey)
+
+    // Silently classify any question the user has never had scored before (kind is null) —
+    // never surfaced to the user, see schema.ts's `question.kind` doc comment.
+    const unclassified = new Map<string, string>()
+    for (const e of eligible) {
+      for (const q of e.questions) {
+        if (q.kind === null) unclassified.set(q.id, q.prompt)
+      }
+    }
+    for (const [questionId, prompt] of unclassified) {
+      const classification = await classifyQuestionKind({ apiKey, prompt })
+      if (!classification) continue
+      await db
+        .update(question)
+        .set({ kind: classification.kind, metricSpec: classification.metricSpec })
+        .where(eq(question.id, questionId))
+      for (const e of eligible) {
+        const match = e.questions.find((item) => item.id === questionId)
+        if (match) match.kind = classification.kind
+      }
+    }
+
+    // Metric-kind questions are answered deterministically elsewhere (fundamentals-server.ts) —
+    // never sent to the AI provider. Null-kind questions whose classification failed above are
+    // treated as websearch (fail open rather than silently dropping the question).
+    const aiEligible = eligible
+      .map((e) => ({ ...e, questions: e.questions.filter((q) => q.kind !== 'metric') }))
+      .filter((e) => {
+        if (e.questions.length > 0) return true
+        results.set(e.investmentId, { ok: true, suggestions: [] })
+        return false
+      })
+
+    if (aiEligible.length === 0) return toBatchItems()
+
     const provider = getAiScoringProvider(PROVIDER)
-    const eligibleIds = eligible.map((e) => e.investmentId)
+    const eligibleIds = aiEligible.map((e) => e.investmentId)
 
     let batchResult
     try {
       batchResult = await provider.scoreInvestments({
         apiKey,
-        investments: eligible.map((e) => ({
+        investments: aiEligible.map((e) => ({
           investmentId: e.investmentId,
           investmentName: e.investmentName,
           fixedIncome: e.fixedIncome,
-          questions: e.questions,
+          questions: e.questions.map((q) => ({ id: q.id, prompt: q.prompt })),
         })),
       })
     } catch (e) {
@@ -145,7 +184,7 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
       batchResult.perInvestment.map((p) => [p.investmentId, p.answers]),
     )
 
-    for (const e of eligible) {
+    for (const e of aiEligible) {
       const answers = answersByInvestmentId.get(e.investmentId) ?? []
       const suggestions: AiSuggestion[] = []
 

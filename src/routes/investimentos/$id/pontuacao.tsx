@@ -2,6 +2,7 @@ import { Link, createFileRoute, Navigate, useRouter } from '@tanstack/react-rout
 import { useEffect, useState } from 'react'
 
 import { runAiScoringForInvestmentsFn } from '@/lib/ai/ai-scoring-server'
+import { runComputedChecksForInvestmentsFn } from '@/lib/fundamentals/fundamentals-server'
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth-client'
 import {
@@ -124,6 +125,32 @@ function PontuacaoPage() {
     )
   }, [data])
 
+  useEffect(() => {
+    if (!data) return
+    const hasComputed = data.questions.some((q) => q.kind === 'metric')
+    if (!hasComputed) return
+
+    let cancelled = false
+    void runComputedChecksForInvestmentsFn({ data: { investmentIds: [id] } }).then(([item]) => {
+      if (cancelled || !item.result.ok) return
+      const suggestions = item.result.suggestions
+      setAiSuggestions((prev) => {
+        const next = { ...prev }
+        for (const s of suggestions) {
+          next[s.questionId] = {
+            suggestedYes: s.suggestedYes,
+            reasoning: s.reasoning,
+            checkedAt: s.checkedAt,
+          }
+        }
+        return next
+      })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [data, id])
+
   if (sessionPending) {
     return (
       <main
@@ -215,6 +242,31 @@ function PontuacaoPage() {
         }
         return next
       })
+
+      // Questions may have just been classified as `kind: 'metric'` for the first time by the
+      // call above — that classification is persisted server-side, but our already-loaded `data`
+      // doesn't reflect it, so run computed checks unconditionally rather than relying on stale
+      // `data.questions` to decide whether any exist.
+      const [computedItem] = await runComputedChecksForInvestmentsFn({
+        data: { investmentIds: [id] },
+      })
+      if (computedItem.result.ok) {
+        setAiSuggestions((prev) => {
+          const next = { ...prev }
+          for (const s of computedItem.result.suggestions) {
+            next[s.questionId] = {
+              suggestedYes: s.suggestedYes,
+              reasoning: s.reasoning,
+              checkedAt: s.checkedAt,
+            }
+          }
+          return next
+        })
+      }
+
+      // Refresh loader data so `question.kind` (possibly just classified server-side above)
+      // is reflected in the suggestion card's icon/label.
+      await router.invalidate()
     } finally {
       setAiRunning(false)
     }
@@ -368,10 +420,10 @@ function PontuacaoPage() {
                 >
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined shrink-0 text-lg leading-none text-on-surface-variant">
-                      auto_awesome
+                      {q.kind === 'metric' ? 'calculate' : 'auto_awesome'}
                     </span>
                     <p className="font-label text-xs font-bold uppercase tracking-wide text-on-surface-variant">
-                      {m.ai.suggestionLabel}
+                      {q.kind === 'metric' ? m.ai.computedLabel : m.ai.suggestionLabel}
                     </p>
                     <span
                       className={cn(

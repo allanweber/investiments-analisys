@@ -71,6 +71,20 @@
       "when": 1783507788134,
       "tag": "0009_legal_brother_voodoo",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783616486333,
+      "tag": "0010_medical_hellcat",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1783872104313,
+      "tag": "0011_woozy_nightshade",
+      "breakpoints": true
     }
   ]
 }
