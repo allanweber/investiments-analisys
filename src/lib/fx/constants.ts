@@ -1,5 +1,5 @@
 /** Currencies supported for display conversion (MVP). */
-export const SUPPORTED_FX_CURRENCIES = ['BRL', 'USD', 'EUR'] as const
+export const SUPPORTED_FX_CURRENCIES = ['BRL', 'USD', 'EUR', 'GBP'] as const
 
 export type FxCurrency = (typeof SUPPORTED_FX_CURRENCIES)[number]
 

@@ -4,6 +4,7 @@ export const YAHOO_FX_PAIRS = [
   { base: 'USD', quote: 'BRL', symbol: 'USDBRL=X' },
   { base: 'EUR', quote: 'BRL', symbol: 'EURBRL=X' },
   { base: 'EUR', quote: 'USD', symbol: 'EURUSD=X' },
+  { base: 'GBP', quote: 'BRL', symbol: 'GBPBRL=X' },
 ] as const
 
 export type YahooFxFetchResult = {

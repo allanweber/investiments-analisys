@@ -20,4 +20,4 @@ export type DonutSegment = {
   color: string
 }
 
-export const HOLDING_CURRENCY_OPTIONS = ['BRL', 'USD', 'EUR'] as const
+export const HOLDING_CURRENCY_OPTIONS = ['BRL', 'USD', 'EUR', 'GBP'] as const
