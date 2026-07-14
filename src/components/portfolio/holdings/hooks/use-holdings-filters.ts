@@ -32,7 +32,9 @@ export function useHoldingsFilters(rows: HoldingRow[]): UseHoldingsFiltersResult
   }, [rows])
 
   const currencyFilterOptions = useMemo(() => {
-    const codes = [...new Set(rows.map((r) => r.currency).filter(Boolean))]
+    const codes = [
+      ...new Set(rows.map((r) => r.currency).filter((c): c is string => Boolean(c))),
+    ]
     return codes.sort((a, b) => a.localeCompare(b))
   }, [rows])
 

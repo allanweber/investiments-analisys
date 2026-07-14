@@ -193,8 +193,8 @@ export function useRendaFixaForm({
         const created = await createInvestmentFn({
           data: { name: form.newName.trim(), investmentTypeId: form.newTypeId },
         })
-        if (!created) { setSaveError(m.portfolio.rendaFixaCreateError); return }
-        investmentId = created.id
+        if (!created.ok) { setSaveError(m.portfolio.rendaFixaCreateError); return }
+        investmentId = created.row.id
       }
 
       const annualRate = (needsPositiveRate || form.indexer === 'selic-spread') ? form.annualRate / 100 : 0

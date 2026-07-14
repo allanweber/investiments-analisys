@@ -251,27 +251,27 @@ const core = {
   },
   investments: {
     createTypeFirst: 'Crie primeiro um tipo em Tipos de investimento.',
-    bulkMaxLines:
-      'No máximo 100 nomes por envio. Foram consideradas apenas as primeiras 100 linhas.',
-    bulkNeedNames: 'Indique pelo menos um nome (um por linha).',
-    bulkInvalidType: 'Tipo inválido.',
-    bulkNoValidNames: 'Nenhum nome válido para criar.',
+    tickerRequired: 'Informe o ticker (obrigatório, exceto para renda fixa).',
+    tickerUnresolved:
+      'Ticker não encontrado na cotação. Verifique o símbolo (ex.: adicione o sufixo da bolsa, como .SA ou .L).',
+    tickerDuplicate: 'Já existe um investimento com este ticker.',
     typeChangeBlocked:
       'Não é possível mudar o tipo: já existem respostas. Crie um novo investimento.',
     invalidType: 'Tipo inválido.',
     deleteConfirm: (name: string) => `Excluir o investimento "${name}"?`,
     pageTitle: 'Lista e ranking',
     pageSubtitle:
-      'Compare pontuações dentro de cada tipo. Filtre a lista abaixo ou adicione vários nomes de uma vez no formulário.',
+      'Compare pontuações dentro de cada tipo. Filtre a lista abaixo ou adicione um investimento no formulário.',
     noTypesBodyBeforeLink: 'Ainda não há tipos.',
     noTypesLink: 'Crie tipos',
     noTypesBodyAfterLink: 'antes de adicionar investimentos.',
-    addInvestmentsTitle: 'Adicionar investimentos',
+    addInvestmentsTitle: 'Adicionar investimento',
     addInvestmentsHint:
-      'Um nome por linha no mesmo tipo. Máximo 100 linhas por envio.',
-    bulkPlaceholder: 'Ex.:\nFundos X\nTítulos Y\nUm nome por linha…',
+      'Informe o nome e o ticker (obrigatório, exceto para renda fixa) e escolha o tipo.',
+    labelTicker: 'Ticker',
+    tickerHint: 'Ex.: PETR4, AAPL, VWRL.L. Deixe em branco apenas para renda fixa.',
     selectTypePlaceholder: 'Escolher tipo',
-    createListSubmit: 'Criar na lista',
+    createListSubmit: 'Adicionar',
     filterAllPlaceholder: 'Todos ou um tipo',
     filterAllTypes: 'Todos os tipos',
     listCountOne: 'investimento nesta lista',
@@ -391,6 +391,10 @@ const core = {
     addVariableSelectTypeError: 'Selecione o tipo de investimento.',
     addVariableCreateInvestmentError:
       'Não foi possível criar o investimento. Verifique o tipo selecionado.',
+    addVariableUnresolvedTickerError:
+      'Ticker não encontrado na cotação. Verifique o símbolo (ex.: adicione o sufixo da bolsa, como .SA ou .L).',
+    addVariableDuplicateTickerError:
+      'Já existe um investimento com este ticker.',
     addMergeHint:
       'Já existe posição neste investimento. A quantidade e o preço unitário serão somados (novo preço médio), na mesma moeda da posição.',
     addMergeQuantityLabel: 'Quantidade adicional',

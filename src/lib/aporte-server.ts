@@ -40,8 +40,8 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
     // --- Portfolio state ---
     const holdings = await db
       .select({
-        currency: portfolioHolding.currency,
-        ticker: portfolioHolding.ticker,
+        currency: investment.currency,
+        ticker: investment.ticker,
         quantity: portfolioHolding.quantity,
         avgCost: portfolioHolding.avgCost,
         investmentId: portfolioHolding.investmentId,
@@ -106,21 +106,16 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
 
     const scoredInvestments = await loadInvestmentOverviewRows(userId)
 
-    // --- Holding map for ticker + currency lookup ---
-    const holdingByInvestmentId = new Map(
-      holdings.map((h) => [h.investmentId, { ticker: h.ticker, currency: h.currency }]),
-    )
-
     // --- Collect renda variável tickers for quote resolution ---
     const varQuoteInputs: MarketQuoteInput[] = []
     for (const inv of scoredInvestments) {
       if (!inv.active) continue
       if (isFixedIncomeTipo(inv.fixedIncome, inv.typeName)) continue
-      const holding = holdingByInvestmentId.get(inv.id)
-      const ticker = holding?.ticker?.trim() || inv.name
+      const ticker = inv.ticker?.trim()
+      if (!ticker) continue
       varQuoteInputs.push({
         symbol: ticker,
-        holdingCurrency: normalizeHoldingCurrency(holding?.currency ?? contributionCurrency),
+        holdingCurrency: normalizeHoldingCurrency(inv.currency ?? contributionCurrency),
       })
     }
 
@@ -168,7 +163,6 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
       targetsMap,
       typeRows,
       scoredInvestments: eligibleScoredInvestments,
-      holdingByInvestmentId,
       quoteBySymbol: quoteMap,
       fxMatrix: matrix,
     })

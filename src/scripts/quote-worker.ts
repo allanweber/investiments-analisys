@@ -103,8 +103,8 @@ type SymbolEnt = { symbol: string; holdingCurrency: string | null }
 async function loadDistinctSymbols(): Promise<SymbolEnt[]> {
   const rows = await db
     .select({
-      symbol: portfolioHolding.ticker,
-      holdingCurrency: portfolioHolding.currency,
+      symbol: investment.ticker,
+      holdingCurrency: investment.currency,
       fixedIncome: investmentType.fixedIncome,
       typeName: investmentType.name,
     })
@@ -113,8 +113,8 @@ async function loadDistinctSymbols(): Promise<SymbolEnt[]> {
     .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
     .where(
       and(
-        isNotNull(portfolioHolding.ticker),
-        sql`length(trim(${portfolioHolding.ticker})) > 0`,
+        isNotNull(investment.ticker),
+        sql`length(trim(${investment.ticker})) > 0`,
         eq(investmentType.fixedIncome, false),
         sql`lower(trim(${investmentType.name})) != 'renda fixa'`,
       ),

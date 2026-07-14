@@ -15,7 +15,8 @@ export type ValuationHoldingInput = {
   ticker: string | null
   quantity: string
   avgCost: string
-  currency: string
+  /** Null when the investment's currency hasn't been resolved yet; treated as BRL. */
+  currency: string | null
   fixedIncome: boolean
   investmentTypeName: string
 }
@@ -59,13 +60,16 @@ export async function valuateHoldings(
 
   const { bySymbol, stale } = await loadQuotesFromDb({ inputs })
 
-  const nativeCurrencies = [...new Set(holdings.map((h) => h.currency).filter(Boolean))]
+  const nativeCurrencies = [
+    ...new Set(holdings.map((h) => h.currency).filter((c): c is string => Boolean(c))),
+  ]
   const { matrix, newestFetchedAt, oldestFetchedAt, fxMissingPairs } =
     await ensureFxRatesForDisplay(db, nativeCurrencies, displayCurrency)
   const fxStale = isFxCacheStale(oldestFetchedAt)
 
   const valuated: ValuatedHolding[] = holdings.map((h) => {
     const sym = (h.ticker ?? '').trim()
+    const cur = h.currency && h.currency.trim() ? h.currency : 'BRL'
     const qty = toMoney(num(h.quantity))
     const avg = toMoney(num(h.avgCost))
 
@@ -75,7 +79,7 @@ export async function valuateHoldings(
         ticker: h.ticker,
         quantity: qty,
         avgCost: avg,
-        currency: h.currency,
+        currency: cur,
         fixedIncome: h.fixedIncome,
         investmentTypeName: h.investmentTypeName,
       },
@@ -85,11 +89,11 @@ export async function valuateHoldings(
     const mv =
       valued.marketValueNative == null
         ? { value: null as number | null, rate: null as number | null }
-        : convertMoney(valued.marketValueNative, h.currency, displayCurrency, matrix)
+        : convertMoney(valued.marketValueNative, cur, displayCurrency, matrix)
     const pl =
       valued.unrealizedPlNative == null
         ? { value: null as number | null, rate: null as number | null }
-        : convertMoney(valued.unrealizedPlNative, h.currency, displayCurrency, matrix)
+        : convertMoney(valued.unrealizedPlNative, cur, displayCurrency, matrix)
 
     return {
       quantity: qty,

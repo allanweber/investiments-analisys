@@ -116,11 +116,9 @@ export function useAddToPosition({ modal, refresh }: UseAddToPositionOptions): U
     await upsertPortfolioHoldingFn({
       data: {
         investmentId: row.investmentId,
-        ticker: row.ticker?.trim() ? row.ticker.trim() : null,
         quantity: newQ,
         avgCost: round2(newAvg),
         broker: row.broker?.trim() ? row.broker.trim() : null,
-        currency: row.currency,
         lastOperationAt: lastOpIso,
       },
     })

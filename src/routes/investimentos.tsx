@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -24,7 +23,7 @@ import {
 import { authClient } from '@/lib/auth-client'
 import { messages as m } from '@/messages'
 import {
-  createInvestmentsBulkFn,
+  createInvestmentFn,
   deleteInvestmentFn,
   setInvestmentActiveFn,
   updateInvestmentFn,
@@ -55,13 +54,24 @@ function InvestimentosPage() {
   const { data: session, isPending: sessionPending } = authClient.useSession()
   const { rows, types } = Route.useLoaderData()
   const [filterTypeId, setFilterTypeId] = useState<string>('all')
-  const [bulkNames, setBulkNames] = useState('')
+  const [newName, setNewName] = useState('')
+  const [newTicker, setNewTicker] = useState('')
   const [newTypeId, setNewTypeId] = useState<string>(types[0]?.id ?? '')
   const [busy, setBusy] = useState<string | null>(null)
   const [editId, setEditId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
+  const [editTicker, setEditTicker] = useState('')
   const [editTypeId, setEditTypeId] = useState('')
-  const [bulkAddOpen, setBulkAddOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+
+  const newTypeIsFixed = useMemo(
+    () => Boolean(types.find((t) => t.id === newTypeId)?.fixedIncome),
+    [types, newTypeId],
+  )
+  const editTypeIsFixed = useMemo(
+    () => Boolean(types.find((t) => t.id === editTypeId)?.fixedIncome),
+    [types, editTypeId],
+  )
 
   const filteredRows = useMemo(() => {
     if (filterTypeId === 'all') return rows
@@ -91,13 +101,6 @@ function InvestimentosPage() {
       })
   }, [filteredRows])
 
-  const draftLineCount = useMemo(() => {
-    return bulkNames
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean).length
-  }, [bulkNames])
-
   const visibleInvestmentCount = filteredRows.length
 
   if (sessionPending) {
@@ -119,40 +122,40 @@ function InvestimentosPage() {
 
   const refresh = () => router.invalidate()
 
+  const alertForCode = (code: string) => {
+    if (code === 'MISSING_TICKER') alert(m.investments.tickerRequired)
+    else if (code === 'UNRESOLVED_TICKER') alert(m.investments.tickerUnresolved)
+    else if (code === 'DUPLICATE_TICKER') alert(m.investments.tickerDuplicate)
+    else if (code === 'HAS_ANSWERS_TYPE_LOCKED') alert(m.investments.typeChangeBlocked)
+    else alert(m.investments.invalidType)
+  }
+
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTypeId) {
-      if (types.length === 0) {
-        alert(m.investments.createTypeFirst)
-      }
+      if (types.length === 0) alert(m.investments.createTypeFirst)
       return
     }
-    const lines = bulkNames
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean)
-    const names = lines.slice(0, 100)
-    if (lines.length > 100) {
-      alert(m.investments.bulkMaxLines)
-    }
-    if (names.length === 0) {
-      alert(m.investments.bulkNeedNames)
+    if (!newName.trim()) return
+    if (!newTypeIsFixed && !newTicker.trim()) {
+      alert(m.investments.tickerRequired)
       return
     }
     setBusy('create')
     try {
-      const res = await createInvestmentsBulkFn({
-        data: { investmentTypeId: newTypeId, names },
+      const res = await createInvestmentFn({
+        data: {
+          name: newName.trim(),
+          ticker: newTicker.trim() ? newTicker.trim() : null,
+          investmentTypeId: newTypeId,
+        },
       })
       if (!res.ok) {
-        alert(
-          res.code === 'BAD_TYPE'
-            ? m.investments.bulkInvalidType
-            : m.investments.bulkNoValidNames,
-        )
+        alertForCode(res.code)
         return
       }
-      setBulkNames('')
+      setNewName('')
+      setNewTicker('')
       await refresh()
     } finally {
       setBusy(null)
@@ -162,26 +165,28 @@ function InvestimentosPage() {
   const startEdit = (row: OverviewRow) => {
     setEditId(row.id)
     setEditName(row.name)
+    setEditTicker(row.ticker ?? '')
     setEditTypeId(row.investmentTypeId)
   }
 
   const onSaveEdit = async () => {
     if (!editId || !editName.trim() || !editTypeId) return
+    if (!editTypeIsFixed && !editTicker.trim()) {
+      alert(m.investments.tickerRequired)
+      return
+    }
     setBusy(editId)
     try {
       const res = await updateInvestmentFn({
         data: {
           id: editId,
           name: editName.trim(),
+          ticker: editTicker.trim() ? editTicker.trim() : null,
           investmentTypeId: editTypeId,
         },
       })
       if (!res.ok) {
-        if (res.code === 'HAS_ANSWERS_TYPE_LOCKED') {
-          alert(m.investments.typeChangeBlocked)
-        } else if (res.code === 'BAD_TYPE') {
-          alert(m.investments.invalidType)
-        }
+        alertForCode(res.code)
         return
       }
       setEditId(null)
@@ -260,15 +265,15 @@ function InvestimentosPage() {
           <div className="rounded-[calc(1rem-2px)] bg-surface-container-lowest">
             <button
               type="button"
-              className={`flex w-full flex-wrap items-start justify-between gap-3 rounded-[calc(1rem-2px)] px-5 pt-6 text-left transition-colors hover:bg-surface-container-high/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest sm:px-8 sm:pt-7 ${!bulkAddOpen ? 'pb-6 sm:pb-7' : ''}`}
-              aria-expanded={bulkAddOpen}
+              className={`flex w-full flex-wrap items-start justify-between gap-3 rounded-[calc(1rem-2px)] px-5 pt-6 text-left transition-colors hover:bg-surface-container-high/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest sm:px-8 sm:pt-7 ${!addOpen ? 'pb-6 sm:pb-7' : ''}`}
+              aria-expanded={addOpen}
               aria-controls="add-investments-panel"
-              onClick={() => setBulkAddOpen((o) => !o)}
+              onClick={() => setAddOpen((o) => !o)}
             >
               <span className="flex min-w-0 flex-1 items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-fixed text-on-primary-fixed">
                   <span className="material-symbols-outlined text-xl leading-none">
-                    playlist_add
+                    add
                   </span>
                 </span>
                 <span className="min-w-0">
@@ -289,7 +294,7 @@ function InvestimentosPage() {
               >
                 <span
                   className={`material-symbols-outlined text-2xl leading-none transition-transform duration-200 ${
-                    bulkAddOpen ? 'rotate-180' : ''
+                    addOpen ? 'rotate-180' : ''
                   }`}
                 >
                   expand_more
@@ -298,48 +303,54 @@ function InvestimentosPage() {
             </button>
             <div
               id="add-investments-panel"
-              hidden={!bulkAddOpen}
+              hidden={!addOpen}
               className="border-t border-outline-variant/15 px-5 pb-6 pt-6 sm:px-8 sm:pb-7 sm:pt-7"
             >
-            <form
-              onSubmit={onCreate}
-              className="grid gap-6 lg:grid-cols-[1fr_minmax(300px,420px)] lg:items-stretch"
-            >
-              <div className="flex min-h-0 min-w-0 flex-col gap-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
+            <form onSubmit={onCreate} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+                <div className="flex min-w-0 flex-col gap-2 lg:flex-1">
                   <Label
-                    htmlFor="inv-names-bulk"
-                    className="font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
+                    htmlFor="inv-new-name"
+                    className="h-4 font-label text-xs font-semibold uppercase leading-none tracking-wider text-on-surface-variant"
                   >
-                    {m.common.labelNomes}
+                    {m.common.labelNome}
                   </Label>
-                  {draftLineCount > 0 && (
-                    <span className="rounded-full bg-surface-container-high px-2 py-0.5 font-label text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
-                      {m.common.linesBadge(draftLineCount)}
-                    </span>
-                  )}
+                  <Input
+                    id="inv-new-name"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="h-11 border-outline-variant/30 bg-surface-container-high"
+                  />
                 </div>
-                <Textarea
-                  id="inv-names-bulk"
-                  value={bulkNames}
-                  onChange={(e) => setBulkNames(e.target.value)}
-                  placeholder={m.investments.bulkPlaceholder}
-                  rows={6}
-                  className="min-h-[140px] flex-1 resize-y rounded-xl border-outline-variant/30 bg-surface-container-high font-body text-sm leading-relaxed placeholder:text-outline"
-                />
-              </div>
-              <div className="flex min-w-0 flex-col gap-4 lg:justify-between">
-                <div className="grid min-w-0 gap-2">
+                <div className="flex min-w-0 flex-col gap-2 lg:flex-1">
+                  <Label
+                    htmlFor="inv-new-ticker"
+                    className="h-4 font-label text-xs font-semibold uppercase leading-none tracking-wider text-on-surface-variant"
+                  >
+                    {m.investments.labelTicker}
+                    {!newTypeIsFixed && <span className="ml-1 text-error">*</span>}
+                  </Label>
+                  <Input
+                    id="inv-new-ticker"
+                    value={newTicker}
+                    onChange={(e) => setNewTicker(e.target.value.toUpperCase())}
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className="h-11 border-outline-variant/30 bg-surface-container-high font-semibold"
+                  />
+                </div>
+                <div className="flex min-w-0 flex-col gap-2 lg:flex-1">
                   <Label
                     htmlFor="inv-new-type"
-                    className="font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
+                    className="h-4 font-label text-xs font-semibold uppercase leading-none tracking-wider text-on-surface-variant"
                   >
                     {m.common.labelTipoInvestimento}
                   </Label>
                   <Select value={newTypeId} onValueChange={setNewTypeId}>
                     <SelectTrigger
                       id="inv-new-type"
-                      className="h-11 w-full min-w-0 border-outline-variant/30 bg-surface-container-highest sm:min-w-[280px]"
+                      className="h-11! w-full min-w-0 border-outline-variant/30 bg-surface-container-highest"
                     >
                       <SelectValue placeholder={m.investments.selectTypePlaceholder} />
                     </SelectTrigger>
@@ -354,8 +365,8 @@ function InvestimentosPage() {
                 </div>
                 <Button
                   type="submit"
-                  disabled={busy === 'create' || !newTypeId}
-                  className="h-11 w-full rounded-xl bg-primary-container font-headline font-semibold text-on-primary lg:mt-auto"
+                  disabled={busy === 'create' || !newTypeId || !newName.trim()}
+                  className="h-11 w-full shrink-0 rounded-xl bg-primary-container font-headline font-semibold text-on-primary lg:w-auto lg:min-w-[10rem]"
                 >
                   <span className="material-symbols-outlined mr-1 shrink-0 text-lg leading-none">
                     add
@@ -363,6 +374,9 @@ function InvestimentosPage() {
                   {busy === 'create' ? m.common.saving : m.investments.createListSubmit}
                 </Button>
               </div>
+              <p className="font-body text-xs text-on-surface-variant">
+                {m.investments.tickerHint}
+              </p>
             </form>
             </div>
           </div>
@@ -447,6 +461,20 @@ function InvestimentosPage() {
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
                           className="h-10 border-outline-variant/30 bg-surface-container-high"
+                        />
+                      </div>
+                      <div>
+                        <span className="mb-1 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
+                          {m.investments.labelTicker}
+                          {!editTypeIsFixed && <span className="ml-1 text-error">*</span>}
+                        </span>
+                        <Input
+                          value={editTicker}
+                          onChange={(e) => setEditTicker(e.target.value.toUpperCase())}
+                          autoCapitalize="characters"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          className="h-10 border-outline-variant/30 bg-surface-container-high font-semibold"
                         />
                       </div>
                       <dl className="grid grid-cols-2 gap-3 text-sm">
@@ -543,8 +571,16 @@ function InvestimentosPage() {
                             {row.active ? m.common.statusAtiva : m.common.statusInativa}
                           </span>
                         </span>
-                        <span className="min-w-0 flex-1 font-semibold text-on-surface">
-                          {row.name}
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className="font-semibold text-on-surface">
+                            {row.name}
+                          </span>
+                          {row.ticker && (
+                            <span className="font-label text-[11px] font-medium text-on-surface-variant">
+                              {row.ticker}
+                              {row.currency ? ` (${row.currency})` : ''}
+                            </span>
+                          )}
                         </span>
                         <span className="shrink-0 text-xs font-semibold tabular-nums text-on-surface-variant">
                           {m.common.scorePtsAbbrev(row.score)}
@@ -643,13 +679,42 @@ function InvestimentosPage() {
                       <tr key={row.id} className="fa-tr">
                         <td className="min-w-[11rem] font-semibold text-on-surface [overflow-wrap:anywhere]">
                           {editId === row.id ? (
-                            <Input
-                              value={editName}
-                              onChange={(e) => setEditName(e.target.value)}
-                              className="h-9 min-w-[10rem] border-none bg-surface-container-high"
-                            />
+                            <div className="flex flex-col gap-1.5">
+                              <div>
+                                <span className="mb-0.5 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
+                                  {m.common.labelNome}
+                                </span>
+                                <Input
+                                  value={editName}
+                                  onChange={(e) => setEditName(e.target.value)}
+                                  className="h-9 min-w-[10rem] border-none bg-surface-container-high"
+                                />
+                              </div>
+                              <div>
+                                <span className="mb-0.5 block font-label text-[10px] font-bold uppercase tracking-wider text-outline">
+                                  {m.investments.labelTicker}
+                                  {!editTypeIsFixed && <span className="ml-1 text-error">*</span>}
+                                </span>
+                                <Input
+                                  value={editTicker}
+                                  onChange={(e) => setEditTicker(e.target.value.toUpperCase())}
+                                  autoCapitalize="characters"
+                                  autoCorrect="off"
+                                  spellCheck={false}
+                                  className="h-9 min-w-[10rem] border-none bg-surface-container-high"
+                                />
+                              </div>
+                            </div>
                           ) : (
-                            row.name
+                            <div className="flex flex-col">
+                              <span>{row.name}</span>
+                              {row.ticker && (
+                                <span className="font-label text-[11px] font-medium text-on-surface-variant">
+                                  {row.ticker}
+                                  {row.currency ? ` (${row.currency})` : ''}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td className="whitespace-nowrap tabular-nums text-on-surface">

@@ -49,11 +49,6 @@ export type AporteTypeRow = {
 
 export type AporteTargetsMap = Record<string, { targetPct: number } | undefined>
 
-export type AporteHoldingInfo = {
-  ticker: string | null
-  currency: string
-}
-
 export type AporteQuote = {
   price: number | null
   currency: string | null
@@ -66,7 +61,6 @@ export type AporteInput = {
   targetsMap: AporteTargetsMap
   typeRows: AporteTypeRow[]
   scoredInvestments: InvestmentOverviewRow[]
-  holdingByInvestmentId: Map<string, AporteHoldingInfo>
   quoteBySymbol: Map<string, AporteQuote>
   fxMatrix: FxRateMatrix
 }
@@ -79,7 +73,6 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
     targetsMap,
     typeRows,
     scoredInvestments,
-    holdingByInvestmentId,
     quoteBySymbol,
     fxMatrix,
   } = input
@@ -157,11 +150,10 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
       const invShare = inv.score / totalScore
       const rawAmount = typeAmount * invShare
 
-      const holding = holdingByInvestmentId.get(inv.id)
       const isFixed = isFixedIncomeTipo(inv.fixedIncome, inv.typeName)
 
       if (isFixed) {
-        const assetCurrency = holding?.currency?.toUpperCase() ?? contributionCurrency.toUpperCase()
+        const assetCurrency = inv.currency?.toUpperCase() ?? contributionCurrency.toUpperCase()
         if (assetCurrency !== contributionCurrency.toUpperCase()) {
           const rate = getFxRate(fxMatrix, contributionCurrency, assetCurrency)
           if (rate == null) continue
@@ -202,8 +194,8 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
           })
         }
       } else {
-        const ticker = holding?.ticker?.trim() || inv.name
-        const quote = quoteBySymbol.get(ticker)
+        const ticker = inv.ticker?.trim() || ''
+        const quote = ticker ? quoteBySymbol.get(ticker) : undefined
 
         if (!quote?.price) {
           suggestions.push({
@@ -226,7 +218,7 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
           continue
         }
 
-        const assetCurrency = (quote.currency?.trim() || holding?.currency || contributionCurrency).toUpperCase()
+        const assetCurrency = (quote.currency?.trim() || inv.currency || contributionCurrency).toUpperCase()
         const rate = getFxRate(fxMatrix, contributionCurrency, assetCurrency)
         if (rate == null) continue
 

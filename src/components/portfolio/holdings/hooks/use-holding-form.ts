@@ -147,8 +147,8 @@ export function useHoldingForm({ rows, modal, displayCurrency, refresh }: UseHol
   useEffect(() => {
     if (modal.state.kind !== 'add') return
     const existing = findExistingHoldingForAdd(rows, form.investmentId, form.ticker)
-    if (!existing) return
-    setForm((f) => f.currency === existing.currency ? f : { ...f, currency: existing.currency })
+    if (!existing || !existing.currency) return
+    setForm((f) => f.currency === existing.currency ? f : { ...f, currency: existing.currency! })
   }, [modal.state.kind, form.investmentId, form.ticker, rows])
 
   // Escape key dismisses delete confirmation
@@ -200,7 +200,7 @@ export function useHoldingForm({ rows, modal, displayCurrency, refresh }: UseHol
       quantity: row.quantity,
       avgCost: round2(row.avgCost),
       broker: row.broker?.trim() ?? '',
-      currency: row.currency,
+      currency: row.currency ?? displayCurrency,
       lastOpDate: toDateInputValue(row.lastOperationAt),
     })
     modal.openEdit(row)
@@ -224,13 +224,19 @@ export function useHoldingForm({ rows, modal, displayCurrency, refresh }: UseHol
         return
       }
       const created = await createInvestmentFn({
-        data: { name: ticker, investmentTypeId: form.investmentTypeId },
+        data: { name: ticker, ticker, investmentTypeId: form.investmentTypeId },
       })
-      if (!created) {
-        setSaveHoldingError(m.portfolio.addVariableCreateInvestmentError)
+      if (!created.ok) {
+        setSaveHoldingError(
+          created.code === 'UNRESOLVED_TICKER'
+            ? m.portfolio.addVariableUnresolvedTickerError
+            : created.code === 'DUPLICATE_TICKER'
+              ? m.portfolio.addVariableDuplicateTickerError
+              : m.portfolio.addVariableCreateInvestmentError,
+        )
         return
       }
-      investmentId = created.id
+      investmentId = created.row.id
     }
 
     const existing =
@@ -240,9 +246,7 @@ export function useHoldingForm({ rows, modal, displayCurrency, refresh }: UseHol
 
     let quantity = Number(form.quantity)
     let avgCost = round2(form.avgCost)
-    let currency = form.currency
     let broker = form.broker.trim() ? form.broker.trim() : null
-    let ticker = form.ticker.trim() ? form.ticker.trim() : null
 
     if (existing) {
       const addQ = quantity
@@ -255,9 +259,7 @@ export function useHoldingForm({ rows, modal, displayCurrency, refresh }: UseHol
       const oldAvg = existing.avgCost
       quantity = oldQ + addQ
       avgCost = round2((oldQ * oldAvg + addQ * unit) / quantity)
-      currency = existing.currency
       if (!broker) broker = existing.broker?.trim() ? existing.broker.trim() : null
-      if (!ticker) ticker = existing.ticker?.trim() ? existing.ticker.trim() : null
     }
 
     const lastOpIso =
@@ -266,7 +268,7 @@ export function useHoldingForm({ rows, modal, displayCurrency, refresh }: UseHol
         : new Date(`${form.lastOpDate}T12:00:00`).toISOString()
 
     await upsertPortfolioHoldingFn({
-      data: { investmentId, ticker, quantity, avgCost, broker, currency, lastOperationAt: lastOpIso },
+      data: { investmentId, quantity, avgCost, broker, lastOperationAt: lastOpIso },
     })
     modal.close()
     setForm(EMPTY_FORM(displayCurrency))

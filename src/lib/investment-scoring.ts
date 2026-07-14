@@ -44,6 +44,8 @@ export function compareInvestmentsByRank(
 export type InvestmentOverviewRow = {
   id: string
   name: string
+  ticker: string | null
+  currency: string | null
   investmentTypeId: string
   typeName: string
   typeSortOrder: number
@@ -62,6 +64,8 @@ export async function loadInvestmentOverviewRows(userId: string): Promise<Invest
     .select({
       id: investment.id,
       name: investment.name,
+      ticker: investment.ticker,
+      currency: investment.currency,
       investmentTypeId: investment.investmentTypeId,
       typeName: investmentType.name,
       typeSortOrder: investmentType.sortOrder,

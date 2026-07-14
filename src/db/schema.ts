@@ -6,11 +6,12 @@ import {
   pgTable,
   primaryKey,
   text,
+  uniqueIndex,
   varchar,
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core'
-import { relations } from 'drizzle-orm'
+import { relations, sql } from 'drizzle-orm'
 
 // —— Better Auth (PostgreSQL) ——
 export const user = pgTable('user', {
@@ -152,23 +153,35 @@ export const question = pgTable('question', {
     .defaultNow(),
 })
 
-export const investment = pgTable('investment', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: varchar('user_id', { length: 255 })
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-  investmentTypeId: uuid('investment_type_id')
-    .notNull()
-    .references(() => investmentType.id, { onDelete: 'cascade' }),
-  name: varchar('name', { length: 200 }).notNull(),
-  active: boolean('active').notNull().default(true),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-})
+export const investment = pgTable(
+  'investment',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: varchar('user_id', { length: 255 })
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    investmentTypeId: uuid('investment_type_id')
+      .notNull()
+      .references(() => investmentType.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 200 }).notNull(),
+    /** Market symbol. Required (app-level) for non-fixed-income; optional free text for renda fixa. */
+    ticker: varchar('ticker', { length: 20 }),
+    /** Quote currency resolved from Yahoo at create time. Null until resolved; 'BRL' for renda fixa. */
+    currency: varchar('currency', { length: 3 }),
+    active: boolean('active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('investment_user_ticker_unique')
+      .on(t.userId, t.ticker)
+      .where(sql`${t.ticker} is not null`),
+  ],
+)
 
 export const investmentAnswer = pgTable(
   'investment_answer',
@@ -204,10 +217,8 @@ export const portfolioHolding = pgTable(
     investmentId: uuid('investment_id')
       .notNull()
       .references(() => investment.id, { onDelete: 'cascade' }),
-    ticker: varchar('ticker', { length: 20 }),
     quantity: numeric('quantity', { precision: 24, scale: 8 }).notNull(),
     avgCost: numeric('avg_cost', { precision: 24, scale: 8 }).notNull(),
-    currency: varchar('currency', { length: 3 }).notNull(),
     broker: varchar('broker', { length: 100 }),
     lastOperationAt: timestamp('last_operation_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })

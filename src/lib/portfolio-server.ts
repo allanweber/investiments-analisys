@@ -17,11 +17,12 @@ export const listPortfolioCurrenciesFn = createServerFn({ method: 'GET' }).handl
     const db = await getDb()
     const userId = await requireUserId()
     const rows = await db
-      .select({ currency: portfolioHolding.currency })
+      .select({ currency: investment.currency })
       .from(portfolioHolding)
-      .where(eq(portfolioHolding.userId, userId))
-    const uniq = [...new Set(rows.map((r) => r.currency).filter(Boolean))].sort((a, b) =>
-      a.localeCompare(b),
+      .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
+      .where(and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)))
+    const uniq = [...new Set(rows.map((r) => r.currency).filter((c): c is string => Boolean(c)))].sort(
+      (a, b) => a.localeCompare(b),
     )
     return uniq
   },
@@ -39,8 +40,8 @@ export const refreshPortfolioQuotesFn = createServerFn({ method: 'POST' })
 
     const holdings = await db
       .select({
-        ticker: portfolioHolding.ticker,
-        holdingCurrency: portfolioHolding.currency,
+        ticker: investment.ticker,
+        holdingCurrency: investment.currency,
         fixedIncome: investmentType.fixedIncome,
         investmentTypeName: investmentType.name,
       })
@@ -68,10 +69,8 @@ export const refreshPortfolioQuotesFn = createServerFn({ method: 'POST' })
 
 const upsertHoldingInput = z.object({
   investmentId: uuid,
-  ticker: z.string().trim().min(1).max(32).optional().nullable(),
   quantity: z.number().positive(),
   avgCost: z.number().nonnegative(),
-  currency: currencyCode,
   broker: z.string().trim().max(200).optional().nullable(),
   lastOperationAt: z.string().datetime().optional().nullable(),
 })
@@ -83,67 +82,27 @@ export const upsertPortfolioHoldingFn = createServerFn({ method: 'POST' })
     const userId = await requireUserId()
 
     const [inv] = await db
-      .select({
-        id: investment.id,
-        fixedIncome: investmentType.fixedIncome,
-        investmentTypeName: investmentType.name,
-      })
+      .select({ id: investment.id })
       .from(investment)
-      .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
       .where(and(eq(investment.id, data.investmentId), eq(investment.userId, userId)))
       .limit(1)
     if (!inv) return { ok: false as const, code: 'NOT_FOUND' as const }
-
-    const ticker = data.ticker?.trim() ? data.ticker.trim() : null
-
-    const [existingHolding] = await db
-      .select({ currency: portfolioHolding.currency })
-      .from(portfolioHolding)
-      .where(
-        and(
-          eq(portfolioHolding.userId, userId),
-          eq(portfolioHolding.investmentId, data.investmentId),
-        ),
-      )
-      .limit(1)
-
-    let holdingCurrency = data.currency.trim().toUpperCase()
-    if (existingHolding) {
-      holdingCurrency = existingHolding.currency.trim().toUpperCase()
-    } else if (ticker && !isFixedIncomeTipo(inv.fixedIncome, inv.investmentTypeName)) {
-      const normalizedUserCurrency = normalizeHoldingCurrency(holdingCurrency)
-      try {
-        const { bySymbol } = await refreshMarketQuotesForInputs({
-          actorId: userId,
-          reason: 'immediate',
-          inputs: [{ symbol: ticker, holdingCurrency: normalizedUserCurrency }],
-        })
-        const inferred = normalizeHoldingCurrency(bySymbol.get(ticker)?.quote?.currency ?? null)
-        if (inferred) holdingCurrency = inferred
-      } catch {
-        // If immediate refresh fails, still save the holding (worker will retry later).
-      }
-    }
 
     await db
       .insert(portfolioHolding)
       .values({
         userId,
         investmentId: data.investmentId,
-        ticker,
         quantity: String(data.quantity),
         avgCost: String(data.avgCost),
-        currency: holdingCurrency,
         broker: data.broker?.trim() ? data.broker.trim() : null,
         lastOperationAt: data.lastOperationAt ? new Date(data.lastOperationAt) : null,
       })
       .onConflictDoUpdate({
         target: [portfolioHolding.userId, portfolioHolding.investmentId],
         set: {
-          ticker,
           quantity: String(data.quantity),
           avgCost: String(data.avgCost),
-          currency: holdingCurrency,
           broker: data.broker?.trim() ? data.broker.trim() : null,
           lastOperationAt: data.lastOperationAt ? new Date(data.lastOperationAt) : null,
           updatedAt: sql`now()`,
@@ -176,10 +135,10 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
     const rows = await db
       .select({
         investmentId: portfolioHolding.investmentId,
-        ticker: portfolioHolding.ticker,
+        ticker: investment.ticker,
         quantity: portfolioHolding.quantity,
         avgCost: portfolioHolding.avgCost,
-        currency: portfolioHolding.currency,
+        currency: investment.currency,
         broker: portfolioHolding.broker,
         lastOperationAt: portfolioHolding.lastOperationAt,
         investmentName: investment.name,

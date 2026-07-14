@@ -105,10 +105,8 @@ export const upsertRendaFixaHoldingFn = createServerFn({ method: 'POST' })
       .values({
         userId,
         investmentId: data.investmentId,
-        ticker: null,
         quantity: '1',
         avgCost: String(data.capital),
-        currency: 'BRL',
         broker: data.broker ?? null,
         lastOperationAt: new Date(data.purchaseDate),
       })

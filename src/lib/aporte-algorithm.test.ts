@@ -12,6 +12,8 @@ function makeInv(
 ): InvestmentOverviewRow {
   return {
     name: overrides.id,
+    ticker: overrides.id,
+    currency: null,
     typeName: 'Tipo',
     typeSortOrder: 1,
     fixedIncome: false,
@@ -50,7 +52,6 @@ function baseInput(overrides?: Partial<AporteInput>): AporteInput {
     targetsMap: {},
     typeRows: [],
     scoredInvestments: [],
-    holdingByInvestmentId: new Map(),
     quoteBySymbol: new Map(),
     fxMatrix: identityMatrix,
     ...overrides,

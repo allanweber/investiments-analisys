@@ -30,8 +30,8 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
 
     const holdings = await db
       .select({
-        currency: portfolioHolding.currency,
-        ticker: portfolioHolding.ticker,
+        currency: investment.currency,
+        ticker: investment.ticker,
         quantity: portfolioHolding.quantity,
         avgCost: portfolioHolding.avgCost,
         investmentId: portfolioHolding.investmentId,
@@ -55,9 +55,9 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
       )
       .where(and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)))
 
-    const currencies = [...new Set(holdings.map((h) => h.currency))].sort((a, b) =>
-      a.localeCompare(b),
-    )
+    const currencies = [
+      ...new Set(holdings.map((h) => h.currency ?? 'BRL')),
+    ].sort((a, b) => a.localeCompare(b))
 
     const holdingsForValuation = holdings.map((h) =>
       h.rfGrossAmount != null ? { ...h, avgCost: h.rfGrossAmount } : h,
@@ -88,6 +88,7 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
       const v = valuated[i]
       if (v.marketValueNative == null) continue
 
+      const nativeCurrency = r.currency ?? 'BRL'
       const mvDisplay = v.marketValueDisplay ?? 0
       total += mvDisplay
       const rfProfit = holdings[i].rfGrossProfit
@@ -95,7 +96,7 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
         ? Number(rfProfit) * (v.fxRateUsed ?? 1)
         : (v.unrealizedPlDisplay ?? 0)
 
-      const nativeBucket = byNativeMap.get(r.currency) ?? {
+      const nativeBucket = byNativeMap.get(nativeCurrency) ?? {
         marketValueNative: 0,
         marketValueDisplay: 0,
         holdingCount: 0,
@@ -103,7 +104,7 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
       nativeBucket.marketValueNative += v.marketValueNative
       nativeBucket.marketValueDisplay += mvDisplay
       nativeBucket.holdingCount += 1
-      byNativeMap.set(r.currency, nativeBucket)
+      byNativeMap.set(nativeCurrency, nativeBucket)
 
       const prev = byType.get(r.investmentTypeId)
       if (!prev) {

@@ -138,7 +138,7 @@ export function AddToPositionModal({ modal, addToPos }: Props) {
 
               <CurrencyInput
                 value={addToPos.unitPrice}
-                currency={r.currency}
+                currency={r.currency ?? 'BRL'}
                 label={unitLabel}
                 hasError={addToPos.error?.includes('preço') ?? false}
                 onChange={(v) => { addToPos.setError(null); addToPos.setUnitPrice(v) }}

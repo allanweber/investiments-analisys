@@ -3,10 +3,8 @@ import { messages as m } from '@/messages'
 
 import type { UseHoldingFormResult } from '../hooks/use-holding-form'
 import type { UseHoldingModalResult } from '../hooks/use-holding-modal'
-import { HOLDING_CURRENCY_OPTIONS } from '../types'
 import { CurrencyInput } from '../CurrencyInput'
 import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
-import { round2 } from '../utils/currency-input'
 import { findExistingHoldingForAdd } from '../utils/investment-match'
 import { useModalFocus } from '../hooks/use-modal-focus'
 
@@ -236,26 +234,6 @@ export function AddEditHoldingModal({ modal, form, rows }: Props) {
               className="mt-2 w-full border-0 border-b-2 border-outline-variant/50 bg-transparent px-0 py-2.5 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary disabled:opacity-50"
               placeholder="Ex: XP Investimentos"
             />
-          </label>
-
-          <label className="block text-[10px] font-bold uppercase tracking-widest text-outline sm:col-span-1">
-            Moeda
-            <select
-              value={f.currency}
-              onChange={(e) => {
-                setForm((prev) => ({
-                  ...prev,
-                  currency: e.target.value,
-                  avgCost: round2(prev.avgCost),
-                }))
-              }}
-              disabled={invOptions === null || mergingAdd}
-              className="mt-2 w-full cursor-pointer border-0 border-b-2 border-outline-variant/50 bg-transparent px-0 py-2.5 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {HOLDING_CURRENCY_OPTIONS.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
           </label>
 
           <label className="block text-[10px] font-bold uppercase tracking-widest text-outline sm:col-span-2">
