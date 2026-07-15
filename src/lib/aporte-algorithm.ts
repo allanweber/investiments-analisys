@@ -5,6 +5,18 @@ import { num } from '@/lib/math'
 
 export const PRIORITY_SCORE_THRESHOLD = 60
 
+const ETF_TYPE_NAME = 'etf'
+const ACOES_TYPE_NAME = 'ações'
+const ACOES_INTL_TYPE_NAME = 'ações internacionais'
+
+function normTypeName(name: string): string {
+  return name.trim().toLowerCase()
+}
+
+function isBrl(currency: string | null | undefined): boolean {
+  return (currency ?? '').toUpperCase() === 'BRL'
+}
+
 export type ContributionSuggestion = {
   investmentId: string
   investmentName: string
@@ -36,9 +48,16 @@ export type AporteSimulationResult =
   | { reason: 'NO_ELIGIBLE_INVESTMENTS'; suggestions: [] }
   | { reason: 'OK'; suggestions: ContributionSuggestion[]; typeProjections: TypeProjection[] }
 
+/** One holding's contribution to portfolio totals — used to compute per-type market value. */
+export type AporteHolding = {
+  investmentTypeId: string
+  currency: string | null
+  marketValue: number
+}
+
 export type AportePortfolioState = {
   total: number
-  byType: Map<string, { marketValue: number }>
+  holdings: AporteHolding[]
 }
 
 export type AporteTypeRow = {
@@ -81,6 +100,46 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
     return { reason: 'NO_TARGETS', suggestions: [] }
   }
 
+  // --- ETF reclassification ---
+  // When the ETF category's target is 0 (or unset), ETF holdings/investments are folded into
+  // Ações (BRL) or Ações internacionais (any other currency) for deficit and candidate selection
+  // purposes. If the relevant destination category doesn't exist, that side is simply excluded.
+  const etfType = typeRows.find((t) => normTypeName(t.investmentTypeName) === ETF_TYPE_NAME)
+  const acoesType = typeRows.find((t) => normTypeName(t.investmentTypeName) === ACOES_TYPE_NAME)
+  const acoesIntlType = typeRows.find(
+    (t) => normTypeName(t.investmentTypeName) === ACOES_INTL_TYPE_NAME,
+  )
+  const etfTargetPct = etfType ? (targetsMap[etfType.investmentTypeId]?.targetPct ?? 0) : 0
+  const reclassifyEtf = etfType != null && etfTargetPct <= 0
+
+  function destTypeForEtfCurrency(currency: string | null | undefined) {
+    return isBrl(currency) ? acoesType : acoesIntlType
+  }
+
+  // Per-type current market value, folding reclassified ETF holdings into their destination type.
+  const byType = new Map<string, number>()
+  for (const h of portfolio.holdings) {
+    let typeId = h.investmentTypeId
+    if (reclassifyEtf && etfType && typeId === etfType.investmentTypeId) {
+      const destType = destTypeForEtfCurrency(h.currency)
+      if (!destType) continue
+      typeId = destType.investmentTypeId
+    }
+    byType.set(typeId, (byType.get(typeId) ?? 0) + h.marketValue)
+  }
+
+  // Investments eligible to receive a contribution for a given (possibly reclassification-fed) type.
+  function investmentsForType(typeId: string): InvestmentOverviewRow[] {
+    return scoredInvestments.filter((inv) => {
+      if (inv.investmentTypeId === typeId) return true
+      if (reclassifyEtf && etfType && inv.investmentTypeId === etfType.investmentTypeId) {
+        const destType = destTypeForEtfCurrency(inv.currency)
+        return destType?.investmentTypeId === typeId
+      }
+      return false
+    })
+  }
+
   // Eligible types: those that need contribution to reach target in the post-aporte world.
   // deficit = targetPct * newTotal - currentMv (absolute amount, in display currency)
   const newTotal = portfolio.total + amount
@@ -94,7 +153,7 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
   for (const t of typeRows) {
     const entry = targetsMap[t.investmentTypeId]
     if (!entry || entry.targetPct <= 0) continue
-    const currentMv = portfolio.byType.get(t.investmentTypeId)?.marketValue ?? 0
+    const currentMv = byType.get(t.investmentTypeId) ?? 0
     const deficit = (entry.targetPct / 100) * newTotal - currentMv
     if (deficit <= 0) continue
     eligibleTypes.push({
@@ -130,14 +189,14 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
     const typeShare = eligType.deficit / totalDeficit
     const typeAmount = amount * typeShare
 
-    const currentTypeMv = portfolio.byType.get(eligType.investmentTypeId)?.marketValue ?? 0
+    const currentTypeMv = byType.get(eligType.investmentTypeId) ?? 0
     const currentTypePct = portfolio.total > 0 ? (currentTypeMv / portfolio.total) * 100 : 0
     const projectedTypePct = newTotal > 0 ? ((currentTypeMv + typeAmount) / newTotal) * 100 : 0
     const targetTypePct = targetsMap[eligType.investmentTypeId]?.targetPct ?? 0
 
     // Eligible investments for type: score > 0
-    const typeInvestments = scoredInvestments.filter(
-      (inv) => inv.investmentTypeId === eligType.investmentTypeId && inv.score > 0,
+    const typeInvestments = investmentsForType(eligType.investmentTypeId).filter(
+      (inv) => inv.score > 0,
     )
     if (typeInvestments.length === 0) continue
 
@@ -276,7 +335,7 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
 
   const typeProjections: TypeProjection[] = []
   for (const t of typeRows) {
-    const currentMv = portfolio.byType.get(t.investmentTypeId)?.marketValue ?? 0
+    const currentMv = byType.get(t.investmentTypeId) ?? 0
     const proj = contributedProj.get(t.investmentTypeId)
     if (proj) {
       typeProjections.push({ investmentTypeId: t.investmentTypeId, investmentTypeName: t.investmentTypeName, ...proj })

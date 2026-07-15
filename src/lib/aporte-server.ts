@@ -69,7 +69,7 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
 
     const { valuated } = await valuateHoldings(db, holdingsForValuation, contributionCurrency)
 
-    const byType = new Map<string, { marketValue: number }>()
+    const aporteHoldings: { investmentTypeId: string; currency: string | null; marketValue: number }[] = []
     let portfolioTotal = 0
     for (let i = 0; i < holdings.length; i++) {
       const h = holdings[i]
@@ -77,12 +77,7 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
       if (v.marketValueNative == null) continue
       const mv = v.marketValueDisplay ?? 0
       portfolioTotal += mv
-      const prev = byType.get(h.investmentTypeId)
-      if (!prev) {
-        byType.set(h.investmentTypeId, { marketValue: mv })
-      } else {
-        prev.marketValue += mv
-      }
+      aporteHoldings.push({ investmentTypeId: h.investmentTypeId, currency: h.currency, marketValue: mv })
     }
 
     // --- Targets ---
@@ -159,7 +154,7 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
     return simulateAporte({
       amount,
       contributionCurrency,
-      portfolio: { total: portfolioTotal, byType },
+      portfolio: { total: portfolioTotal, holdings: aporteHoldings },
       targetsMap,
       typeRows,
       scoredInvestments: eligibleScoredInvestments,

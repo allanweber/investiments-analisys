@@ -251,9 +251,10 @@ function PontuacaoPage() {
         data: { investmentIds: [id] },
       })
       if (computedItem.result.ok) {
+        const { suggestions: computedSuggestions } = computedItem.result
         setAiSuggestions((prev) => {
           const next = { ...prev }
-          for (const s of computedItem.result.suggestions) {
+          for (const s of computedSuggestions) {
             next[s.questionId] = {
               suggestedYes: s.suggestedYes,
               reasoning: s.reasoning,

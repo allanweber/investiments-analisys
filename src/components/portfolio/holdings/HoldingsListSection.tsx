@@ -4,6 +4,7 @@ import { messages as m } from '@/messages'
 import type { HoldingRow } from './types'
 import type { UseHoldingsFiltersResult } from './hooks/use-holdings-filters'
 import { fmtQuantity } from './utils/holdings-format'
+import { AssetAvatar } from './AssetAvatar'
 
 type Props = {
   filters: UseHoldingsFiltersResult
@@ -234,18 +235,7 @@ export function HoldingsListSection({
                 >
                   <td className="py-3">
                     <div className="flex items-center gap-2">
-                      {r.quoteLogoUrl ? (
-                        <img
-                          src={r.quoteLogoUrl}
-                          alt=""
-                          className="h-5 w-5 shrink-0 rounded-full border border-outline-variant/20 bg-surface object-contain"
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                          onError={(e) => { ;(e.currentTarget as HTMLImageElement).style.display = 'none' }}
-                        />
-                      ) : (
-                        <span className="h-5 w-5 shrink-0 rounded-full border border-outline-variant/20 bg-surface-container-low" aria-hidden />
-                      )}
+                      <AssetAvatar logoUrl={r.quoteLogoUrl} label={r.ticker ?? r.investmentName} />
                       <div className="min-w-0">
                         <div className="truncate font-medium text-on-surface">
                           {r.ticker ?? r.investmentName}

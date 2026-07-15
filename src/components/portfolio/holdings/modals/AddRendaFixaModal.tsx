@@ -86,6 +86,12 @@ export function AddRendaFixaModal({ modal, rfForm }: Props) {
         className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-surface px-6 pb-24 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-8 sm:pb-10 sm:pt-8"
         onClick={(e) => e.stopPropagation()}
       >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (canSave) void save()
+          }}
+        >
 
         {/* Header */}
         <div className="mb-6 flex items-start justify-between gap-4">
@@ -297,14 +303,14 @@ export function AddRendaFixaModal({ modal, rfForm }: Props) {
             {isEdit ? 'Cancelar' : 'Voltar'}
           </button>
           <button
-            type="button"
+            type="submit"
             disabled={!canSave}
             className="inline-flex items-center justify-center rounded-full bg-primary-container px-8 py-3 text-sm font-bold text-on-primary shadow-md transition-opacity hover:opacity-95 disabled:opacity-45"
-            onClick={() => void save()}
           >
             {isSaving ? 'Salvando…' : isEdit ? 'Salvar alterações' : m.portfolio.rendaFixaAddButton}
           </button>
         </div>
+        </form>
       </div>
     </div>
   )

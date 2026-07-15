@@ -275,7 +275,6 @@ describe('buildRendaFixaValuationRow — rate resolution', () => {
     const spread = 0.0005  // 0.05% a.a.
     const calendarDays = 365
     const purchaseDate = daysAgo(calendarDays)
-    const businessDays = approxBusinessDays(purchaseDate, TODAY)
     const detail: RendaFixaDetailInput = {
       productType: 'tesouro-selic',
       indexer: 'selic-spread',

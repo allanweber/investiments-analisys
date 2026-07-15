@@ -62,6 +62,8 @@ const createInvInput = z.object({
   name: z.string().min(1).max(200),
   ticker: z.string().trim().max(20).optional().nullable(),
   investmentTypeId: uuid,
+  /** User-supplied override, used when quote-based currency resolution fails or disagrees. */
+  currency: z.string().trim().max(10).optional().nullable(),
 })
 
 export const createInvestmentFn = createServerFn({ method: 'POST' })
@@ -84,6 +86,8 @@ export const createInvestmentFn = createServerFn({ method: 'POST' })
     const isFixed = isFixedIncomeTipo(t.fixedIncome, t.name)
     const ticker = data.ticker?.trim() ? data.ticker.trim() : null
 
+    const manualCurrency = data.currency?.trim() ? normalizeHoldingCurrency(data.currency.trim()) : null
+
     let currency: string | null = null
     if (isFixed) {
       // Renda fixa: ticker is optional free text, no Yahoo lookup; currency is BRL.
@@ -91,8 +95,10 @@ export const createInvestmentFn = createServerFn({ method: 'POST' })
     } else {
       if (!ticker) return { ok: false as const, code: 'MISSING_TICKER' as const }
       const { resolved, currency: resolvedCurrency } = await resolveTickerCurrency(userId, ticker)
-      if (!resolved) return { ok: false as const, code: 'UNRESOLVED_TICKER' as const }
-      currency = resolvedCurrency
+      if (!resolved && !manualCurrency) return { ok: false as const, code: 'UNRESOLVED_TICKER' as const }
+      // A manual override always wins — it's how the user unblocks tickers the quote
+      // providers can't price (e.g. some European exchange listings) or corrects a wrong guess.
+      currency = manualCurrency ?? resolvedCurrency
     }
 
     try {

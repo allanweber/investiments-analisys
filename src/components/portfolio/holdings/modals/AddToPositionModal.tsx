@@ -44,6 +44,12 @@ export function AddToPositionModal({ modal, addToPos }: Props) {
         className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-surface px-6 pb-24 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-8 sm:pb-10 sm:pt-8"
         onClick={(e) => e.stopPropagation()}
       >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            void addToPos.save(r)
+          }}
+        >
         <div className="mb-5 flex items-start justify-between gap-4">
           <div className="min-w-0 pr-2">
             <h3 id="modal-add-to-position-title" className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
@@ -177,13 +183,13 @@ export function AddToPositionModal({ modal, addToPos }: Props) {
             Cancelar
           </button>
           <button
-            type="button"
+            type="submit"
             className="inline-flex min-h-11 items-center justify-center rounded-xl bg-primary-container px-8 py-2.5 text-sm font-bold text-on-primary shadow-md transition-opacity hover:opacity-95"
-            onClick={() => void addToPos.save(r)}
           >
             Salvar
           </button>
         </div>
+        </form>
       </div>
     </div>
   )

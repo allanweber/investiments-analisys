@@ -224,7 +224,7 @@ export function useHoldingForm({ rows, modal, displayCurrency, refresh }: UseHol
         return
       }
       const created = await createInvestmentFn({
-        data: { name: ticker, ticker, investmentTypeId: form.investmentTypeId },
+        data: { name: ticker, ticker, investmentTypeId: form.investmentTypeId, currency: form.currency },
       })
       if (!created.ok) {
         setSaveHoldingError(

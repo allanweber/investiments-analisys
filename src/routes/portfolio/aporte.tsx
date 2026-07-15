@@ -167,6 +167,11 @@ function ResultsSection({ result }: { result: AporteSimulationResult }) {
         return (
           <div key={proj.investmentTypeId} className="overflow-x-auto rounded-2xl border border-outline-variant/30">
             <TypeHeader proj={proj} />
+            {!items && proj.targetTypePct > 0 && (
+              <p className="px-4 py-3 text-xs text-on-surface-variant">
+                {m.aporte.categoryAboveTarget}
+              </p>
+            )}
             {items && (
               <table className="w-full text-sm">
                 <thead>

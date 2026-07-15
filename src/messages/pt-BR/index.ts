@@ -389,6 +389,9 @@ const core = {
     addVariableWillCreate: (ticker: string) =>
       `Será criado um investimento com o nome «${ticker}» para vincular à pontuação.`,
     addVariableSelectTypeError: 'Selecione o tipo de investimento.',
+    addVariableCurrencyLabel: 'Moeda',
+    addVariableCurrencyHint:
+      'Detectada automaticamente pela cotação do ticker; ajuste se necessário.',
     addVariableCreateInvestmentError:
       'Não foi possível criar o investimento. Verifique o tipo selecionado.',
     addVariableUnresolvedTickerError:
@@ -454,6 +457,8 @@ const core = {
       'Defina seus alvos por categoria em Portfólio antes de simular um aporte.',
     noEligible:
       'Nenhum investimento com pontuação suficiente para as categorias abaixo do alvo.',
+    categoryAboveTarget:
+      'Categoria já acima do alvo — sem sugestão de aporte.',
     missingQuoteTooltip:
       'Cotação não disponível — valor estimado na moeda do aporte.',
     amountRequired: 'Informe um valor maior que zero.',

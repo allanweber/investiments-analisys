@@ -7,6 +7,7 @@ import { CurrencyInput } from '../CurrencyInput'
 import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
 import { findExistingHoldingForAdd } from '../utils/investment-match'
 import { useModalFocus } from '../hooks/use-modal-focus'
+import { SUPPORTED_FX_CURRENCIES } from '@/lib/fx'
 
 type Props = {
   modal: UseHoldingModalResult
@@ -62,6 +63,13 @@ export function AddEditHoldingModal({ modal, form, rows }: Props) {
         className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-surface px-6 pb-24 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-8 sm:pb-10 sm:pt-8"
         onClick={(e) => e.stopPropagation()}
       >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            const canSave = isEdit ? invOptions !== null && Boolean(f.investmentId) : canSaveAddHolding
+            if (canSave) void saveHolding()
+          }}
+        >
         <div className="mb-6 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h3 id="modal-add-edit-holding-title" className="font-headline text-xl font-extrabold tracking-tight text-on-surface">
@@ -166,6 +174,21 @@ export function AddEditHoldingModal({ modal, form, rows }: Props) {
                   ))}
                 </select>
               </label>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-outline">
+                {m.portfolio.addVariableCurrencyLabel}
+                <select
+                  value={f.currency}
+                  onChange={(e) => setForm({ ...f, currency: e.target.value })}
+                  className="mt-2 w-full cursor-pointer border-0 border-b-2 border-outline-variant/50 bg-transparent px-0 py-2.5 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary"
+                >
+                  {SUPPORTED_FX_CURRENCIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <span className="mt-1 block text-[10px] font-normal normal-case tracking-normal text-outline">
+                  {m.portfolio.addVariableCurrencyHint}
+                </span>
+              </label>
             </div>
           )}
 
@@ -261,14 +284,14 @@ export function AddEditHoldingModal({ modal, form, rows }: Props) {
             {isEdit ? 'Cancelar' : 'Voltar'}
           </button>
           <button
-            type="button"
+            type="submit"
             disabled={isEdit ? invOptions === null || !f.investmentId : !canSaveAddHolding}
             className="inline-flex items-center justify-center rounded-full bg-primary-container px-8 py-3 text-sm font-bold text-on-primary shadow-md transition-opacity hover:opacity-95 disabled:opacity-45"
-            onClick={() => void saveHolding()}
           >
             {isEdit ? 'Salvar alterações' : 'Adicionar posição'}
           </button>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   )
