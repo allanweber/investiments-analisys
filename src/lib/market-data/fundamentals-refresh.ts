@@ -8,6 +8,7 @@ import { getMarketDataDb, makeLogger } from './db'
 import { fetchStatusInvestFundamentals } from './providers/statusinvest'
 import type { FundamentalYear } from './providers/statusinvest'
 import { fetchYahooFundamentals } from './providers/yfinance'
+import { isProxyCreditsExhaustedError } from './scrape-proxy'
 
 type Db = NodePgDatabase<typeof schema>
 
@@ -93,7 +94,16 @@ export async function refreshFundamentalsIfStale(
     years = await fetchStatusInvestFundamentals(normalizedTicker)
   } catch (e: unknown) {
     lastError = e instanceof Error ? e.message : 'StatusInvest fetch error'
-    log({ level: 'warn', msg: 'fundamentals -> statusinvest_failed', ticker: normalizedTicker, error: lastError })
+    if (isProxyCreditsExhaustedError(e)) {
+      log({
+        level: 'error',
+        msg: 'fundamentals -> statusinvest_proxy_credits_exhausted',
+        ticker: normalizedTicker,
+        error: lastError,
+      })
+    } else {
+      log({ level: 'warn', msg: 'fundamentals -> statusinvest_failed', ticker: normalizedTicker, error: lastError })
+    }
   }
 
   if (years.length === 0) {

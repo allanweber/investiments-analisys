@@ -1,4 +1,5 @@
 import { fetchJson } from '../http'
+import { wrapUrlWithProxy } from '../scrape-proxy'
 
 const SEARCH_URL = 'https://statusinvest.com.br/home/mainsearchquery'
 const DRE_URL = 'https://statusinvest.com.br/acao/getdre'
@@ -49,7 +50,7 @@ function parsePtBrNumber(v: unknown): number | null {
 
 async function resolveAssetId(ticker: string): Promise<number | null> {
   const url = `${SEARCH_URL}?q=${encodeURIComponent(ticker)}`
-  const payload = await fetchJson(url, { timeoutMs: 10_000, headers: BROWSER_HEADERS })
+  const payload = await fetchJson(wrapUrlWithProxy(url), { timeoutMs: 10_000, headers: BROWSER_HEADERS })
   if (!Array.isArray(payload)) return null
   const match = payload.find(
     (r: any) => typeof r?.code === 'string' && r.code.toUpperCase() === ticker.toUpperCase(),
@@ -119,7 +120,7 @@ async function fetchGrid(
   if (isStatusInvestLogEnabled()) {
     logStatusInvestEvent({ level: 'info', msg: 'statusinvest -> http_request', ticker, url: fullUrl })
   }
-  const payload: any = await fetchJson(fullUrl, { timeoutMs: 15_000, headers: BROWSER_HEADERS })
+  const payload: any = await fetchJson(wrapUrlWithProxy(fullUrl), { timeoutMs: 15_000, headers: BROWSER_HEADERS })
   const years: number[] = Array.isArray(payload?.data?.years) ? payload.data.years : []
   const grid: any[] = Array.isArray(payload?.data?.grid) ? payload.data.grid : []
   return { years, grid }
