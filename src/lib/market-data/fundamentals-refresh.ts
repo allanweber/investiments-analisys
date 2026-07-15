@@ -85,25 +85,42 @@ export async function refreshFundamentalsIfStale(
     return { refreshed: false, skipped: true, yearsFetched: 0 }
   }
 
+  let years: FundamentalYear[] = []
+  let provider = 'statusinvest'
+  let lastError: string | undefined
+
   try {
-    let years = await fetchStatusInvestFundamentals(normalizedTicker)
-    let provider = 'statusinvest'
-    if (years.length === 0) {
+    years = await fetchStatusInvestFundamentals(normalizedTicker)
+  } catch (e: unknown) {
+    lastError = e instanceof Error ? e.message : 'StatusInvest fetch error'
+    log({ level: 'warn', msg: 'fundamentals -> statusinvest_failed', ticker: normalizedTicker, error: lastError })
+  }
+
+  if (years.length === 0) {
+    try {
       years = await fetchYahooFundamentals(normalizedTicker)
       provider = 'yfinance'
+    } catch (e: unknown) {
+      lastError = e instanceof Error ? e.message : 'Yahoo fetch error'
+      log({ level: 'warn', msg: 'fundamentals -> yahoo_failed', ticker: normalizedTicker, error: lastError })
     }
-    if (years.length === 0) {
-      log({ level: 'warn', msg: 'fundamentals -> no_data', ticker: normalizedTicker })
-      return { refreshed: false, skipped: false, yearsFetched: 0 }
-    }
+  }
+
+  if (years.length === 0) {
+    log({ level: 'warn', msg: 'fundamentals -> no_data', ticker: normalizedTicker, error: lastError })
+    return { refreshed: false, skipped: false, yearsFetched: 0, error: lastError }
+  }
+
+  try {
     await upsertYears(db, normalizedTicker, provider, years)
-    log({ level: 'info', msg: 'fundamentals -> refreshed', ticker: normalizedTicker, provider, years: years.length })
-    return { refreshed: true, skipped: false, yearsFetched: years.length }
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'Fundamentals refresh error'
+    const msg = e instanceof Error ? e.message : 'Fundamentals cache write error'
     log({ level: 'error', msg: 'fundamentals -> error', ticker: normalizedTicker, error: msg })
     return { refreshed: false, skipped: false, yearsFetched: 0, error: msg }
   }
+
+  log({ level: 'info', msg: 'fundamentals -> refreshed', ticker: normalizedTicker, provider, years: years.length })
+  return { refreshed: true, skipped: false, yearsFetched: years.length }
 }
 
 /** Reads the cached fundamentals series for a ticker, refreshing first if stale/empty. */
