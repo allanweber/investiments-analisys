@@ -131,21 +131,29 @@ function PontuacaoPage() {
     if (!hasComputed) return
 
     let cancelled = false
-    void runComputedChecksForInvestmentsFn({ data: { investmentIds: [id] } }).then(([item]) => {
-      if (cancelled || !item.result.ok) return
-      const suggestions = item.result.suggestions
-      setAiSuggestions((prev) => {
-        const next = { ...prev }
-        for (const s of suggestions) {
-          next[s.questionId] = {
-            suggestedYes: s.suggestedYes,
-            reasoning: s.reasoning,
-            checkedAt: s.checkedAt,
-          }
+    void runComputedChecksForInvestmentsFn({ data: { investmentIds: [id] } })
+      .then(([item]) => {
+        if (cancelled) return
+        if (!item.result.ok) {
+          if (item.result.code === 'fetch_error') setAiMsg(m.ai.errorGeneric)
+          return
         }
-        return next
+        const suggestions = item.result.suggestions
+        setAiSuggestions((prev) => {
+          const next = { ...prev }
+          for (const s of suggestions) {
+            next[s.questionId] = {
+              suggestedYes: s.suggestedYes,
+              reasoning: s.reasoning,
+              checkedAt: s.checkedAt,
+            }
+          }
+          return next
+        })
       })
-    })
+      .catch(() => {
+        if (!cancelled) setAiMsg(m.ai.errorGeneric)
+      })
     return () => {
       cancelled = true
     }
@@ -268,6 +276,8 @@ function PontuacaoPage() {
       // Refresh loader data so `question.kind` (possibly just classified server-side above)
       // is reflected in the suggestion card's icon/label.
       await router.invalidate()
+    } catch {
+      setAiMsg(m.ai.errorGeneric)
     } finally {
       setAiRunning(false)
     }

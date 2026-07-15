@@ -108,7 +108,20 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
       return toBatchItems()
     }
 
-    const apiKey = await decryptSecret(keyRow.encryptedKey)
+    let apiKey: string
+    try {
+      apiKey = await decryptSecret(keyRow.encryptedKey)
+    } catch (e) {
+      logAiScoringError({
+        provider: PROVIDER,
+        model: 'unknown',
+        investmentIds: eligible.map((e) => e.investmentId),
+        code: 'invalid_api_key',
+        message: String(e),
+      })
+      for (const e of eligible) results.set(e.investmentId, { ok: false, code: 'invalid_api_key' })
+      return toBatchItems()
+    }
 
     // Silently classify any question the user has never had scored before (kind is null) —
     // never surfaced to the user, see schema.ts's `question.kind` doc comment.
