@@ -271,6 +271,8 @@ function PontuacaoPage() {
           }
           return next
         })
+      } else if (computedItem.result.code === 'fetch_error') {
+        setAiMsg(m.ai.errorGeneric)
       }
 
       // Refresh loader data so `question.kind` (possibly just classified server-side above)

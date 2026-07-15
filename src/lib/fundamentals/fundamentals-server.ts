@@ -122,7 +122,16 @@ export const runComputedChecksForInvestmentsFn = createServerFn({ method: 'POST'
       let years: FundamentalYear[]
       try {
         years = await ensureFundamentalsForTicker(ticker)
-      } catch {
+      } catch (e) {
+        console.error(
+          JSON.stringify({
+            ts: new Date().toISOString(),
+            scope: 'fundamentalsChecks',
+            msg: 'ensureFundamentalsForTicker -> error',
+            ticker,
+            error: e instanceof Error ? e.message : String(e),
+          }),
+        )
         results.set(investmentId, { ok: false, code: 'fetch_error' })
         continue
       }
