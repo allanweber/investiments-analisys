@@ -285,9 +285,28 @@ function PontuacaoPage() {
     }
   }
 
+  const persistChoices = async (next: Record<string, AnswerChoice>) => {
+    const answers = questions.map((q) => {
+      const c = next[q.id] ?? 'unanswered'
+      return c === 'unanswered'
+        ? { questionId: q.id, valueYes: null as null }
+        : { questionId: q.id, valueYes: c === 'yes' }
+    })
+    const res = await saveInvestmentScoringFn({ data: { investmentId: id, answers } })
+    if (!res.ok) {
+      setMsg(
+        res.code === 'INVALID_QUESTIONS'
+          ? m.investments.saveErrorInvalid
+          : m.investments.saveErrorGeneric,
+      )
+    }
+  }
+
   const onApplySuggestion = (questionId: string, suggestedYes: boolean | null) => {
     if (suggestedYes === null) return
-    setChoices((prev) => ({ ...prev, [questionId]: suggestedYes ? 'yes' : 'no' }))
+    const next = { ...choices, [questionId]: suggestedYes ? 'yes' : ('no' as AnswerChoice) }
+    setChoices(next)
+    void persistChoices(next)
   }
 
   const applicableSuggestionCount = questions.filter(
@@ -295,16 +314,15 @@ function PontuacaoPage() {
   ).length
 
   const onApplyAllSuggestions = () => {
-    setChoices((prev) => {
-      const next = { ...prev }
-      for (const q of questions) {
-        const suggestion = aiSuggestions[q.id]
-        if (suggestion && suggestion.suggestedYes !== null) {
-          next[q.id] = suggestion.suggestedYes ? 'yes' : 'no'
-        }
+    const next = { ...choices }
+    for (const q of questions) {
+      const suggestion = aiSuggestions[q.id]
+      if (suggestion && suggestion.suggestedYes !== null) {
+        next[q.id] = suggestion.suggestedYes ? 'yes' : 'no'
       }
-      return next
-    })
+    }
+    setChoices(next)
+    void persistChoices(next)
   }
 
   return (
@@ -331,7 +349,7 @@ function PontuacaoPage() {
             · {investment.typeName}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="sticky top-4 z-20 flex flex-wrap items-center gap-2 rounded-xl bg-surface-container-low/90 p-2 backdrop-blur supports-backdrop-filter:bg-surface-container-low/75">
           {applicableSuggestionCount > 0 && (
             <Button
               type="button"
