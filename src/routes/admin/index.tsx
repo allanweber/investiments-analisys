@@ -7,6 +7,7 @@ import {
   listAdminUsersFn,
   unbanAdminUserFn,
 } from '@/lib/admin-server'
+import { confirm } from '@/lib/confirm'
 
 export const Route = createFileRoute('/admin/')({
   loader: () => listAdminUsersFn(),
@@ -44,7 +45,10 @@ function AdminUsersPage() {
   }
 
   async function handleDelete(userId: string, name: string) {
-    if (!confirm(`Deletar permanentemente o usuário "${name}" e todos os dados? Esta ação não pode ser desfeita.`)) return
+    const ok = await confirm(
+      `Deletar permanentemente o usuário "${name}" e todos os dados? Esta ação não pode ser desfeita.`,
+    )
+    if (!ok) return
     setPending(userId)
     await deleteAdminUserFn({ data: { userId } })
     await reload()

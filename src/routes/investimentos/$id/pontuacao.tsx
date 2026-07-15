@@ -1,11 +1,14 @@
 import { Link, createFileRoute, Navigate, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 import { runAiScoringForInvestmentsFn } from '@/lib/ai/ai-scoring-server'
 import { runComputedChecksForInvestmentsFn } from '@/lib/fundamentals/fundamentals-server'
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth-client'
+import { confirm } from '@/lib/confirm'
 import {
+  clearAiSuggestionsFn,
   loadInvestmentScoringFn,
   saveInvestmentScoringFn,
 } from '@/lib/scoring-server'
@@ -101,6 +104,7 @@ function PontuacaoPage() {
   const [aiSuggestions, setAiSuggestions] = useState<
     Record<string, { suggestedYes: boolean | null; reasoning: string; checkedAt: string }>
   >({})
+  const [clearingAi, setClearingAi] = useState(false)
 
   useEffect(() => {
     if (!data) return
@@ -313,7 +317,9 @@ function PontuacaoPage() {
     (q) => aiSuggestions[q.id] && aiSuggestions[q.id].suggestedYes !== null,
   ).length
 
-  const onApplyAllSuggestions = () => {
+  const onApplyAllSuggestions = async () => {
+    if (!(await confirm(m.ai.applyAllConfirm(applicableSuggestionCount)))) return
+
     const next = { ...choices }
     for (const q of questions) {
       const suggestion = aiSuggestions[q.id]
@@ -322,7 +328,37 @@ function PontuacaoPage() {
       }
     }
     setChoices(next)
-    void persistChoices(next)
+    await persistChoices(next)
+
+    setClearingAi(true)
+    try {
+      const res = await clearAiSuggestionsFn({ data: { investmentId: id } })
+      if (!res.ok) {
+        toast.error(m.ai.clearAllError)
+        return
+      }
+      setAiSuggestions({})
+    } finally {
+      setClearingAi(false)
+    }
+  }
+
+  const hasAnySuggestion = questions.some((q) => aiSuggestions[q.id])
+
+  const onClearAiSuggestions = async () => {
+    if (!(await confirm(m.ai.clearAllConfirm))) return
+    setClearingAi(true)
+    try {
+      const res = await clearAiSuggestionsFn({ data: { investmentId: id } })
+      if (!res.ok) {
+        toast.error(m.ai.clearAllError)
+        return
+      }
+      setAiSuggestions({})
+      toast.success(m.ai.clearAllSuccess)
+    } finally {
+      setClearingAi(false)
+    }
   }
 
   return (
@@ -355,7 +391,8 @@ function PontuacaoPage() {
               type="button"
               variant="outline"
               className="h-11 gap-2 rounded-xl border-green-600/40 px-4 font-headline text-sm font-bold text-green-700 dark:border-green-500/40 dark:text-green-400"
-              onClick={onApplyAllSuggestions}
+              onClick={() => void onApplyAllSuggestions()}
+              disabled={clearingAi}
             >
               <span className="material-symbols-outlined text-lg leading-none">done_all</span>
               {m.ai.applyAllButton(applicableSuggestionCount)}
@@ -377,6 +414,25 @@ function PontuacaoPage() {
             )}
             {aiRunning ? m.ai.running : m.ai.runButton}
           </Button>
+          {hasAnySuggestion && (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 gap-2 rounded-xl border-error/40 px-4 font-headline text-sm font-bold text-error hover:bg-error-container/20 dark:border-error/50"
+              onClick={() => void onClearAiSuggestions()}
+              disabled={clearingAi}
+            >
+              {clearingAi ? (
+                <span
+                  className="h-4 w-4 animate-spin rounded-full border-2 border-error/30 border-t-error"
+                  aria-hidden
+                />
+              ) : (
+                <span className="material-symbols-outlined text-lg leading-none">delete_sweep</span>
+              )}
+              {m.ai.clearAllButton}
+            </Button>
+          )}
         </div>
       </div>
       {aiMsg && (

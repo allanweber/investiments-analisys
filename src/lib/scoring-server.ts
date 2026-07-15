@@ -176,6 +176,43 @@ export const saveInvestmentScoringFn = createServerFn({ method: 'POST' })
     return { ok: true as const }
   })
 
+const clearAiSuggestionsInput = z.object({ investmentId: uuid })
+
+export const clearAiSuggestionsFn = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => clearAiSuggestionsInput.parse(data))
+  .handler(async ({ data }) => {
+    const db = await getDb()
+    const userId = await requireUserId()
+    const [inv] = await db
+      .select({ id: investment.id })
+      .from(investment)
+      .where(and(eq(investment.id, data.investmentId), eq(investment.userId, userId)))
+      .limit(1)
+    if (!inv) return { ok: false as const, code: 'NOT_FOUND' as const }
+
+    // aiCheckedAt is deliberately kept — it drives the "Concluído <date>" status on
+    // /investimentos/ia-em-lote, which should survive clearing the suggestion content itself.
+    await db
+      .update(investmentAnswer)
+      .set({ aiSuggestedYes: null, aiReasoning: null, updatedAt: new Date() })
+      .where(eq(investmentAnswer.investmentId, data.investmentId))
+
+    // Rows left with no real answer, no suggestion, and no AI-check timestamp are pure clutter.
+    await db
+      .delete(investmentAnswer)
+      .where(
+        and(
+          eq(investmentAnswer.investmentId, data.investmentId),
+          isNull(investmentAnswer.valueYes),
+          isNull(investmentAnswer.aiSuggestedYes),
+          isNull(investmentAnswer.aiReasoning),
+          isNull(investmentAnswer.aiCheckedAt),
+        ),
+      )
+
+    return { ok: true as const }
+  })
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export const listInvestmentsOverviewFn = createServerFn({ method: 'GET' }).handler(

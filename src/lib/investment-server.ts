@@ -121,7 +121,10 @@ export const createInvestmentFn = createServerFn({ method: 'POST' })
 
 /** Postgres unique_violation (23505) — thrown when (userId, ticker) collides. */
 function isUniqueViolation(e: unknown): boolean {
-  return typeof e === 'object' && e != null && 'code' in e && (e as { code?: string }).code === '23505'
+  if (typeof e !== 'object' || e == null) return false
+  if ('code' in e && (e as { code?: string }).code === '23505') return true
+  const cause = (e as { cause?: unknown }).cause
+  return typeof cause === 'object' && cause != null && 'code' in cause && (cause as { code?: string }).code === '23505'
 }
 
 const updateInvInput = z.object({

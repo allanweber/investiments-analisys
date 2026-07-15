@@ -1,10 +1,29 @@
 import { Link, Navigate, useRouterState } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
+import { Toaster } from 'sonner'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
 import BetterAuthHeader from '@/components/auth/header-user'
 import { authClient } from '@/lib/auth-client'
+import { ConfirmDialogHost } from '@/lib/confirm'
 import { messages as m } from '@/messages'
 import ThemeToggle from './ThemeToggle'
+
+/** Tracks the `dark`/`light` class ThemeToggle applies to <html>, so the toaster matches it. */
+function useResolvedTheme(): 'light' | 'dark' {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+
+  useEffect(() => {
+    const root = document.documentElement
+    const read = () => setTheme(root.classList.contains('dark') ? 'dark' : 'light')
+    read()
+    const observer = new MutationObserver(read)
+    observer.observe(root, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+
+  return theme
+}
 
 const NAV_CONFIG = [
   {
@@ -63,6 +82,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { data: session, isPending } = authClient.useSession()
   const isPublicAuth = isPublicAuthPath(pathname)
+  const resolvedTheme = useResolvedTheme()
   const L = navLabels()
   const NAV = NAV_CONFIG.map((c) => ({
     ...c,
@@ -71,7 +91,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }))
 
   if (isPublicAuth) {
-    return <>{children}</>
+    return (
+      <>
+        {children}
+        <Toaster theme={resolvedTheme} richColors position="top-right" />
+        <ConfirmDialogHost />
+      </>
+    )
   }
 
   if (isPending) {
@@ -194,6 +220,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           )
         })}
       </nav>
+
+      <Toaster theme={resolvedTheme} richColors position="top-right" />
+      <ConfirmDialogHost />
     </>
   )
 }

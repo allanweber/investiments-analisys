@@ -7,8 +7,10 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { FaDetailsCard, FaMobilePanel } from '@/components/fa/details-card'
+import { confirm } from '@/lib/confirm'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -107,15 +109,15 @@ function TiposPage() {
   const onDelete = async (id: string) => {
     const row = types.find((t) => t.id === id)
     const label = row?.name ?? id
-    if (!confirm(m.types.deleteConfirm(label))) return
+    if (!(await confirm(m.types.deleteConfirm(label)))) return
     setBusy(id)
     try {
       const res = await deleteInvestmentTypeFn({ data: { id } })
       if (!res.ok) {
         if (res.code === 'HAS_QUESTIONS') {
-          alert(m.types.deleteBlockedQuestions)
+          toast.error(m.types.deleteBlockedQuestions)
         } else if (res.code === 'HAS_INVESTMENTS') {
-          alert(m.types.deleteBlockedInvestments)
+          toast.error(m.types.deleteBlockedInvestments)
         }
         return
       }

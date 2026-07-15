@@ -5,8 +5,10 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { FaDetailsCard, FaMobilePanel } from '@/components/fa/details-card'
+import { confirm } from '@/lib/confirm'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -118,7 +120,7 @@ function PerguntasPage() {
   }
 
   const onRestoreDefaults = async () => {
-    if (!confirm(m.questions.restoreConfirm)) return
+    if (!(await confirm(m.questions.restoreConfirm))) return
     setRestoreMsg('')
     setBusy('restore')
     try {
@@ -143,12 +145,12 @@ function PerguntasPage() {
   }
 
   const onDelete = async (id: string) => {
-    if (!confirm(m.questions.deleteConfirm)) return
+    if (!(await confirm(m.questions.deleteConfirm))) return
     setBusy(id)
     try {
       const res = await deleteQuestionFn({ data: { id } })
       if (!res.ok && res.code === 'HAS_ANSWERS') {
-        alert(m.questions.deleteBlocked)
+        toast.error(m.questions.deleteBlocked)
         return
       }
       await refresh()

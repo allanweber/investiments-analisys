@@ -7,8 +7,10 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
 import { FaDetailsCard, FaMobilePanel } from '@/components/fa/details-card'
+import { confirm } from '@/lib/confirm'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -123,22 +125,22 @@ function InvestimentosPage() {
   const refresh = () => router.invalidate()
 
   const alertForCode = (code: string) => {
-    if (code === 'MISSING_TICKER') alert(m.investments.tickerRequired)
-    else if (code === 'UNRESOLVED_TICKER') alert(m.investments.tickerUnresolved)
-    else if (code === 'DUPLICATE_TICKER') alert(m.investments.tickerDuplicate)
-    else if (code === 'HAS_ANSWERS_TYPE_LOCKED') alert(m.investments.typeChangeBlocked)
-    else alert(m.investments.invalidType)
+    if (code === 'MISSING_TICKER') toast.error(m.investments.tickerRequired)
+    else if (code === 'UNRESOLVED_TICKER') toast.error(m.investments.tickerUnresolved)
+    else if (code === 'DUPLICATE_TICKER') toast.error(m.investments.tickerDuplicate)
+    else if (code === 'HAS_ANSWERS_TYPE_LOCKED') toast.error(m.investments.typeChangeBlocked)
+    else toast.error(m.investments.invalidType)
   }
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTypeId) {
-      if (types.length === 0) alert(m.investments.createTypeFirst)
+      if (types.length === 0) toast.error(m.investments.createTypeFirst)
       return
     }
     if (!newName.trim()) return
     if (!newTypeIsFixed && !newTicker.trim()) {
-      alert(m.investments.tickerRequired)
+      toast.error(m.investments.tickerRequired)
       return
     }
     setBusy('create')
@@ -172,7 +174,7 @@ function InvestimentosPage() {
   const onSaveEdit = async () => {
     if (!editId || !editName.trim() || !editTypeId) return
     if (!editTypeIsFixed && !editTicker.trim()) {
-      alert(m.investments.tickerRequired)
+      toast.error(m.investments.tickerRequired)
       return
     }
     setBusy(editId)
@@ -198,7 +200,7 @@ function InvestimentosPage() {
 
   const onDelete = async (id: string) => {
     const row = rows.find((r) => r.id === id)
-    if (!confirm(m.investments.deleteConfirm(row?.name ?? id))) return
+    if (!(await confirm(m.investments.deleteConfirm(row?.name ?? id)))) return
     setBusy(id)
     try {
       await deleteInvestmentFn({ data: { id } })
