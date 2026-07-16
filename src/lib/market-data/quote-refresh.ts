@@ -211,33 +211,35 @@ export async function refreshMarketQuotesForInputs(params: {
 
   const saveSymbols = [...toSave.keys()]
   if (saveSymbols.length > 0) {
-    for (const s of saveSymbols) {
-      const q = toSave.get(s)!
-      await db
-        .insert(marketQuote)
-        .values({
-          provider: q.provider,
-          symbol: q.symbol,
-          market: q.market ?? null,
-          currency: q.currency ?? null,
-          logoUrl: q.logoUrl ?? null,
-          price: q.price == null ? null : String(q.price),
-          asOf: q.asOf ?? null,
-          fetchedAt: sql`now()`,
-        })
-        .onConflictDoUpdate({
-          target: marketQuote.symbol,
-          set: {
+    await db
+      .insert(marketQuote)
+      .values(
+        saveSymbols.map((s) => {
+          const q = toSave.get(s)!
+          return {
             provider: q.provider,
+            symbol: q.symbol,
             market: q.market ?? null,
             currency: q.currency ?? null,
             logoUrl: q.logoUrl ?? null,
             price: q.price == null ? null : String(q.price),
             asOf: q.asOf ?? null,
             fetchedAt: sql`now()`,
-          },
-        })
-    }
+          }
+        }),
+      )
+      .onConflictDoUpdate({
+        target: marketQuote.symbol,
+        set: {
+          provider: sql`excluded.provider`,
+          market: sql`excluded.market`,
+          currency: sql`excluded.currency`,
+          logoUrl: sql`excluded.logo_url`,
+          price: sql`excluded.price`,
+          asOf: sql`excluded.as_of`,
+          fetchedAt: sql`now()`,
+        },
+      })
   }
 
   const refreshed = await db

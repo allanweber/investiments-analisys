@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { investment, investmentAnswer, investmentType, question, userApiKey } from '@/db/schema'
@@ -199,35 +199,38 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
 
     for (const e of aiEligible) {
       const answers = answersByInvestmentId.get(e.investmentId) ?? []
-      const suggestions: AiSuggestion[] = []
-
-      for (const answer of answers) {
+      const suggestions: AiSuggestion[] = answers.map((answer) => {
         const suggestedYes = answer.answer === 'unknown' ? null : answer.answer === 'yes'
-        await db
-          .insert(investmentAnswer)
-          .values({
-            investmentId: e.investmentId,
-            questionId: answer.questionId,
-            valueYes: null,
-            aiSuggestedYes: suggestedYes,
-            aiReasoning: answer.reasoning,
-            aiCheckedAt: checkedAt,
-          })
-          .onConflictDoUpdate({
-            target: [investmentAnswer.investmentId, investmentAnswer.questionId],
-            set: {
-              aiSuggestedYes: suggestedYes,
-              aiReasoning: answer.reasoning,
-              aiCheckedAt: checkedAt,
-              updatedAt: checkedAt,
-            },
-          })
-        suggestions.push({
+        return {
           questionId: answer.questionId,
           suggestedYes,
           reasoning: answer.reasoning,
           checkedAt: checkedAt.toISOString(),
-        })
+        }
+      })
+
+      if (answers.length > 0) {
+        await db
+          .insert(investmentAnswer)
+          .values(
+            answers.map((answer) => ({
+              investmentId: e.investmentId,
+              questionId: answer.questionId,
+              valueYes: null,
+              aiSuggestedYes: answer.answer === 'unknown' ? null : answer.answer === 'yes',
+              aiReasoning: answer.reasoning,
+              aiCheckedAt: checkedAt,
+            })),
+          )
+          .onConflictDoUpdate({
+            target: [investmentAnswer.investmentId, investmentAnswer.questionId],
+            set: {
+              aiSuggestedYes: sql`excluded.ai_suggested_yes`,
+              aiReasoning: sql`excluded.ai_reasoning`,
+              aiCheckedAt: sql`excluded.ai_checked_at`,
+              updatedAt: checkedAt,
+            },
+          })
       }
 
       results.set(e.investmentId, { ok: true, suggestions })
