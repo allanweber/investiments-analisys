@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { upsertPortfolioHoldingFn } from '@/lib/portfolio-server'
-import { getRendaFixaDetailFn, upsertRendaFixaHoldingFn } from '@/lib/renda-fixa-server'
+import {
+  getRendaFixaDetailFn,
+  upsertRendaFixaHoldingFn,
+} from '@/lib/renda-fixa-server'
 import type { Indexer, ProductType } from '@/lib/renda-fixa/products'
 import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
 
@@ -30,7 +33,10 @@ export type UseAddToPositionResult = {
   save: (row: HoldingRow) => Promise<void>
 }
 
-export function useAddToPosition({ modal, refresh }: UseAddToPositionOptions): UseAddToPositionResult {
+export function useAddToPosition({
+  modal,
+  refresh,
+}: UseAddToPositionOptions): UseAddToPositionResult {
   const [additionalQty, setAdditionalQty] = useState('')
   const [unitPrice, setUnitPrice] = useState(0)
   const [additionalCapital, setAdditionalCapital] = useState(0)
@@ -59,18 +65,27 @@ export function useAddToPosition({ modal, refresh }: UseAddToPositionOptions): U
   async function save(row: HoldingRow) {
     if (isFixedIncomeTipo(Boolean(row.fixedIncome), row.investmentTypeName)) {
       const addCap = round2(additionalCapital)
-      if (!(addCap > 0)) { setError('Informe o valor do investimento.'); return }
+      if (!(addCap > 0)) {
+        setError('Informe o valor do investimento.')
+        return
+      }
       setError(null)
 
-      const detail = await getRendaFixaDetailFn({ data: { investmentId: row.investmentId } })
-      if (!detail) { setError('Não foi possível carregar os detalhes do investimento.'); return }
+      const detail = await getRendaFixaDetailFn({
+        data: { investmentId: row.investmentId },
+      })
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- getRendaFixaDetailFn's `row ?? null` return type collapses to non-null client-side (tsconfig lacks noUncheckedIndexedAccess, so TS treats the server's `row` as always-defined and drops `| null` from the union), but the server genuinely returns null on a 0-row match
+      if (!detail) {
+        setError('Não foi possível carregar os detalhes do investimento.')
+        return
+      }
 
       const newCapital = round2(Number(detail.detail.capital) + addCap)
       const purchaseDateIso = lastOpDate.trim()
         ? new Date(`${lastOpDate}T12:00:00`).toISOString()
-        : (detail.detail.purchaseDate instanceof Date
-            ? detail.detail.purchaseDate.toISOString()
-            : new Date(String(detail.detail.purchaseDate)).toISOString())
+        : detail.detail.purchaseDate instanceof Date
+          ? detail.detail.purchaseDate.toISOString()
+          : new Date(String(detail.detail.purchaseDate)).toISOString()
 
       // NOT_FOUND is a defense-in-depth branch (foreign investmentId) and unreachable here:
       // row comes from listRendaFixaHoldingsFn, which is already scoped to this user's holdings.
@@ -81,12 +96,15 @@ export function useAddToPosition({ modal, refresh }: UseAddToPositionOptions): U
           indexer: detail.detail.indexer as Indexer,
           capital: newCapital,
           annualRate: Number(detail.detail.annualRate),
-          multiplier: detail.detail.multiplier != null ? Number(detail.detail.multiplier) : undefined,
+          multiplier:
+            detail.detail.multiplier != null
+              ? Number(detail.detail.multiplier)
+              : undefined,
           purchaseDate: purchaseDateIso,
           maturityDate: detail.detail.maturityDate
-            ? (detail.detail.maturityDate instanceof Date
-                ? detail.detail.maturityDate.toISOString()
-                : new Date(String(detail.detail.maturityDate)).toISOString())
+            ? detail.detail.maturityDate instanceof Date
+              ? detail.detail.maturityDate.toISOString()
+              : new Date(String(detail.detail.maturityDate)).toISOString()
             : null,
           broker: row.broker?.trim() ? row.broker.trim() : undefined,
         },

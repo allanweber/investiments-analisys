@@ -27,7 +27,7 @@ function viteDbClientStub(): Plugin {
     enforce: 'pre',
     resolveId(source, _importer, options) {
       if (source !== '@/db') return null
-      if (options?.ssr) return null
+      if (options.ssr) return null
       return stub
     },
   }

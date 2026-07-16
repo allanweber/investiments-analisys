@@ -19,8 +19,9 @@
     "db:pull": "drizzle-kit pull",
     "db:studio": "drizzle-kit studio",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --check .",
-    "check": "prettier --write . && eslint --fix"
+    "check": "prettier --write . && eslint --fix && tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
@@ -68,6 +69,7 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.1.4",
     "esbuild": "latest",
+    "eslint": "10.2.0",
     "jsdom": "^28.1.0",
     "prettier": "^3.8.1",
     "tsx": "^4.21.0",

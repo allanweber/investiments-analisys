@@ -1,7 +1,15 @@
 import YahooFinance from 'yahoo-finance2'
 
-import type { MarketQuote, MarketQuoteInput, QuoteFetchResult, QuoteProvider } from '../types'
-import { DERIVED_NET_DEBT_EBITDA_LABEL, DERIVED_NET_DEBT_LABEL } from './statusinvest'
+import type {
+  MarketQuote,
+  MarketQuoteInput,
+  QuoteFetchResult,
+  QuoteProvider,
+} from '../types'
+import {
+  DERIVED_NET_DEBT_EBITDA_LABEL,
+  DERIVED_NET_DEBT_LABEL,
+} from './statusinvest'
 import type { FundamentalYear } from './statusinvest'
 
 const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] })
@@ -89,7 +97,8 @@ export async function fetchYahooLogoUrls(
         msg: 'yfinance -> logo_error',
         request: req,
         error: {
-          message: typeof e?.message === 'string' ? e.message : 'Provider error',
+          message:
+            typeof e?.message === 'string' ? e.message : 'Provider error',
           stack: typeof e?.stack === 'string' ? e.stack : undefined,
         },
       })
@@ -128,14 +137,18 @@ function parseYahooQuote(symbol: string, row: any): MarketQuote | null {
   return {
     provider: 'yfinance',
     symbol,
-    market: typeof row.fullExchangeName === 'string' ? row.fullExchangeName : null,
+    market:
+      typeof row.fullExchangeName === 'string' ? row.fullExchangeName : null,
     currency,
     price,
     asOf: asOf && !Number.isNaN(asOf.getTime()) ? asOf : null,
   }
 }
 
-function pickQuoteRow(obj: Record<string, any> | null | undefined, symbol: string): any | null {
+function pickQuoteRow(
+  obj: Record<string, any> | null | undefined,
+  symbol: string,
+): any | null {
   if (!obj || typeof obj !== 'object') return null
   if (obj[symbol]) return obj[symbol]
   const up = symbol.toUpperCase()
@@ -145,17 +158,21 @@ function pickQuoteRow(obj: Record<string, any> | null | undefined, symbol: strin
 
 export const yfinanceProvider: QuoteProvider = {
   id: 'yfinance',
-  async fetchQuotes(inputs: readonly MarketQuoteInput[]): Promise<QuoteFetchResult[]> {
+  async fetchQuotes(
+    inputs: readonly MarketQuoteInput[],
+  ): Promise<QuoteFetchResult[]> {
     if (inputs.length === 0) return []
 
     const out: QuoteFetchResult[] = []
 
     for (let start = 0; start < inputs.length; start += QUOTE_BATCH) {
       const slice = inputs.slice(start, start + QUOTE_BATCH)
-      const unique = [...new Set(slice.map((i) => i.symbol.trim()).filter(Boolean))]
+      const unique = [
+        ...new Set(slice.map((i) => i.symbol.trim()).filter(Boolean)),
+      ]
 
       if (unique.length === 0) {
-        for (let j = 0; j < slice.length; j++) {
+        for (const _ of slice) {
           out.push({ ok: false, code: 'NOT_FOUND', message: 'Missing symbol' })
         }
         continue
@@ -185,13 +202,21 @@ export const yfinanceProvider: QuoteProvider = {
         for (const input of slice) {
           const sym = input.symbol.trim()
           if (!sym) {
-            out.push({ ok: false, code: 'NOT_FOUND', message: 'Missing symbol' })
+            out.push({
+              ok: false,
+              code: 'NOT_FOUND',
+              message: 'Missing symbol',
+            })
             continue
           }
           const row = pickQuoteRow(obj, sym)
           const quote = parseYahooQuote(sym, row)
           if (!quote || quote.price == null) {
-            out.push({ ok: false, code: 'NOT_FOUND', message: 'Quote not found' })
+            out.push({
+              ok: false,
+              code: 'NOT_FOUND',
+              message: 'Quote not found',
+            })
           } else {
             out.push({ ok: true, quote })
           }
@@ -203,12 +228,14 @@ export const yfinanceProvider: QuoteProvider = {
           msg: 'yfinance -> error',
           request: { symbols: unique, options: { return: 'object' } },
           error: {
-            message: typeof e?.message === 'string' ? e.message : 'Provider error',
+            message:
+              typeof e?.message === 'string' ? e.message : 'Provider error',
             stack: typeof e?.stack === 'string' ? e.stack : undefined,
           },
         })
-        const msg = typeof e?.message === 'string' ? e.message : 'Provider error'
-        for (let j = 0; j < slice.length; j++) {
+        const msg =
+          typeof e?.message === 'string' ? e.message : 'Provider error'
+        for (const _ of slice) {
           out.push({ ok: false, code: 'PROVIDER_ERROR', message: msg })
         }
       }
@@ -236,7 +263,9 @@ function yahooSymbolFor(ticker: string): string {
  * gives us (keyed with the same labels StatusInvest uses, so a question's metricLabel matches
  * either provider) — nowhere near StatusInvest's full line-item coverage.
  */
-export async function fetchYahooFundamentals(ticker: string): Promise<FundamentalYear[]> {
+export async function fetchYahooFundamentals(
+  ticker: string,
+): Promise<FundamentalYear[]> {
   const symbol = yahooSymbolFor(ticker)
   const period1 = '2015-01-01'
 
@@ -244,15 +273,25 @@ export async function fetchYahooFundamentals(ticker: string): Promise<Fundamenta
   let balanceSheet: any[] = []
   try {
     ;[financials, balanceSheet] = await Promise.all([
-      yahooFinance.fundamentalsTimeSeries(symbol, { period1, type: 'annual', module: 'financials' }),
-      yahooFinance.fundamentalsTimeSeries(symbol, { period1, type: 'annual', module: 'balance-sheet' }),
+      yahooFinance.fundamentalsTimeSeries(symbol, {
+        period1,
+        type: 'annual',
+        module: 'financials',
+      }),
+      yahooFinance.fundamentalsTimeSeries(symbol, {
+        period1,
+        type: 'annual',
+        module: 'balance-sheet',
+      }),
     ])
   } catch (e: any) {
     logMarketDataProviderEvent({
       level: 'error',
       msg: 'yfinance -> fundamentals_error',
       request: { symbol },
-      error: { message: typeof e?.message === 'string' ? e.message : 'Provider error' },
+      error: {
+        message: typeof e?.message === 'string' ? e.message : 'Provider error',
+      },
     })
     return []
   }
@@ -269,7 +308,9 @@ export async function fetchYahooFundamentals(ticker: string): Promise<Fundamenta
 
   const financialsByYear = byYear(financials)
   const balanceSheetByYear = byYear(balanceSheet)
-  const years = [...new Set([...financialsByYear.keys(), ...balanceSheetByYear.keys()])].sort()
+  const years = [
+    ...new Set([...financialsByYear.keys(), ...balanceSheetByYear.keys()]),
+  ].sort()
 
   return years.map((fiscalYear) => {
     const f = financialsByYear.get(fiscalYear)
@@ -286,7 +327,8 @@ export async function fetchYahooFundamentals(ticker: string): Promise<Fundamenta
         EBITDA: ebitda,
         [DERIVED_NET_DEBT_LABEL]: netDebt,
         ROE: netIncome != null && equity ? (netIncome / equity) * 100 : null,
-        [DERIVED_NET_DEBT_EBITDA_LABEL]: netDebt != null && ebitda ? netDebt / ebitda : null,
+        [DERIVED_NET_DEBT_EBITDA_LABEL]:
+          netDebt != null && ebitda ? netDebt / ebitda : null,
       },
     }
   })

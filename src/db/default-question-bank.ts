@@ -83,12 +83,14 @@ export function normalizeQuestionPrompt(raw: string): string {
 }
 
 export function hasDefaultQuestionPackForTypeName(typeName: string): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- PACK_BY_TYPE_NAME is Record<string,...> (no noUncheckedIndexedAccess), but typeName is a user-created investment type name and can be any string not in this fixed set
   return (PACK_BY_TYPE_NAME[typeName]?.length ?? 0) > 0
 }
 
 /** Prompts stored in DB and used for seed / restore (canonical spacing). */
 export function getDefaultQuestionsForTypeName(typeName: string): string[] {
   const pack = PACK_BY_TYPE_NAME[typeName]
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- PACK_BY_TYPE_NAME is Record<string,...> (no noUncheckedIndexedAccess), but typeName is a user-created investment type name and can be any string not in this fixed set
   if (!pack) return []
   return pack.map((p) => normalizeQuestionPrompt(p))
 }

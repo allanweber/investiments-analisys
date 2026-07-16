@@ -2,7 +2,12 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, asc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { investment, investmentType, portfolioHolding, rendaFixaValuation } from '@/db/schema'
+import {
+  investment,
+  investmentType,
+  portfolioHolding,
+  rendaFixaValuation,
+} from '@/db/schema'
 import { refreshMarketQuotesForInputs } from '@/lib/market-data/quote-refresh'
 import type { MarketQuoteInput } from '@/lib/market-data'
 import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
@@ -12,21 +17,25 @@ import { normalizeHoldingCurrency } from '@/lib/math'
 import { getDb, requireUserId } from '@/lib/db-server'
 import { uuid, currencyCode, idInput } from '@/lib/server-utils'
 
-export const listPortfolioCurrenciesFn = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    const db = await getDb()
-    const userId = await requireUserId()
-    const rows = await db
-      .select({ currency: investment.currency })
-      .from(portfolioHolding)
-      .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
-      .where(and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)))
-    const uniq = [...new Set(rows.map((r) => r.currency).filter((c): c is string => Boolean(c)))].sort(
-      (a, b) => a.localeCompare(b),
+export const listPortfolioCurrenciesFn = createServerFn({
+  method: 'GET',
+}).handler(async () => {
+  const db = await getDb()
+  const userId = await requireUserId()
+  const rows = await db
+    .select({ currency: investment.currency })
+    .from(portfolioHolding)
+    .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
+    .where(
+      and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)),
     )
-    return uniq
-  },
-)
+  const uniq = [
+    ...new Set(
+      rows.map((r) => r.currency).filter((c): c is string => Boolean(c)),
+    ),
+  ].sort((a, b) => a.localeCompare(b))
+  return uniq
+})
 
 const refreshPortfolioQuotesInput = z.object({
   displayCurrency: currencyCode.optional(),
@@ -47,8 +56,13 @@ export const refreshPortfolioQuotesFn = createServerFn({ method: 'POST' })
       })
       .from(portfolioHolding)
       .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
-      .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
-      .where(and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)))
+      .innerJoin(
+        investmentType,
+        eq(investment.investmentTypeId, investmentType.id),
+      )
+      .where(
+        and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)),
+      )
 
     const inputs: MarketQuoteInput[] = holdings
       .filter((h) => !isFixedIncomeTipo(h.fixedIncome, h.investmentTypeName))
@@ -64,7 +78,11 @@ export const refreshPortfolioQuotesFn = createServerFn({ method: 'POST' })
       inputs,
     })
 
-    return { ok: true as const, providerStale: stale, refreshedCount: inputs.length }
+    return {
+      ok: true as const,
+      providerStale: stale,
+      refreshedCount: inputs.length,
+    }
   })
 
 const upsertHoldingInput = z.object({
@@ -84,8 +102,14 @@ export const upsertPortfolioHoldingFn = createServerFn({ method: 'POST' })
     const [inv] = await db
       .select({ id: investment.id })
       .from(investment)
-      .where(and(eq(investment.id, data.investmentId), eq(investment.userId, userId)))
+      .where(
+        and(
+          eq(investment.id, data.investmentId),
+          eq(investment.userId, userId),
+        ),
+      )
       .limit(1)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess, so TS types this as always-defined even though a 0-row match (id/userId not found) makes it undefined at runtime
     if (!inv) return { ok: false as const, code: 'NOT_FOUND' as const }
 
     await db
@@ -96,7 +120,9 @@ export const upsertPortfolioHoldingFn = createServerFn({ method: 'POST' })
         quantity: String(data.quantity),
         avgCost: String(data.avgCost),
         broker: data.broker?.trim() ? data.broker.trim() : null,
-        lastOperationAt: data.lastOperationAt ? new Date(data.lastOperationAt) : null,
+        lastOperationAt: data.lastOperationAt
+          ? new Date(data.lastOperationAt)
+          : null,
       })
       .onConflictDoUpdate({
         target: [portfolioHolding.userId, portfolioHolding.investmentId],
@@ -104,7 +130,9 @@ export const upsertPortfolioHoldingFn = createServerFn({ method: 'POST' })
           quantity: String(data.quantity),
           avgCost: String(data.avgCost),
           broker: data.broker?.trim() ? data.broker.trim() : null,
-          lastOperationAt: data.lastOperationAt ? new Date(data.lastOperationAt) : null,
+          lastOperationAt: data.lastOperationAt
+            ? new Date(data.lastOperationAt)
+            : null,
           updatedAt: sql`now()`,
         },
       })
@@ -119,7 +147,12 @@ export const deletePortfolioHoldingFn = createServerFn({ method: 'POST' })
     const userId = await requireUserId()
     await db
       .delete(portfolioHolding)
-      .where(and(eq(portfolioHolding.userId, userId), eq(portfolioHolding.investmentId, data.id)))
+      .where(
+        and(
+          eq(portfolioHolding.userId, userId),
+          eq(portfolioHolding.investmentId, data.id),
+        ),
+      )
     return { ok: true as const }
   })
 
@@ -130,7 +163,8 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const db = await getDb()
     const userId = await requireUserId()
-    const displayCurrency = normalizeHoldingCurrency(data.displayCurrency) ?? 'BRL'
+    const displayCurrency =
+      normalizeHoldingCurrency(data.displayCurrency) ?? 'BRL'
 
     const rows = await db
       .select({
@@ -151,7 +185,10 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
       })
       .from(portfolioHolding)
       .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
-      .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
+      .innerJoin(
+        investmentType,
+        eq(investment.investmentTypeId, investmentType.id),
+      )
       .leftJoin(
         rendaFixaValuation,
         and(
@@ -159,15 +196,15 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
           eq(rendaFixaValuation.investmentId, portfolioHolding.investmentId),
         ),
       )
-      .where(and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)))
+      .where(
+        and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)),
+      )
       .orderBy(asc(investmentType.sortOrder), asc(investment.name))
 
     // For renda fixa holdings, substitute avgCost with the latest computed grossAmount
     // so the valuation pipeline returns the interest-accrued value, not just book value.
     const rowsForValuation = rows.map((r) =>
-      r.rfGrossAmount != null
-        ? { ...r, avgCost: r.rfGrossAmount }
-        : r,
+      r.rfGrossAmount != null ? { ...r, avgCost: r.rfGrossAmount } : r,
     )
 
     const { valuated, quotesStale, fxAsOf, fxStale, fxMissingPairs } =

@@ -67,7 +67,9 @@ function PerguntasPage() {
   if (!type) {
     return (
       <main className="w-full max-w-6xl px-4 py-8 sm:p-8 lg:p-12">
-        <p className="font-body text-on-surface-variant">{m.questions.notFound}</p>
+        <p className="font-body text-on-surface-variant">
+          {m.questions.notFound}
+        </p>
         <Link
           to="/tipos"
           className="mt-4 inline-block font-body text-sm font-semibold text-primary underline"
@@ -149,7 +151,7 @@ function PerguntasPage() {
     setBusy(id)
     try {
       const res = await deleteQuestionFn({ data: { id } })
-      if (!res.ok && res.code === 'HAS_ANSWERS') {
+      if (!res.ok) {
         toast.error(m.questions.deleteBlocked)
         return
       }
@@ -345,7 +347,9 @@ function PerguntasPage() {
                   {q.active ? m.common.statusAtiva : m.common.statusInativa}
                 </span>
                 <span className="text-on-surface-variant text-xs">
-                  {m.questions.mobileOrderLabel(String(q.sortOrder).padStart(2, '0'))}
+                  {m.questions.mobileOrderLabel(
+                    String(q.sortOrder).padStart(2, '0'),
+                  )}
                 </span>
               </div>
               <div className="mt-4 flex gap-2 border-t border-outline-variant/15 pt-4">
@@ -383,7 +387,9 @@ function PerguntasPage() {
           <table className="fa-table">
             <thead>
               <tr className="fa-th">
-                <th className="min-w-[18rem] text-left">{m.questions.thTexto}</th>
+                <th className="min-w-[18rem] text-left">
+                  {m.questions.thTexto}
+                </th>
                 <th className="text-left">{m.types.thOrdem}</th>
                 <th className="text-left">{m.common.labelAtiva}</th>
                 <th className="text-right">{m.common.labelAcoes}</th>
@@ -411,7 +417,9 @@ function PerguntasPage() {
                         className="min-w-[16rem] border-outline-variant/30 bg-surface-container-high"
                       />
                     ) : (
-                      <span className="block whitespace-normal">{q.prompt}</span>
+                      <span className="block whitespace-normal">
+                        {q.prompt}
+                      </span>
                     )}
                   </td>
                   <td className="align-top whitespace-nowrap text-on-surface-variant w-24 min-w-[5.5rem]">
@@ -448,7 +456,9 @@ function PerguntasPage() {
                             : 'whitespace-nowrap text-on-surface-variant'
                         }
                       >
-                        {q.active ? m.common.statusAtiva : m.common.statusInativa}
+                        {q.active
+                          ? m.common.statusAtiva
+                          : m.common.statusInativa}
                       </span>
                     )}
                   </td>

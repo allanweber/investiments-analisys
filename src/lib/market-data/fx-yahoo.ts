@@ -16,13 +16,17 @@ export type YahooFxFetchResult = {
 }
 
 export async function fetchYahooFxRates(): Promise<YahooFxFetchResult[]> {
-  const inputs = YAHOO_FX_PAIRS.map((p) => ({ symbol: p.symbol, holdingCurrency: null }))
+  const inputs = YAHOO_FX_PAIRS.map((p) => ({
+    symbol: p.symbol,
+    holdingCurrency: null,
+  }))
   const results = await yfinanceProvider.fetchQuotes(inputs)
   const out: YahooFxFetchResult[] = []
 
   for (let i = 0; i < YAHOO_FX_PAIRS.length; i++) {
-    const pair = YAHOO_FX_PAIRS[i]!
+    const pair = YAHOO_FX_PAIRS[i]
     const res = results[i]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- results[i] relies on fetchQuotes preserving a 1:1 index correspondence with inputs; that's an internal invariant, not type-enforced, so guard against index mismatch rather than trust it silently
     if (!res?.ok || res.quote.price == null || res.quote.price <= 0) continue
     out.push({
       baseCurrency: pair.base,

@@ -17,7 +17,6 @@ const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
 const authBaseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3002'
 
 const extraTrustedOrigins =
-
   process.env.BETTER_AUTH_TRUSTED_ORIGINS?.split(',')
 
     .map((o) => o.trim())
@@ -27,27 +26,15 @@ const extraTrustedOrigins =
 /** Origins allowed for cookie / CSRF checks (must include the URL users open in the browser). */
 
 const trustedOrigins = [
-
   ...new Set([
-
     authBaseURL,
 
     ...extraTrustedOrigins,
 
     ...(process.env.NODE_ENV !== 'production'
-
-      ? ([
-
-          'http://localhost:3002',
-
-          'http://127.0.0.1:3002',
-
-        ] as const)
-
+      ? (['http://localhost:3002', 'http://127.0.0.1:3002'] as const)
       : []),
-
   ]),
-
 ]
 
 let authInstance: ReturnType<typeof betterAuth> | undefined
@@ -61,19 +48,14 @@ let authInstance: ReturnType<typeof betterAuth> | undefined
  */
 
 export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
-
   if (authInstance) return authInstance
 
   const { db } = await import('@/db')
 
-  const { seedDefaultInvestmentTypesForUser } = await import(
-
-    '@/db/seed-default-types',
-
-  )
+  const { seedDefaultInvestmentTypesForUser } =
+    await import('@/db/seed-default-types')
 
   const instance = betterAuth({
-
     secret: process.env.BETTER_AUTH_SECRET ?? 'dev-only-change-me',
 
     baseURL: authBaseURL,
@@ -81,15 +63,12 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
     trustedOrigins,
 
     database: drizzleAdapter(db, {
-
       provider: 'pg',
 
       schema,
-
     }),
 
     emailAndPassword: {
-
       enabled: true,
 
       requireEmailVerification: true,
@@ -99,25 +78,18 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
       minPasswordLength: 8,
 
       revokeSessionsOnPasswordReset: true,
-
     },
 
     emailVerification: {
-
       sendOnSignUp: true,
 
       autoSignInAfterVerification: true,
-
     },
 
     socialProviders:
-
       googleClientId && googleClientSecret
-
         ? {
-
             google: {
-
               clientId: googleClientId,
 
               clientSecret: googleClientSecret,
@@ -125,6 +97,7 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
               overrideUserInfoOnSignIn: true,
 
               mapProfileToUser: (profile) => {
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- profile is Google's OAuth response (external data); better-auth's type is optimistic, and the `as unknown as Record<...>` cast below is exactly the kind of unvalidated-shape signal this guards against
                 if (!profile || typeof profile !== 'object') return {}
 
                 const p = profile as unknown as Record<string, unknown>
@@ -136,63 +109,44 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
 
                 return image ? { image } : {}
               },
-
             },
-
           }
-
         : undefined,
 
     databaseHooks: {
-
       user: {
-
         create: {
-
           after: async (user, _ctx) => {
-
             await seedDefaultInvestmentTypesForUser(user.id)
-
           },
-
         },
-
       },
 
       session: {
-
         create: {
-
           after: async (session) => {
-
-            const { db } = await import('@/db')
+            const { db: sessionDb } = await import('@/db')
 
             const { user } = await import('@/db/schema')
 
             const { eq } = await import('drizzle-orm')
 
-            await db
+            await sessionDb
 
               .update(user)
 
               .set({ lastLoginAt: new Date() })
 
               .where(eq(user.id, session.userId))
-
           },
-
         },
-
       },
-
     },
 
     plugins: [
-
       admin(),
 
       emailOTP({
-
         overrideDefaultEmailVerification: true,
 
         sendVerificationOnSignUp: true,
@@ -208,17 +162,12 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
         rateLimit: { window: 60, max: 3 },
 
         async sendVerificationOTP({ email, otp, type }) {
-
           void sendAuthOtpEmail({ email, otp, type })
-
         },
-
       }),
 
       tanstackStartCookies(),
-
     ],
-
   })
 
   authInstance = instance as unknown as ReturnType<typeof betterAuth>
@@ -226,7 +175,6 @@ export async function getAuth(): Promise<ReturnType<typeof betterAuth>> {
   void seedAdminRole(authInstance)
 
   return authInstance
-
 }
 
 async function seedAdminRole(_auth: ReturnType<typeof betterAuth>) {
@@ -236,7 +184,10 @@ async function seedAdminRole(_auth: ReturnType<typeof betterAuth>) {
     const { db } = await import('@/db')
     const { user } = await import('@/db/schema')
     const { eq } = await import('drizzle-orm')
-    await db.update(user).set({ role: 'admin' }).where(eq(user.email, adminEmail))
+    await db
+      .update(user)
+      .set({ role: 'admin' })
+      .where(eq(user.email, adminEmail))
   } catch {
     // non-fatal — user may not exist yet; will be promoted on next boot after signup
   }

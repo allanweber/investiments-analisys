@@ -1,4 +1,5 @@
-import { compareInvestmentsByRank, type InvestmentOverviewRow } from '@/lib/investment-scoring'
+import { compareInvestmentsByRank } from '@/lib/investment-scoring'
+import type { InvestmentOverviewRow } from '@/lib/investment-scoring'
 
 type AllocationRow = {
   investmentTypeId: string
@@ -30,7 +31,10 @@ export type SuggestionRow = {
   score: number
 }
 
-function computeAllocationDrift(allocation: AllocationRow[], targets: TargetRow[]): DriftRow[] {
+function computeAllocationDrift(
+  allocation: AllocationRow[],
+  targets: TargetRow[],
+): DriftRow[] {
   const allocByTypeId = new Map(allocation.map((a) => [a.investmentTypeId, a]))
   return targets
     .map((t) => {
@@ -53,8 +57,12 @@ function computeAllocationDrift(allocation: AllocationRow[], targets: TargetRow[
       }
     })
     .sort((a, b) => {
-      const sa = targets.find((t) => t.investmentTypeId === a.investmentTypeId)?.typeSortOrder ?? 0
-      const sb = targets.find((t) => t.investmentTypeId === b.investmentTypeId)?.typeSortOrder ?? 0
+      const sa =
+        targets.find((t) => t.investmentTypeId === a.investmentTypeId)
+          ?.typeSortOrder ?? 0
+      const sb =
+        targets.find((t) => t.investmentTypeId === b.investmentTypeId)
+          ?.typeSortOrder ?? 0
       return sa - sb
     })
 }
@@ -74,7 +82,7 @@ function computeRebalanceSuggestions(
     .map((d) => {
       const list = byTypeId.get(d.investmentTypeId) ?? []
       if (list.length === 0) return null
-      const best = [...list].sort(compareInvestmentsByRank)[0]!
+      const best = [...list].sort(compareInvestmentsByRank)[0]
       return {
         investmentTypeId: d.investmentTypeId,
         investmentTypeName: d.investmentTypeName,
@@ -93,6 +101,9 @@ export function analyzePortfolioAllocation(params: {
   scoredInvestments: InvestmentOverviewRow[]
 }): { drift: DriftRow[]; suggestions: SuggestionRow[] } {
   const drift = computeAllocationDrift(params.allocation, params.targets)
-  const suggestions = computeRebalanceSuggestions(drift, params.scoredInvestments)
+  const suggestions = computeRebalanceSuggestions(
+    drift,
+    params.scoredInvestments,
+  )
   return { drift, suggestions }
 }

@@ -2,13 +2,18 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, asc, count, eq, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { investment, investmentAnswer, investmentType, question } from '@/db/schema'
+import {
+  investment,
+  investmentAnswer,
+  investmentType,
+  question,
+} from '@/db/schema'
 import {
   compareInvestmentsByRank,
   computeScoreFromActiveQuestions,
-  type InvestmentOverviewRow,
   loadInvestmentOverviewRows,
 } from '@/lib/investment-scoring'
+import type { InvestmentOverviewRow } from '@/lib/investment-scoring'
 import { getDb, requireUserId } from '@/lib/db-server'
 import { uuid } from '@/lib/server-utils'
 
@@ -31,10 +36,19 @@ export const loadInvestmentScoringFn = createServerFn({ method: 'POST' })
         typeName: investmentType.name,
       })
       .from(investment)
-      .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
-      .where(and(eq(investment.id, data.investmentId), eq(investment.userId, userId)))
+      .innerJoin(
+        investmentType,
+        eq(investment.investmentTypeId, investmentType.id),
+      )
+      .where(
+        and(
+          eq(investment.id, data.investmentId),
+          eq(investment.userId, userId),
+        ),
+      )
       .limit(1)
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess, so TS types this as always-defined even though a 0-row match (id/userId not found) makes it undefined at runtime
     if (!inv) return null
 
     const activeQs = await db
@@ -105,8 +119,14 @@ export const saveInvestmentScoringFn = createServerFn({ method: 'POST' })
     const [inv] = await db
       .select()
       .from(investment)
-      .where(and(eq(investment.id, data.investmentId), eq(investment.userId, userId)))
+      .where(
+        and(
+          eq(investment.id, data.investmentId),
+          eq(investment.userId, userId),
+        ),
+      )
       .limit(1)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess, so TS types this as always-defined even though a 0-row match (id/userId not found) makes it undefined at runtime
     if (!inv) return { ok: false as const, code: 'NOT_FOUND' as const }
 
     const activeIds = await db
@@ -186,8 +206,14 @@ export const clearAiSuggestionsFn = createServerFn({ method: 'POST' })
     const [inv] = await db
       .select({ id: investment.id })
       .from(investment)
-      .where(and(eq(investment.id, data.investmentId), eq(investment.userId, userId)))
+      .where(
+        and(
+          eq(investment.id, data.investmentId),
+          eq(investment.userId, userId),
+        ),
+      )
       .limit(1)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess, so TS types this as always-defined even though a 0-row match (id/userId not found) makes it undefined at runtime
     if (!inv) return { ok: false as const, code: 'NOT_FOUND' as const }
 
     // aiCheckedAt is deliberately kept — it drives the "Concluído <date>" status on
@@ -215,73 +241,73 @@ export const clearAiSuggestionsFn = createServerFn({ method: 'POST' })
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-export const listInvestmentsOverviewFn = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    const userId = await requireUserId()
-    const enriched = await loadInvestmentOverviewRows(userId)
+export const listInvestmentsOverviewFn = createServerFn({
+  method: 'GET',
+}).handler(async () => {
+  const userId = await requireUserId()
+  const enriched = await loadInvestmentOverviewRows(userId)
 
-    const byType = new Map<string, InvestmentOverviewRow[]>()
-    for (const row of enriched) {
-      const list = byType.get(row.investmentTypeId) ?? []
-      list.push(row)
-      byType.set(row.investmentTypeId, list)
-    }
+  const byType = new Map<string, InvestmentOverviewRow[]>()
+  for (const row of enriched) {
+    const list = byType.get(row.investmentTypeId) ?? []
+    list.push(row)
+    byType.set(row.investmentTypeId, list)
+  }
 
-    const withRank: Array<InvestmentOverviewRow & { position: number }> = []
-    for (const [, list] of byType) {
-      const sorted = [...list].sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score
-        return a.name.localeCompare(b.name, 'pt-BR')
-      })
-      sorted.forEach((item, idx) => {
-        withRank.push({ ...item, position: idx + 1 })
-      })
-    }
+  const withRank: Array<InvestmentOverviewRow & { position: number }> = []
+  for (const [, list] of byType) {
+    const sorted = [...list].sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      return a.name.localeCompare(b.name, 'pt-BR')
+    })
+    sorted.forEach((item, idx) => {
+      withRank.push({ ...item, position: idx + 1 })
+    })
+  }
 
-    return withRank
-  },
-)
+  return withRank
+})
 
-export const getDashboardHighlightsFn = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    const db = await getDb()
-    const userId = await requireUserId()
-    const types = await db
-      .select({
-        id: investmentType.id,
-        name: investmentType.name,
-        sortOrder: investmentType.sortOrder,
-      })
-      .from(investmentType)
-      .where(eq(investmentType.userId, userId))
-      .orderBy(asc(investmentType.sortOrder), asc(investmentType.name))
+export const getDashboardHighlightsFn = createServerFn({
+  method: 'GET',
+}).handler(async () => {
+  const db = await getDb()
+  const userId = await requireUserId()
+  const types = await db
+    .select({
+      id: investmentType.id,
+      name: investmentType.name,
+      sortOrder: investmentType.sortOrder,
+    })
+    .from(investmentType)
+    .where(eq(investmentType.userId, userId))
+    .orderBy(asc(investmentType.sortOrder), asc(investmentType.name))
 
-    const enriched = await loadInvestmentOverviewRows(userId)
-    const byTypeId = new Map<string, InvestmentOverviewRow[]>()
-    for (const row of enriched) {
-      const list = byTypeId.get(row.investmentTypeId) ?? []
-      list.push(row)
-      byTypeId.set(row.investmentTypeId, list)
-    }
+  const enriched = await loadInvestmentOverviewRows(userId)
+  const byTypeId = new Map<string, InvestmentOverviewRow[]>()
+  for (const row of enriched) {
+    const list = byTypeId.get(row.investmentTypeId) ?? []
+    list.push(row)
+    byTypeId.set(row.investmentTypeId, list)
+  }
 
-    return {
-      groups: types.map((t) => {
-        const list = byTypeId.get(t.id) ?? []
-        const sorted = [...list].sort(compareInvestmentsByRank)
-        const top = sorted.slice(0, DASHBOARD_TOP_PER_TYPE).map((r) => ({
-          id: r.id,
-          name: r.name,
-          score: r.score,
-        }))
-        return {
-          typeId: t.id,
-          typeName: t.name,
-          top,
-        }
-      }),
-    }
-  },
-)
+  return {
+    groups: types.map((t) => {
+      const list = byTypeId.get(t.id) ?? []
+      const sorted = [...list].sort(compareInvestmentsByRank)
+      const top = sorted.slice(0, DASHBOARD_TOP_PER_TYPE).map((r) => ({
+        id: r.id,
+        name: r.name,
+        score: r.score,
+      }))
+      return {
+        typeId: t.id,
+        typeName: t.name,
+        top,
+      }
+    }),
+  }
+})
 
 export const getDashboardSummaryFn = createServerFn({ method: 'GET' }).handler(
   async () => {
@@ -300,10 +326,11 @@ export const getDashboardSummaryFn = createServerFn({ method: 'GET' }).handler(
       .from(investmentAnswer)
       .innerJoin(investment, eq(investmentAnswer.investmentId, investment.id))
       .where(eq(investment.userId, userId))
+    // COUNT(*) with no GROUP BY always returns exactly one row
     return {
-      typeCount: Number(tRow?.n ?? 0),
-      investmentCount: Number(iRow?.n ?? 0),
-      answerCount: Number(aRow?.n ?? 0),
+      typeCount: Number(tRow.n),
+      investmentCount: Number(iRow.n),
+      answerCount: Number(aRow.n),
     }
   },
 )

@@ -70,7 +70,7 @@ function VerifyEmailPage() {
     )
   }
 
-  if (session?.user?.emailVerified) {
+  if (session?.user.emailVerified) {
     return <Navigate to="/dashboard" replace />
   }
 
@@ -115,7 +115,7 @@ function VerifyEmailPage() {
 
       const storedPassword = readVerifyPassword(password)
 
-      if (verifyResult.data?.token) {
+      if (verifyResult.data.token) {
         clearVerifyPassword()
         await router.navigate({ to: '/dashboard' })
         return
@@ -205,9 +205,7 @@ function VerifyEmailPage() {
             disabled={!canResend || resendLoading}
             className="cursor-pointer font-body text-sm font-semibold text-primary underline decoration-surface-tint underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {canResend
-              ? m.auth.resendOtp
-              : m.auth.resendOtpCooldown(cooldown)}
+            {canResend ? m.auth.resendOtp : m.auth.resendOtpCooldown(cooldown)}
           </button>
           <Link
             to="/login"

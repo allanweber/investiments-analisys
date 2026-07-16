@@ -17,7 +17,7 @@ export function parseTargetsJson(raw: unknown): UserAllocationTargetsJson {
       out[k] = { targetPct: clampPct(v) }
       continue
     }
-    if (v && typeof v === 'object' && 'targetPct' in (v as object)) {
+    if (v && typeof v === 'object' && 'targetPct' in v) {
       const t = v as { targetPct?: unknown; minPct?: unknown; maxPct?: unknown }
       out[k] = {
         targetPct: clampPct(num(t.targetPct)),

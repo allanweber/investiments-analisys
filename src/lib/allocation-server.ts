@@ -9,7 +9,9 @@ import { clampPct, num } from '@/lib/math'
 import { getDb, requireUserId } from '@/lib/db-server'
 import { uuid, pct, parseTargetsJson } from '@/lib/server-utils'
 
-export const listAllocationTargetsFn = createServerFn({ method: 'GET' }).handler(async () => {
+export const listAllocationTargetsFn = createServerFn({
+  method: 'GET',
+}).handler(async () => {
   const db = await getDb()
   const userId = await requireUserId()
   const rowsList = await db
@@ -46,8 +48,10 @@ export const upsertAllocationTargetFn = createServerFn({ method: 'POST' })
       .from(userAllocationProfile)
       .where(eq(userAllocationProfile.userId, userId))
 
-    let next: UserAllocationTargetsJson =
-      profileRows.length > 0 ? { ...parseTargetsJson(profileRows[0].targets) } : {}
+    const next: UserAllocationTargetsJson =
+      profileRows.length > 0
+        ? { ...parseTargetsJson(profileRows[0].targets) }
+        : {}
     next[data.investmentTypeId] = {
       targetPct: clampPct(data.targetPct),
       minPct: data.minPct == null ? null : clampPct(data.minPct),

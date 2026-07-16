@@ -29,7 +29,7 @@ function varPctText(r: HoldingRow): string {
   if (r.quoteStatus === 'BOOK_VALUE') {
     const cap = r.rfCapital
     const gross = r.marketValueNative
-    return cap != null && cap > 0 && gross != null
+    return cap > 0 && gross != null
       ? `${(((gross - cap) / cap) * 100).toFixed(1)}%`
       : '—'
   }
@@ -42,7 +42,7 @@ function varDir(r: HoldingRow): 'up' | 'down' | null {
   if (r.quoteStatus === 'BOOK_VALUE') {
     const cap = r.rfCapital
     const gross = r.marketValueNative
-    if (cap == null || cap <= 0 || gross == null) return null
+    if (cap <= 0 || gross == null) return null
     return gross >= cap ? 'up' : 'down'
   }
   if (r.lastPrice == null || r.avgCost <= 0) return null
@@ -90,7 +90,10 @@ const HoldingCardRow = memo(function HoldingCardRowImpl({
         tabIndex={0}
         onClick={() => onEdit(r)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(r) }
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onEdit(r)
+          }
         }}
       >
         <div className="flex items-start justify-between gap-2">
@@ -100,15 +103,23 @@ const HoldingCardRow = memo(function HoldingCardRowImpl({
             </p>
             <p className="text-xs text-outline">{r.investmentTypeName}</p>
           </div>
-          <span className={`shrink-0 whitespace-nowrap text-xs font-bold uppercase ${statusClass}`}>{label}</span>
+          <span
+            className={`shrink-0 whitespace-nowrap text-xs font-bold uppercase ${statusClass}`}
+          >
+            {label}
+          </span>
         </div>
         <div className="mt-3 flex justify-between gap-2 text-sm">
           <span className="shrink-0 text-outline">Quantidade</span>
-          <span className="whitespace-nowrap font-semibold tabular-nums text-on-surface">{fmtQuantity(r.quantity)}</span>
+          <span className="whitespace-nowrap font-semibold tabular-nums text-on-surface">
+            {fmtQuantity(r.quantity)}
+          </span>
         </div>
         <div className="mt-1 flex justify-between gap-2 text-sm">
           <span className="shrink-0 text-outline">Variação</span>
-          <span className={`whitespace-nowrap font-semibold ${varColorClass(r)}`}>
+          <span
+            className={`whitespace-nowrap font-semibold ${varColorClass(r)}`}
+          >
             <span className="inline-flex items-center gap-0.5">
               {dir && (
                 <span className="material-symbols-outlined text-[10px] leading-none">
@@ -122,7 +133,9 @@ const HoldingCardRow = memo(function HoldingCardRowImpl({
         <div className="mt-1 flex justify-between gap-2 text-sm">
           <span className="shrink text-outline">Valor nativo</span>
           <span className="whitespace-nowrap font-bold text-on-surface">
-            {r.marketValueNative == null ? '—' : fmtMoney(r.marketValueNative, r.currency)}
+            {r.marketValueNative == null
+              ? '—'
+              : fmtMoney(r.marketValueNative, r.currency)}
           </span>
         </div>
         <div className="mt-1 flex justify-between gap-2 text-sm">
@@ -139,16 +152,24 @@ const HoldingCardRow = memo(function HoldingCardRowImpl({
           type="button"
           className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-primary hover:bg-primary/10"
           aria-label="Adicionar cotas"
-          onClick={(e) => { e.stopPropagation(); onAddShares(r) }}
+          onClick={(e) => {
+            e.stopPropagation()
+            onAddShares(r)
+          }}
         >
-          <span className="material-symbols-outlined text-[22px]">add_circle</span>
+          <span className="material-symbols-outlined text-[22px]">
+            add_circle
+          </span>
         </button>
         <button
           type="button"
           disabled={isDeleting}
           className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-error hover:bg-error-container/45 disabled:opacity-45"
           aria-label={`Excluir posição ${r.ticker ?? r.investmentName}`}
-          onClick={(e) => { e.stopPropagation(); onDelete(r) }}
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete(r)
+          }}
         >
           <span className="material-symbols-outlined text-[22px]">delete</span>
         </button>
@@ -178,12 +199,18 @@ const HoldingTableRow = memo(function HoldingTableRowImpl({
       tabIndex={0}
       onClick={() => onEdit(r)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(r) }
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onEdit(r)
+        }
       }}
     >
       <td className="py-3">
         <div className="flex items-center gap-2">
-          <AssetAvatar logoUrl={r.quoteLogoUrl} label={r.ticker ?? r.investmentName} />
+          <AssetAvatar
+            logoUrl={r.quoteLogoUrl}
+            label={r.ticker ?? r.investmentName}
+          />
           <div className="min-w-0">
             <div className="truncate font-medium text-on-surface">
               {r.ticker ?? r.investmentName}
@@ -192,9 +219,13 @@ const HoldingTableRow = memo(function HoldingTableRowImpl({
           </div>
         </div>
       </td>
-      <td className="hidden py-3 text-right tabular-nums text-on-surface lg:table-cell">{fmtQuantity(r.quantity)}</td>
+      <td className="hidden py-3 text-right tabular-nums text-on-surface lg:table-cell">
+        {fmtQuantity(r.quantity)}
+      </td>
       <td className="py-3 text-right font-semibold text-on-surface">
-        {r.marketValueNative == null ? '—' : fmtMoney(r.marketValueNative, r.currency)}
+        {r.marketValueNative == null
+          ? '—'
+          : fmtMoney(r.marketValueNative, r.currency)}
       </td>
       <td className="py-3 text-right font-semibold text-on-surface">
         {r.fxUnavailable || r.marketValueDisplay == null
@@ -213,11 +244,17 @@ const HoldingTableRow = memo(function HoldingTableRowImpl({
       </td>
       <td className="hidden py-3 text-right text-on-surface lg:table-cell">
         {r.quoteStatus === 'BOOK_VALUE'
-          ? (r.marketValueNative == null ? '—' : fmtMoney(r.marketValueNative, r.currency))
-          : (r.lastPrice == null ? '—' : fmtMoney(r.lastPrice, r.currency))}
+          ? r.marketValueNative == null
+            ? '—'
+            : fmtMoney(r.marketValueNative, r.currency)
+          : r.lastPrice == null
+            ? '—'
+            : fmtMoney(r.lastPrice, r.currency)}
       </td>
       <td className="py-3 text-right">
-        <span className={`whitespace-nowrap rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${statusPillClass}`}>
+        <span
+          className={`whitespace-nowrap rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${statusPillClass}`}
+        >
           {label}
         </span>
       </td>
@@ -229,7 +266,9 @@ const HoldingTableRow = memo(function HoldingTableRowImpl({
             aria-label="Adicionar cotas"
             onClick={() => onAddShares(r)}
           >
-            <span className="material-symbols-outlined text-[22px]">add_circle</span>
+            <span className="material-symbols-outlined text-[22px]">
+              add_circle
+            </span>
           </button>
           <button
             type="button"
@@ -238,7 +277,9 @@ const HoldingTableRow = memo(function HoldingTableRowImpl({
             aria-label={`Excluir posição ${r.ticker ?? r.investmentName}`}
             onClick={() => onDelete(r)}
           >
-            <span className="material-symbols-outlined text-[20px]">delete</span>
+            <span className="material-symbols-outlined text-[20px]">
+              delete
+            </span>
           </button>
         </div>
       </td>
@@ -255,13 +296,28 @@ export function HoldingsListSection({
   onAddShares,
   onDelete,
 }: Props) {
-  const { filterType, setFilterType, filterCurrency, setFilterCurrency, sortBy, setSortBy,
-    page, setPage, pageCount, pageRows, processedRows, typeFilterOptions, currencyFilterOptions } = filters
+  const {
+    filterType,
+    setFilterType,
+    filterCurrency,
+    setFilterCurrency,
+    sortBy,
+    setSortBy,
+    page,
+    setPage,
+    pageCount,
+    pageRows,
+    processedRows,
+    typeFilterOptions,
+    currencyFilterOptions,
+  } = filters
 
   return (
     <section className="rounded-2xl bg-surface-container-lowest p-3 md:p-8 lg:col-span-2">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="font-headline text-base font-extrabold text-on-surface">Principais Ativos</h2>
+        <h2 className="font-headline text-base font-extrabold text-on-surface">
+          Principais Ativos
+        </h2>
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-2 rounded-full bg-surface-container-low px-3 py-2 text-xs font-semibold text-on-surface">
             <span className="text-outline">Classe</span>
@@ -272,7 +328,9 @@ export function HoldingsListSection({
             >
               <option value="all">Todas</option>
               {typeFilterOptions.map((n) => (
-                <option key={n} value={n}>{n}</option>
+                <option key={n} value={n}>
+                  {n}
+                </option>
               ))}
             </select>
           </label>
@@ -285,7 +343,9 @@ export function HoldingsListSection({
             >
               <option value="all">Todas</option>
               {currencyFilterOptions.map((c) => (
-                <option key={c} value={c}>{c}</option>
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
             </select>
           </label>
@@ -325,13 +385,23 @@ export function HoldingsListSection({
           <thead className="text-[10px] font-bold uppercase tracking-widest text-outline">
             <tr>
               <th className="py-2 text-left">Ativo</th>
-              <th className="hidden py-2 text-right lg:table-cell">Quantidade</th>
-              <th className="py-2 text-right">{m.portfolio.holdingsNativeValue}</th>
-              <th className="py-2 text-right">{m.portfolio.holdingsDisplayValue(displayCurrency)}</th>
+              <th className="hidden py-2 text-right lg:table-cell">
+                Quantidade
+              </th>
+              <th className="py-2 text-right">
+                {m.portfolio.holdingsNativeValue}
+              </th>
+              <th className="py-2 text-right">
+                {m.portfolio.holdingsDisplayValue(displayCurrency)}
+              </th>
               <th className="py-2 text-right">Variação</th>
-              <th className="hidden py-2 text-right lg:table-cell">Preço atual</th>
+              <th className="hidden py-2 text-right lg:table-cell">
+                Preço atual
+              </th>
               <th className="py-2 text-right">Status</th>
-              <th className="min-w-[7rem] py-2 text-right"><span className="sr-only">Ações</span></th>
+              <th className="min-w-[7rem] py-2 text-right">
+                <span className="sr-only">Ações</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-outline-variant/10">
@@ -365,11 +435,17 @@ export function HoldingsListSection({
             className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant/30 text-on-surface disabled:opacity-40"
             aria-label="Página anterior"
           >
-            <span className="material-symbols-outlined text-lg">chevron_left</span>
+            <span className="material-symbols-outlined text-lg">
+              chevron_left
+            </span>
           </button>
-          <span className="min-w-[2rem] text-center font-bold text-on-surface">{page}</span>
+          <span className="min-w-[2rem] text-center font-bold text-on-surface">
+            {page}
+          </span>
           <span className="text-outline">/</span>
-          <span className="min-w-[2rem] text-center font-bold text-on-surface">{pageCount}</span>
+          <span className="min-w-[2rem] text-center font-bold text-on-surface">
+            {pageCount}
+          </span>
           <button
             type="button"
             disabled={page >= pageCount}
@@ -377,7 +453,9 @@ export function HoldingsListSection({
             className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant/30 text-on-surface disabled:opacity-40"
             aria-label="Próxima página"
           >
-            <span className="material-symbols-outlined text-lg">chevron_right</span>
+            <span className="material-symbols-outlined text-lg">
+              chevron_right
+            </span>
           </button>
         </div>
       </div>

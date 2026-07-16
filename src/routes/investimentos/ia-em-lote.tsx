@@ -62,7 +62,9 @@ function StatusBadge({
   if (status === 'ok') {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-primary-container px-2.5 py-1 font-label text-[10px] font-bold uppercase tracking-wide text-on-primary-container">
-        <span className="material-symbols-outlined text-sm leading-none">check_circle</span>
+        <span className="material-symbols-outlined text-sm leading-none">
+          check_circle
+        </span>
         {m.ai.bulkDone}
         {checkedAt && (
           <span className="font-normal normal-case tracking-normal opacity-80">
@@ -75,7 +77,9 @@ function StatusBadge({
 
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-error-container px-2.5 py-1 font-label text-[10px] font-bold uppercase tracking-wide text-on-error-container">
-      <span className="material-symbols-outlined text-sm leading-none">error</span>
+      <span className="material-symbols-outlined text-sm leading-none">
+        error
+      </span>
       {m.ai.errorGeneric}
     </span>
   )
@@ -85,11 +89,12 @@ function BulkAiPage() {
   const { data: session, isPending: sessionPending } = authClient.useSession()
   const { rows } = Route.useLoaderData()
   const [filterTypeId, setFilterTypeId] = useState<string>('all')
-  const { selected, running, statusById, doneCount, total } = useSyncExternalStore(
-    subscribeBulkRun,
-    getBulkRunState,
-    getBulkRunServerState,
-  )
+  const { selected, running, statusById, doneCount, total } =
+    useSyncExternalStore(
+      subscribeBulkRun,
+      getBulkRunState,
+      getBulkRunServerState,
+    )
 
   const types = useMemo(() => {
     const map = new Map<string, string>()
@@ -122,7 +127,9 @@ function BulkAiPage() {
       .map(([typeId, g]) => ({
         typeId,
         ...g,
-        items: [...g.items].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
+        items: [...g.items].sort((a, b) =>
+          a.name.localeCompare(b.name, 'pt-BR'),
+        ),
       }))
   }, [filteredRows])
 
@@ -152,7 +159,10 @@ function BulkAiPage() {
           {m.common.admin}
         </Link>
         <span className="text-surface-dim">/</span>
-        <Link to="/investimentos" className="no-underline hover:text-on-surface">
+        <Link
+          to="/investimentos"
+          className="no-underline hover:text-on-surface"
+        >
           {m.common.crumbInvestimentos}
         </Link>
         <span className="text-surface-dim">/</span>
@@ -161,7 +171,9 @@ function BulkAiPage() {
 
       <div className="flex items-start gap-3">
         <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-fixed text-on-primary-fixed">
-          <span className="material-symbols-outlined text-xl leading-none">auto_awesome</span>
+          <span className="material-symbols-outlined text-xl leading-none">
+            auto_awesome
+          </span>
         </span>
         <div>
           <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">
@@ -184,7 +196,9 @@ function BulkAiPage() {
                 <SelectValue placeholder={m.investments.filterAllPlaceholder} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{m.investments.filterAllTypes}</SelectItem>
+                <SelectItem value="all">
+                  {m.investments.filterAllTypes}
+                </SelectItem>
                 {types.map(([typeId, typeName]) => (
                   <SelectItem key={typeId} value={typeId}>
                     {typeName}
@@ -198,7 +212,9 @@ function BulkAiPage() {
               type="button"
               variant="outline"
               className="border-outline-variant/30"
-              onClick={() => selectAllInvestments(filteredRows.map((r) => r.id))}
+              onClick={() =>
+                selectAllInvestments(filteredRows.map((r) => r.id))
+              }
               disabled={running}
             >
               {m.ai.bulkSelectAll}
@@ -218,7 +234,9 @@ function BulkAiPage() {
         <div className="mt-4 flex flex-col gap-3 border-t border-outline-variant/15 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-body text-sm text-on-surface-variant">
             {selected.size}{' '}
-            {selected.size === 1 ? m.investments.listCountOne : m.investments.listCountMany}{' '}
+            {selected.size === 1
+              ? m.investments.listCountOne
+              : m.investments.listCountMany}{' '}
             {m.ai.bulkSelectedSuffix}
           </p>
           <Button
@@ -233,9 +251,13 @@ function BulkAiPage() {
                 aria-hidden
               />
             ) : (
-              <span className="material-symbols-outlined text-xl leading-none">bolt</span>
+              <span className="material-symbols-outlined text-xl leading-none">
+                bolt
+              </span>
             )}
-            {running ? m.ai.bulkRunning(doneCount, total) : m.ai.bulkRunSelected(selected.size)}
+            {running
+              ? m.ai.bulkRunning(doneCount, total)
+              : m.ai.bulkRunSelected(selected.size)}
           </Button>
         </div>
 
@@ -273,20 +295,24 @@ function BulkAiPage() {
                   onClick={() => toggleGroupSelected(groupIds)}
                   disabled={running}
                 >
-                  {allGroupSelected ? m.ai.bulkClearSelection : m.ai.bulkSelectAll}
+                  {allGroupSelected
+                    ? m.ai.bulkClearSelection
+                    : m.ai.bulkSelectAll}
                 </button>
               </div>
               <ul className="space-y-2 p-3 sm:p-4">
                 {group.items.map((r) => {
                   const liveStatus = statusById[r.id]
                   const status: RunStatus | undefined =
+                    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- statusById is Record<string, RunStatus> (no noUncheckedIndexedAccess), but it only has entries for investments touched by a batch run, so liveStatus is genuinely undefined otherwise
                     liveStatus ?? (r.lastAiCheckedAt ? 'ok' : undefined)
                   return (
                     <li
                       key={r.id}
                       className={cn(
                         'flex items-center justify-between gap-3 rounded-xl bg-surface-container-lowest p-3 shadow-float transition-colors',
-                        status === 'running' && 'ring-1 ring-inset ring-secondary-token/40',
+                        status === 'running' &&
+                          'ring-1 ring-inset ring-secondary-token/40',
                         status === 'ok' && 'ring-1 ring-inset ring-primary/30',
                         status === 'error' && 'ring-1 ring-inset ring-error/30',
                       )}
@@ -317,6 +343,7 @@ function BulkAiPage() {
                       <div className="flex shrink-0 items-center gap-3">
                         <StatusBadge
                           status={status}
+                          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- same statusById Record<string,...> gap as above; liveStatus is genuinely undefined for investments not touched by a batch run
                           checkedAt={liveStatus ? null : r.lastAiCheckedAt}
                         />
                         <Link

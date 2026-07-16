@@ -1,4 +1,5 @@
-import { buildTaxBreakdown, compoundByAnnualRate, type TaxedReturn } from './core'
+import { buildTaxBreakdown, compoundByAnnualRate } from './core'
+import type { TaxedReturn } from './core'
 
 export type FixedRateInvestmentInput = {
   capital: number
@@ -9,8 +10,14 @@ export type FixedRateInvestmentInput = {
 }
 
 /** Calculates a fixed-rate investment using calendar-day compounding. */
-export function calculateFixedRateInvestment(input: FixedRateInvestmentInput): TaxedReturn {
-  const grossAmount = compoundByAnnualRate(input.capital, input.annualRate, input.calendarDays)
+export function calculateFixedRateInvestment(
+  input: FixedRateInvestmentInput,
+): TaxedReturn {
+  const grossAmount = compoundByAnnualRate(
+    input.capital,
+    input.annualRate,
+    input.calendarDays,
+  )
   return buildTaxBreakdown({
     capital: input.capital,
     grossAmount,

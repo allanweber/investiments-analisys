@@ -18,7 +18,6 @@ import { clampPct, computePct, normalizeHoldingCurrency, num } from '@/lib/math'
 import { getDb, requireUserId } from '@/lib/db-server'
 import { currencyCode, parseTargetsJson } from '@/lib/server-utils'
 
-
 const portfolioOverviewInput = z.object({ displayCurrency: currencyCode })
 
 export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
@@ -26,7 +25,8 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const db = await getDb()
     const userId = await requireUserId()
-    const displayCurrency = normalizeHoldingCurrency(data.displayCurrency) ?? 'BRL'
+    const displayCurrency =
+      normalizeHoldingCurrency(data.displayCurrency) ?? 'BRL'
 
     const holdings = await db
       .select({
@@ -45,7 +45,10 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
       })
       .from(portfolioHolding)
       .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
-      .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
+      .innerJoin(
+        investmentType,
+        eq(investment.investmentTypeId, investmentType.id),
+      )
       .leftJoin(
         rendaFixaValuation,
         and(
@@ -53,7 +56,9 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
           eq(rendaFixaValuation.investmentId, portfolioHolding.investmentId),
         ),
       )
-      .where(and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)))
+      .where(
+        and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)),
+      )
 
     const currencies = [
       ...new Set(holdings.map((h) => h.currency ?? 'BRL')),
@@ -63,8 +68,13 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
       h.rfGrossAmount != null ? { ...h, avgCost: h.rfGrossAmount } : h,
     )
 
-    const { valuated, quotesStale: stale, fxAsOf: newestFetchedAt, fxStale, fxMissingPairs } =
-      await valuateHoldings(db, holdingsForValuation, displayCurrency)
+    const {
+      valuated,
+      quotesStale: stale,
+      fxAsOf: newestFetchedAt,
+      fxStale,
+      fxMissingPairs,
+    } = await valuateHoldings(db, holdingsForValuation, displayCurrency)
 
     const byType = new Map<
       string,
@@ -78,7 +88,11 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
 
     const byNativeMap = new Map<
       string,
-      { marketValueNative: number; marketValueDisplay: number; holdingCount: number }
+      {
+        marketValueNative: number
+        marketValueDisplay: number
+        holdingCount: number
+      }
     >()
 
     let total = 0
@@ -92,9 +106,10 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
       const mvDisplay = v.marketValueDisplay ?? 0
       total += mvDisplay
       const rfProfit = holdings[i].rfGrossProfit
-      unrealizedPl += rfProfit != null
-        ? Number(rfProfit) * (v.fxRateUsed ?? 1)
-        : (v.unrealizedPlDisplay ?? 0)
+      unrealizedPl +=
+        rfProfit != null
+          ? Number(rfProfit) * (v.fxRateUsed ?? 1)
+          : (v.unrealizedPlDisplay ?? 0)
 
       const nativeBucket = byNativeMap.get(nativeCurrency) ?? {
         marketValueNative: 0,
@@ -149,6 +164,7 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
 
     const targets = targetsRows.map((t) => {
       const entry = targetsMap[t.investmentTypeId]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- targetsMap is `Record<string, ...>` (no noUncheckedIndexedAccess), but it's parsed from a jsonb column that may simply not have an entry for this investmentTypeId, so entry is genuinely undefined at runtime for types without a saved target
       const rawPct = entry === undefined ? 0 : entry.targetPct
       return {
         investmentTypeId: t.investmentTypeId,
@@ -159,7 +175,11 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
     })
 
     const allocation = [...byType.values()]
-      .sort((a, b) => a.typeSortOrder - b.typeSortOrder || a.investmentTypeName.localeCompare(b.investmentTypeName))
+      .sort(
+        (a, b) =>
+          a.typeSortOrder - b.typeSortOrder ||
+          a.investmentTypeName.localeCompare(b.investmentTypeName),
+      )
       .map((t) => ({
         investmentTypeId: t.investmentTypeId,
         investmentTypeName: t.investmentTypeName,
@@ -168,14 +188,20 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
       }))
 
     const scoredInvestments = await loadInvestmentOverviewRows(userId)
-    const { drift, suggestions } = analyzePortfolioAllocation({ allocation, targets, scoredInvestments })
+    const { drift, suggestions } = analyzePortfolioAllocation({
+      allocation,
+      targets,
+      scoredInvestments,
+    })
 
     const targetTotal = targets.reduce((acc, t) => acc + t.targetPct, 0)
     const quoteFetchedAts = valuated
       .map((v) => v.quoteFetchedAt?.getTime() ?? 0)
       .filter((t) => t > 0)
     const lastUpdatedAt =
-      quoteFetchedAts.length === 0 ? null : new Date(Math.max(...quoteFetchedAts))
+      quoteFetchedAts.length === 0
+        ? null
+        : new Date(Math.max(...quoteFetchedAts))
 
     return {
       currencies,

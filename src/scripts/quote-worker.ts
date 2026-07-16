@@ -7,7 +7,12 @@ import dotenv from 'dotenv'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 
-import { investment, investmentType, marketQuote, portfolioHolding } from '../db/schema'
+import {
+  investment,
+  investmentType,
+  marketQuote,
+  portfolioHolding,
+} from '../db/schema'
 import { refreshBcbRatesIfStale } from '../lib/market-data/bcb-refresh'
 import { refreshFxRatesIfStale } from '../lib/market-data/fx-refresh'
 import { refreshMarketQuotesForInputs } from '../lib/market-data/quote-refresh'
@@ -71,7 +76,8 @@ function errorToJson(e: unknown): Record<string, unknown> {
   const cause = err.cause
   if (cause) {
     out.cause = {
-      message: typeof cause?.message === 'string' ? cause.message : String(cause),
+      message:
+        typeof cause?.message === 'string' ? cause.message : String(cause),
       name: typeof cause?.name === 'string' ? cause.name : undefined,
       code: typeof cause?.code === 'string' ? cause.code : undefined,
       errno: typeof cause?.errno === 'number' ? cause.errno : undefined,
@@ -89,13 +95,17 @@ const LOCK_KEY_1 = 8_392_144
 const LOCK_KEY_2 = 221
 
 async function tryAcquireLock(): Promise<boolean> {
-  const rows = await db.execute(sql`select pg_try_advisory_lock(${LOCK_KEY_1}, ${LOCK_KEY_2}) as locked`)
+  const rows = await db.execute(
+    sql`select pg_try_advisory_lock(${LOCK_KEY_1}, ${LOCK_KEY_2}) as locked`,
+  )
   const locked = Boolean((rows as any)?.rows?.[0]?.locked)
   return locked
 }
 
 async function releaseLock(): Promise<void> {
-  await db.execute(sql`select pg_advisory_unlock(${LOCK_KEY_1}, ${LOCK_KEY_2}) as unlocked`)
+  await db.execute(
+    sql`select pg_advisory_unlock(${LOCK_KEY_1}, ${LOCK_KEY_2}) as unlocked`,
+  )
 }
 
 type SymbolEnt = { symbol: string; holdingCurrency: string | null }
@@ -110,7 +120,10 @@ async function loadDistinctSymbols(): Promise<SymbolEnt[]> {
     })
     .from(portfolioHolding)
     .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
-    .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
+    .innerJoin(
+      investmentType,
+      eq(investment.investmentTypeId, investmentType.id),
+    )
     .where(
       and(
         isNotNull(investment.ticker),
@@ -120,7 +133,10 @@ async function loadDistinctSymbols(): Promise<SymbolEnt[]> {
       ),
     )
 
-  const bySymbol = new Map<string, { holdingCurrency: string | null; preferBrl: boolean }>()
+  const bySymbol = new Map<
+    string,
+    { holdingCurrency: string | null; preferBrl: boolean }
+  >()
   for (const r of rows) {
     const sym = (r.symbol ?? '').trim()
     if (!sym) continue
@@ -144,7 +160,9 @@ async function loadDistinctSymbols(): Promise<SymbolEnt[]> {
     .sort((a, b) => a.symbol.localeCompare(b.symbol))
 }
 
-async function loadQuoteAges(symbols: readonly string[]): Promise<Map<string, Date | null>> {
+async function loadQuoteAges(
+  symbols: readonly string[],
+): Promise<Map<string, Date | null>> {
   const out = new Map<string, Date | null>()
   if (symbols.length === 0) return out
 
@@ -152,7 +170,7 @@ async function loadQuoteAges(symbols: readonly string[]): Promise<Map<string, Da
     .select({ symbol: marketQuote.symbol, fetchedAt: marketQuote.fetchedAt })
     .from(marketQuote)
     .where(inArray(marketQuote.symbol, symbols))
-  for (const r of rows) out.set(r.symbol, r.fetchedAt ?? null)
+  for (const r of rows) out.set(r.symbol, r.fetchedAt)
   return out
 }
 
@@ -247,7 +265,11 @@ async function main() {
       )
     })
     server.listen(healthPort, '0.0.0.0', () => {
-      logWorkerEvent({ level: 'info', msg: 'health -> listening', port: healthPort })
+      logWorkerEvent({
+        level: 'info',
+        msg: 'health -> listening',
+        port: healthPort,
+      })
     })
   }
 
@@ -260,7 +282,7 @@ async function main() {
     })
     // Stay alive but idle; this keeps container “healthy” while preventing double workers.
     // (Dokploy scaling mistakes become non-fatal.)
-    // eslint-disable-next-line no-constant-condition
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- intentional infinite loop
     while (true) {
       await sleep(60_000)
     }
@@ -282,7 +304,7 @@ async function main() {
     healthPort: healthPort > 0 ? healthPort : null,
   })
 
-  // eslint-disable-next-line no-constant-condition
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- intentional infinite loop
   while (true) {
     const sweepStart = Date.now()
     try {
@@ -349,7 +371,7 @@ async function main() {
         continue
       }
 
-      const next = staleOrder[0]!
+      const next = staleOrder[0]
       const sym = next.symbol
       const refreshStart = Date.now()
       const { stale } = await refreshMarketQuotesForInputs({
@@ -401,4 +423,3 @@ void main().catch((e: any) => {
   })
   process.exit(1)
 })
-

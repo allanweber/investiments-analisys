@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { createInvestmentFn } from '@/lib/investment-server'
 import { listInvestmentTypesOptionsFn } from '@/lib/investment-type-server'
-import { getRendaFixaDetailFn, upsertRendaFixaHoldingFn } from '@/lib/renda-fixa-server'
+import {
+  getRendaFixaDetailFn,
+  upsertRendaFixaHoldingFn,
+} from '@/lib/renda-fixa-server'
 import { PRODUCT_RULES } from '@/lib/renda-fixa/products'
 import type { Indexer, ProductType } from '@/lib/renda-fixa/products'
 import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
@@ -71,8 +74,12 @@ export function useRendaFixaForm({
   refresh: () => Promise<void>
 }): UseRendaFixaFormResult {
   const [form, setForm] = useState<RendaFixaForm>(DEFAULT_FORM)
-  const [invOptions, setInvOptions] = useState<RendaFixaInvOption[] | null>(null)
-  const [typeOptions, setTypeOptions] = useState<RendaFixaTypeOption[] | null>(null)
+  const [invOptions, setInvOptions] = useState<RendaFixaInvOption[] | null>(
+    null,
+  )
+  const [typeOptions, setTypeOptions] = useState<RendaFixaTypeOption[] | null>(
+    null,
+  )
   const [fieldError, setFieldError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -82,7 +89,8 @@ export function useRendaFixaForm({
   // Trigger loading and reset form whenever the modal opens
   useEffect(() => {
     const state = modal.state
-    if (state.kind !== 'addFixedIncome' && state.kind !== 'editFixedIncome') return
+    if (state.kind !== 'addFixedIncome' && state.kind !== 'editFixedIncome')
+      return
 
     setFieldError(null)
     setSaveError(null)
@@ -91,8 +99,9 @@ export function useRendaFixaForm({
       const { row } = state
       setForm({ ...DEFAULT_FORM, investmentId: row.investmentId })
       setInvOptions([{ id: row.investmentId, name: row.investmentName }])
-      getRendaFixaDetailFn({ data: { investmentId: row.investmentId } })
-        .then((detail) => {
+      getRendaFixaDetailFn({ data: { investmentId: row.investmentId } }).then(
+        (detail) => {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- getRendaFixaDetailFn's `row ?? null` return type collapses to non-null client-side (tsconfig lacks noUncheckedIndexedAccess), but the server genuinely returns null on a 0-row match
           if (!detail) return
           setForm((f) => ({
             ...f,
@@ -101,12 +110,16 @@ export function useRendaFixaForm({
             indexer: detail.detail.indexer,
             capital: Number(detail.detail.capital),
             annualRate: Number(detail.detail.annualRate) * 100,
-            multiplierPct: detail.detail.multiplier != null ? Number(detail.detail.multiplier) * 100 : 100,
+            multiplierPct:
+              detail.detail.multiplier != null
+                ? Number(detail.detail.multiplier) * 100
+                : 100,
             purchaseDate: toDateInputValue(detail.detail.purchaseDate),
             maturityDate: toDateInputValue(detail.detail.maturityDate),
             broker: detail.broker ?? '',
           }))
-        })
+        },
+      )
       return
     }
 
@@ -120,11 +133,15 @@ export function useRendaFixaForm({
         .then((list) =>
           setInvOptions(
             list
-              .filter((x) => isFixedIncomeTipo(Boolean(x.fixedIncome), x.typeName))
+              .filter((x) =>
+                isFixedIncomeTipo(Boolean(x.fixedIncome), x.typeName),
+              )
               .map((x) => ({ id: x.id, name: x.name })),
           ),
         )
-        .finally(() => { loadingInvs.current = false })
+        .finally(() => {
+          loadingInvs.current = false
+        })
     }
 
     if (!loadingTypes.current) {
@@ -139,18 +156,20 @@ export function useRendaFixaForm({
             setForm((f) => ({ ...f, newTypeId: fixed[0].id }))
           }
         })
-        .finally(() => { loadingTypes.current = false })
+        .finally(() => {
+          loadingTypes.current = false
+        })
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modal.state.kind])
 
   // As soon as fixed-income types are available, ensure newTypeId is set
   useEffect(() => {
     if (!typeOptions || typeOptions.length === 0) return
-    setForm((f) => f.newTypeId ? f : { ...f, newTypeId: typeOptions[0].id })
+    setForm((f) => (f.newTypeId ? f : { ...f, newTypeId: typeOptions[0].id }))
   }, [typeOptions])
 
   const allowedIndexers = useMemo(
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- form.productType is plain `string` (bound to a <select>) cast `as ProductType` without runtime validation, so the cast can be wrong (e.g. before a valid option is chosen)
     () => PRODUCT_RULES[form.productType as ProductType]?.allowedIndexers ?? [],
     [form.productType],
   )
@@ -162,12 +181,20 @@ export function useRendaFixaForm({
     if (isSaving) return null
     if (!form.investmentId) return 'Selecione ou crie um investimento.'
     if (isNew && !form.newName.trim()) return m.portfolio.rendaFixaNameRequired
-    if (isNew && !form.newTypeId) return typeOptions === null ? 'Carregando tipos…' : m.portfolio.rendaFixaTypeRequired
+    if (isNew && !form.newTypeId)
+      return typeOptions === null
+        ? 'Carregando tipos…'
+        : m.portfolio.rendaFixaTypeRequired
     if (form.capital <= 0) return m.portfolio.rendaFixaCapitalRequired
     if (!form.purchaseDate) return m.portfolio.rendaFixaPurchaseDateRequired
-    if (form.maturityDate && form.maturityDate <= form.purchaseDate) return m.portfolio.rendaFixaMaturityBeforePurchase
-    const needsPositiveRate = form.indexer === 'pre' || form.indexer === 'ipca' || form.indexer === 'igpm'
-    if (needsPositiveRate && form.annualRate <= 0) return m.portfolio.rendaFixaRateRequired
+    if (form.maturityDate && form.maturityDate <= form.purchaseDate)
+      return m.portfolio.rendaFixaMaturityBeforePurchase
+    const needsPositiveRate =
+      form.indexer === 'pre' ||
+      form.indexer === 'ipca' ||
+      form.indexer === 'igpm'
+    if (needsPositiveRate && form.annualRate <= 0)
+      return m.portfolio.rendaFixaRateRequired
     return null
   }, [isSaving, form, isNew, typeOptions])
 
@@ -177,14 +204,38 @@ export function useRendaFixaForm({
     setFieldError(null)
     setSaveError(null)
 
-    if (!form.investmentId) { setFieldError(m.portfolio.rendaFixaNameRequired); return }
-    if (isNew && !form.newName.trim()) { setFieldError(m.portfolio.rendaFixaNameRequired); return }
-    if (isNew && !form.newTypeId) { setSaveError(m.portfolio.rendaFixaTypeRequired); return }
-    if (form.capital <= 0) { setFieldError(m.portfolio.rendaFixaCapitalRequired); return }
-    if (!form.purchaseDate) { setFieldError(m.portfolio.rendaFixaPurchaseDateRequired); return }
-    if (form.maturityDate && form.maturityDate <= form.purchaseDate) { setFieldError(m.portfolio.rendaFixaMaturityBeforePurchase); return }
-    const needsPositiveRate = form.indexer === 'pre' || form.indexer === 'ipca' || form.indexer === 'igpm'
-    if (needsPositiveRate && form.annualRate <= 0) { setFieldError(m.portfolio.rendaFixaRateRequired); return }
+    if (!form.investmentId) {
+      setFieldError(m.portfolio.rendaFixaNameRequired)
+      return
+    }
+    if (isNew && !form.newName.trim()) {
+      setFieldError(m.portfolio.rendaFixaNameRequired)
+      return
+    }
+    if (isNew && !form.newTypeId) {
+      setSaveError(m.portfolio.rendaFixaTypeRequired)
+      return
+    }
+    if (form.capital <= 0) {
+      setFieldError(m.portfolio.rendaFixaCapitalRequired)
+      return
+    }
+    if (!form.purchaseDate) {
+      setFieldError(m.portfolio.rendaFixaPurchaseDateRequired)
+      return
+    }
+    if (form.maturityDate && form.maturityDate <= form.purchaseDate) {
+      setFieldError(m.portfolio.rendaFixaMaturityBeforePurchase)
+      return
+    }
+    const needsPositiveRate =
+      form.indexer === 'pre' ||
+      form.indexer === 'ipca' ||
+      form.indexer === 'igpm'
+    if (needsPositiveRate && form.annualRate <= 0) {
+      setFieldError(m.portfolio.rendaFixaRateRequired)
+      return
+    }
 
     setIsSaving(true)
     try {
@@ -193,13 +244,20 @@ export function useRendaFixaForm({
         const created = await createInvestmentFn({
           data: { name: form.newName.trim(), investmentTypeId: form.newTypeId },
         })
-        if (!created.ok) { setSaveError(m.portfolio.rendaFixaCreateError); return }
+        if (!created.ok) {
+          setSaveError(m.portfolio.rendaFixaCreateError)
+          return
+        }
         investmentId = created.row.id
       }
 
-      const annualRate = (needsPositiveRate || form.indexer === 'selic-spread') ? form.annualRate / 100 : 0
+      const annualRate =
+        needsPositiveRate || form.indexer === 'selic-spread'
+          ? form.annualRate / 100
+          : 0
       const multiplier =
-        (form.indexer === 'cdi' || form.indexer === 'selic') && form.multiplierPct > 0
+        (form.indexer === 'cdi' || form.indexer === 'selic') &&
+        form.multiplierPct > 0
           ? form.multiplierPct / 100
           : undefined
 
@@ -214,7 +272,9 @@ export function useRendaFixaForm({
           capital: form.capital,
           annualRate,
           purchaseDate: new Date(`${form.purchaseDate}T12:00:00`).toISOString(),
-          maturityDate: form.maturityDate ? new Date(`${form.maturityDate}T12:00:00`).toISOString() : null,
+          maturityDate: form.maturityDate
+            ? new Date(`${form.maturityDate}T12:00:00`).toISOString()
+            : null,
           multiplier,
           broker: form.broker.trim() || undefined,
         },

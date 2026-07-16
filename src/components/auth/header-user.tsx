@@ -43,7 +43,7 @@ export default function BetterAuthHeader({ variant = 'default' }: Props) {
                 />
               ) : (
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-high font-body text-xs font-semibold text-on-surface">
-                  {session.user.name?.charAt(0).toUpperCase() ||
+                  {session.user.name.charAt(0).toUpperCase() ||
                     m.headerUser.avatarFallbackInitial}
                 </div>
               )}
@@ -83,7 +83,7 @@ export default function BetterAuthHeader({ variant = 'default' }: Props) {
         ) : (
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-high">
             <span className="font-body text-xs font-medium text-on-surface-variant">
-              {session.user.name?.charAt(0).toUpperCase() ||
+              {session.user.name.charAt(0).toUpperCase() ||
                 m.headerUser.avatarFallbackInitial}
             </span>
           </div>

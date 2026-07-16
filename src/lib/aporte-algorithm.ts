@@ -1,6 +1,7 @@
 import type { InvestmentOverviewRow } from '@/lib/investment-scoring'
 import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
-import { getFxRate, type FxRateMatrix } from '@/lib/fx'
+import { getFxRate } from '@/lib/fx'
+import type { FxRateMatrix } from '@/lib/fx'
 import { num } from '@/lib/math'
 
 export const PRIORITY_SCORE_THRESHOLD = 60
@@ -107,20 +108,27 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
   }
 
   const excludedIds = new Set(excludedInvestmentIds ?? [])
-  const scoredInvestments = excludedIds.size > 0
-    ? input.scoredInvestments.filter((inv) => !excludedIds.has(inv.id))
-    : input.scoredInvestments
+  const scoredInvestments =
+    excludedIds.size > 0
+      ? input.scoredInvestments.filter((inv) => !excludedIds.has(inv.id))
+      : input.scoredInvestments
 
   // --- ETF reclassification ---
   // When the ETF category's target is 0 (or unset), ETF holdings/investments are folded into
   // Ações (BRL) or Ações internacionais (any other currency) for deficit and candidate selection
   // purposes. If the relevant destination category doesn't exist, that side is simply excluded.
-  const etfType = typeRows.find((t) => normTypeName(t.investmentTypeName) === ETF_TYPE_NAME)
-  const acoesType = typeRows.find((t) => normTypeName(t.investmentTypeName) === ACOES_TYPE_NAME)
+  const etfType = typeRows.find(
+    (t) => normTypeName(t.investmentTypeName) === ETF_TYPE_NAME,
+  )
+  const acoesType = typeRows.find(
+    (t) => normTypeName(t.investmentTypeName) === ACOES_TYPE_NAME,
+  )
   const acoesIntlType = typeRows.find(
     (t) => normTypeName(t.investmentTypeName) === ACOES_INTL_TYPE_NAME,
   )
-  const etfTargetPct = etfType ? (targetsMap[etfType.investmentTypeId]?.targetPct ?? 0) : 0
+  const etfTargetPct = etfType
+    ? (targetsMap[etfType.investmentTypeId]?.targetPct ?? 0)
+    : 0
   const reclassifyEtf = etfType != null && etfTargetPct <= 0
 
   function destTypeForEtfCurrency(currency: string | null | undefined) {
@@ -131,7 +139,7 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
   const byType = new Map<string, number>()
   for (const h of portfolio.holdings) {
     let typeId = h.investmentTypeId
-    if (reclassifyEtf && etfType && typeId === etfType.investmentTypeId) {
+    if (reclassifyEtf && typeId === etfType.investmentTypeId) {
       const destType = destTypeForEtfCurrency(h.currency)
       if (!destType) continue
       typeId = destType.investmentTypeId
@@ -143,7 +151,7 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
   function investmentsForType(typeId: string): InvestmentOverviewRow[] {
     return scoredInvestments.filter((inv) => {
       if (inv.investmentTypeId === typeId) return true
-      if (reclassifyEtf && etfType && inv.investmentTypeId === etfType.investmentTypeId) {
+      if (reclassifyEtf && inv.investmentTypeId === etfType.investmentTypeId) {
         const destType = destTypeForEtfCurrency(inv.currency)
         return destType?.investmentTypeId === typeId
       }
@@ -202,8 +210,10 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
     const typeAmount = amount * typeShare
 
     const currentTypeMv = byType.get(eligType.investmentTypeId) ?? 0
-    const currentTypePct = portfolio.total > 0 ? (currentTypeMv / portfolio.total) * 100 : 0
-    const projectedTypePct = newTotal > 0 ? ((currentTypeMv + typeAmount) / newTotal) * 100 : 0
+    const currentTypePct =
+      portfolio.total > 0 ? (currentTypeMv / portfolio.total) * 100 : 0
+    const projectedTypePct =
+      newTotal > 0 ? ((currentTypeMv + typeAmount) / newTotal) * 100 : 0
     const targetTypePct = targetsMap[eligType.investmentTypeId]?.targetPct ?? 0
 
     // All investments belonging to this type (before score filtering) — only an empty type
@@ -225,13 +235,15 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
     const totalScore = selected.reduce((sum, inv) => sum + inv.score, 0)
 
     for (const inv of selected) {
-      const invShare = totalScore > 0 ? inv.score / totalScore : 1 / selected.length
+      const invShare =
+        totalScore > 0 ? inv.score / totalScore : 1 / selected.length
       const rawAmount = typeAmount * invShare
 
       const isFixed = isFixedIncomeTipo(inv.fixedIncome, inv.typeName)
 
       if (isFixed) {
-        const assetCurrency = inv.currency?.toUpperCase() ?? contributionCurrency.toUpperCase()
+        const assetCurrency =
+          inv.currency?.toUpperCase() ?? contributionCurrency.toUpperCase()
         if (assetCurrency !== contributionCurrency.toUpperCase()) {
           const rate = getFxRate(fxMatrix, contributionCurrency, assetCurrency)
           if (rate == null) continue
@@ -296,7 +308,11 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
           continue
         }
 
-        const assetCurrency = (quote.currency?.trim() || inv.currency || contributionCurrency).toUpperCase()
+        const assetCurrency = (
+          quote.currency?.trim() ||
+          inv.currency ||
+          contributionCurrency
+        ).toUpperCase()
         const rate = getFxRate(fxMatrix, contributionCurrency, assetCurrency)
         if (rate == null) continue
 
@@ -318,7 +334,7 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
           contributionCurrency,
           units,
           contributionPct: (rawAmount / amount) * 100,
-            score: inv.score,
+          score: inv.score,
           missingQuote: false,
           currentTypePct,
           projectedTypePct,
@@ -332,7 +348,9 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
     return { reason: 'NO_ELIGIBLE_INVESTMENTS', suggestions: [] }
   }
 
-  const typeSortOrderById = new Map(typeRows.map((t) => [t.investmentTypeId, t.typeSortOrder]))
+  const typeSortOrderById = new Map(
+    typeRows.map((t) => [t.investmentTypeId, t.typeSortOrder]),
+  )
   suggestions.sort((a, b) => {
     const sa = typeSortOrderById.get(a.investmentTypeId) ?? 0
     const sb = typeSortOrderById.get(b.investmentTypeId) ?? 0
@@ -341,7 +359,10 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
   })
 
   // Projections for all types with holdings (including those not receiving contribution)
-  const contributedProj = new Map<string, { currentTypePct: number; projectedTypePct: number; targetTypePct: number }>()
+  const contributedProj = new Map<
+    string,
+    { currentTypePct: number; projectedTypePct: number; targetTypePct: number }
+  >()
   for (const s of suggestions) {
     if (!contributedProj.has(s.investmentTypeId)) {
       contributedProj.set(s.investmentTypeId, {
@@ -357,12 +378,17 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
     const currentMv = byType.get(t.investmentTypeId) ?? 0
     const proj = contributedProj.get(t.investmentTypeId)
     if (proj) {
-      typeProjections.push({ investmentTypeId: t.investmentTypeId, investmentTypeName: t.investmentTypeName, ...proj })
+      typeProjections.push({
+        investmentTypeId: t.investmentTypeId,
+        investmentTypeName: t.investmentTypeName,
+        ...proj,
+      })
     } else if (currentMv > 0) {
       typeProjections.push({
         investmentTypeId: t.investmentTypeId,
         investmentTypeName: t.investmentTypeName,
-        currentTypePct: portfolio.total > 0 ? (currentMv / portfolio.total) * 100 : 0,
+        currentTypePct:
+          portfolio.total > 0 ? (currentMv / portfolio.total) * 100 : 0,
         projectedTypePct: newTotal > 0 ? (currentMv / newTotal) * 100 : 0,
         targetTypePct: targetsMap[t.investmentTypeId]?.targetPct ?? 0,
       })

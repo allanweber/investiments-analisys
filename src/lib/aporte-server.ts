@@ -23,7 +23,11 @@ import { parseTargetsJson } from '@/lib/server-utils'
 import { simulateAporte } from '@/lib/aporte-algorithm'
 
 export { PRIORITY_SCORE_THRESHOLD } from '@/lib/aporte-algorithm'
-export type { AporteSimulationResult, ContributionSuggestion, TypeProjection } from '@/lib/aporte-algorithm'
+export type {
+  AporteSimulationResult,
+  ContributionSuggestion,
+  TypeProjection,
+} from '@/lib/aporte-algorithm'
 
 const simulateAporteInput = z.object({
   amount: z.number().positive(),
@@ -32,11 +36,17 @@ const simulateAporteInput = z.object({
 })
 
 export const simulateAporteFn = createServerFn({ method: 'POST' })
-  .inputValidator((data: z.infer<typeof simulateAporteInput>) => simulateAporteInput.parse(data))
+  .inputValidator((data: z.infer<typeof simulateAporteInput>) =>
+    simulateAporteInput.parse(data),
+  )
   .handler(async ({ data }) => {
     const db = await getDb()
     const userId = await requireUserId()
-    const { amount, currency: contributionCurrency, excludedInvestmentIds } = data
+    const {
+      amount,
+      currency: contributionCurrency,
+      excludedInvestmentIds,
+    } = data
 
     // --- Portfolio state ---
     const holdings = await db
@@ -54,7 +64,10 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
       })
       .from(portfolioHolding)
       .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
-      .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
+      .innerJoin(
+        investmentType,
+        eq(investment.investmentTypeId, investmentType.id),
+      )
       .leftJoin(
         rendaFixaValuation,
         and(
@@ -62,15 +75,25 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
           eq(rendaFixaValuation.investmentId, portfolioHolding.investmentId),
         ),
       )
-      .where(and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)))
+      .where(
+        and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)),
+      )
 
     const holdingsForValuation = holdings.map((h) =>
       h.rfGrossAmount != null ? { ...h, avgCost: h.rfGrossAmount } : h,
     )
 
-    const { valuated } = await valuateHoldings(db, holdingsForValuation, contributionCurrency)
+    const { valuated } = await valuateHoldings(
+      db,
+      holdingsForValuation,
+      contributionCurrency,
+    )
 
-    const aporteHoldings: { investmentTypeId: string; currency: string | null; marketValue: number }[] = []
+    const aporteHoldings: {
+      investmentTypeId: string
+      currency: string | null
+      marketValue: number
+    }[] = []
     let portfolioTotal = 0
     for (let i = 0; i < holdings.length; i++) {
       const h = holdings[i]
@@ -78,7 +101,11 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
       if (v.marketValueNative == null) continue
       const mv = v.marketValueDisplay ?? 0
       portfolioTotal += mv
-      aporteHoldings.push({ investmentTypeId: h.investmentTypeId, currency: h.currency, marketValue: mv })
+      aporteHoldings.push({
+        investmentTypeId: h.investmentTypeId,
+        currency: h.currency,
+        marketValue: mv,
+      })
     }
 
     // --- Targets ---
@@ -111,7 +138,9 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
       if (!ticker) continue
       varQuoteInputs.push({
         symbol: ticker,
-        holdingCurrency: normalizeHoldingCurrency(inv.currency ?? contributionCurrency),
+        holdingCurrency: normalizeHoldingCurrency(
+          inv.currency ?? contributionCurrency,
+        ),
       })
     }
 
@@ -120,7 +149,10 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
       ...new Map(varQuoteInputs.map((v) => [v.symbol, v])).values(),
     ]
 
-    let quoteMap = new Map<string, { price: number | null; currency: string | null }>()
+    const quoteMap = new Map<
+      string,
+      { price: number | null; currency: string | null }
+    >()
 
     if (uniqueQuoteInputs.length > 0) {
       // Aporte suggestions drive real buy amounts, so always refetch live prices
@@ -143,7 +175,9 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
       contributionCurrency,
     )
 
-    const eligibleScoredInvestments = scoredInvestments.filter((inv) => inv.active)
+    const eligibleScoredInvestments = scoredInvestments.filter(
+      (inv) => inv.active,
+    )
 
     return simulateAporte({
       amount,

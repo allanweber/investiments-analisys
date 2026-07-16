@@ -8,7 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { type AiApiKeyStatus, listAiApiKeysFn } from '@/lib/account-server'
+import { listAiApiKeysFn } from '@/lib/account-server'
+import type { AiApiKeyStatus } from '@/lib/account-server'
 import { messages as m } from '@/messages'
 
 export const Route = createFileRoute('/account/settings')({

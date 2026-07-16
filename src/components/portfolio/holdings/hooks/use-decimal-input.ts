@@ -68,7 +68,7 @@ export function useDecimalInput({
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
       // Mobile fallback: virtual keyboards don't fire keydown reliably
       const ev = e.nativeEvent as InputEvent
-      if (ev.data !== null && ev.data !== undefined && ev.data >= '0' && ev.data <= '9') {
+      if (ev.data !== null && ev.data >= '0' && ev.data <= '9') {
         push(centsRef.current * 10 + parseInt(ev.data, 10))
       } else if (
         ev.inputType === 'deleteContentBackward' ||

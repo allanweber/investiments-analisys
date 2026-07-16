@@ -2,7 +2,13 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, asc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { investment, investmentAnswer, investmentType, question, userApiKey } from '@/db/schema'
+import {
+  investment,
+  investmentAnswer,
+  investmentType,
+  question,
+  userApiKey,
+} from '@/db/schema'
 import { classifyQuestionKind } from '@/lib/ai/classify-question-server'
 import { getAiScoringProvider } from '@/lib/ai/providers'
 import { AiScoringError } from '@/lib/ai/types'
@@ -25,7 +31,14 @@ export type AiSuggestion = {
 
 export type RunAiScoringResult =
   | { ok: true; suggestions: AiSuggestion[] }
-  | { ok: false; code: AiScoringErrorCode | 'not_found' | 'no_questions' | 'missing_api_key' }
+  | {
+      ok: false
+      code:
+        | AiScoringErrorCode
+        | 'not_found'
+        | 'no_questions'
+        | 'missing_api_key'
+    }
 
 export type RunAiScoringBatchItem = {
   investmentId: string
@@ -55,16 +68,26 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
           fixedIncome: investmentType.fixedIncome,
         })
         .from(investment)
-        .innerJoin(investmentType, eq(investment.investmentTypeId, investmentType.id))
-        .where(and(eq(investment.id, investmentId), eq(investment.userId, userId)))
+        .innerJoin(
+          investmentType,
+          eq(investment.investmentTypeId, investmentType.id),
+        )
+        .where(
+          and(eq(investment.id, investmentId), eq(investment.userId, userId)),
+        )
         .limit(1)
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess, so TS types this as always-defined even though a 0-row match (id/userId not found) makes it undefined at runtime
       if (!inv) {
         results.set(investmentId, { ok: false, code: 'not_found' })
         continue
       }
 
       const activeQuestions = await db
-        .select({ id: question.id, prompt: question.prompt, kind: question.kind })
+        .select({
+          id: question.id,
+          prompt: question.prompt,
+          kind: question.kind,
+        })
         .from(question)
         .where(
           and(
@@ -98,12 +121,20 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
     const [keyRow] = await db
       .select({ encryptedKey: userApiKey.encryptedKey })
       .from(userApiKey)
-      .where(and(eq(userApiKey.userId, userId), eq(userApiKey.provider, PROVIDER)))
+      .where(
+        and(eq(userApiKey.userId, userId), eq(userApiKey.provider, PROVIDER)),
+      )
       .limit(1)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess, so TS types this as always-defined even though a 0-row match (no saved API key) makes it undefined at runtime
     if (!keyRow) {
       for (const e of eligible) {
         const hasNonMetric = e.questions.some((q) => q.kind !== 'metric')
-        results.set(e.investmentId, hasNonMetric ? { ok: false, code: 'missing_api_key' } : { ok: true, suggestions: [] })
+        results.set(
+          e.investmentId,
+          hasNonMetric
+            ? { ok: false, code: 'missing_api_key' }
+            : { ok: true, suggestions: [] },
+        )
       }
       return toBatchItems()
     }
@@ -115,11 +146,12 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
       logAiScoringError({
         provider: PROVIDER,
         model: 'unknown',
-        investmentIds: eligible.map((e) => e.investmentId),
+        investmentIds: eligible.map((item) => item.investmentId),
         code: 'invalid_api_key',
         message: String(e),
       })
-      for (const e of eligible) results.set(e.investmentId, { ok: false, code: 'invalid_api_key' })
+      for (const item of eligible)
+        results.set(item.investmentId, { ok: false, code: 'invalid_api_key' })
       return toBatchItems()
     }
 
@@ -136,7 +168,10 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
       if (!classification) continue
       await db
         .update(question)
-        .set({ kind: classification.kind, metricSpec: classification.metricSpec })
+        .set({
+          kind: classification.kind,
+          metricSpec: classification.metricSpec,
+        })
         .where(eq(question.id, questionId))
       for (const e of eligible) {
         const match = e.questions.find((item) => item.id === questionId)
@@ -148,7 +183,10 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
     // never sent to the AI provider. Null-kind questions whose classification failed above are
     // treated as websearch (fail open rather than silently dropping the question).
     const aiEligible = eligible
-      .map((e) => ({ ...e, questions: e.questions.filter((q) => q.kind !== 'metric') }))
+      .map((e) => ({
+        ...e,
+        questions: e.questions.filter((q) => q.kind !== 'metric'),
+      }))
       .filter((e) => {
         if (e.questions.length > 0) return true
         results.set(e.investmentId, { ok: true, suggestions: [] })
@@ -173,7 +211,9 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
       })
     } catch (e) {
       const err =
-        e instanceof AiScoringError ? e : new AiScoringError('unknown_error', String(e))
+        e instanceof AiScoringError
+          ? e
+          : new AiScoringError('unknown_error', String(e))
       logAiScoringError({
         provider: PROVIDER,
         model: 'unknown',
@@ -181,7 +221,8 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
         code: err.code,
         message: err.message,
       })
-      for (const investmentId of eligibleIds) results.set(investmentId, { ok: false, code: err.code })
+      for (const investmentId of eligibleIds)
+        results.set(investmentId, { ok: false, code: err.code })
       return toBatchItems()
     }
 
@@ -200,7 +241,8 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
     for (const e of aiEligible) {
       const answers = answersByInvestmentId.get(e.investmentId) ?? []
       const suggestions: AiSuggestion[] = answers.map((answer) => {
-        const suggestedYes = answer.answer === 'unknown' ? null : answer.answer === 'yes'
+        const suggestedYes =
+          answer.answer === 'unknown' ? null : answer.answer === 'yes'
         return {
           questionId: answer.questionId,
           suggestedYes,
@@ -217,13 +259,17 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
               investmentId: e.investmentId,
               questionId: answer.questionId,
               valueYes: null,
-              aiSuggestedYes: answer.answer === 'unknown' ? null : answer.answer === 'yes',
+              aiSuggestedYes:
+                answer.answer === 'unknown' ? null : answer.answer === 'yes',
               aiReasoning: answer.reasoning,
               aiCheckedAt: checkedAt,
             })),
           )
           .onConflictDoUpdate({
-            target: [investmentAnswer.investmentId, investmentAnswer.questionId],
+            target: [
+              investmentAnswer.investmentId,
+              investmentAnswer.questionId,
+            ],
             set: {
               aiSuggestedYes: sql`excluded.ai_suggested_yes`,
               aiReasoning: sql`excluded.ai_reasoning`,

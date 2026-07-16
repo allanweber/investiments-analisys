@@ -6,35 +6,35 @@ import { investment, investmentType, question } from '@/db/schema'
 import { getDb, requireUserId } from '@/lib/db-server'
 import { idInput, uuid } from '@/lib/server-utils'
 
-export const listInvestmentTypesWithCounts = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    const db = await getDb()
-    const userId = await requireUserId()
-    const types = await db
-      .select()
-      .from(investmentType)
-      .where(eq(investmentType.userId, userId))
-      .orderBy(asc(investmentType.sortOrder), asc(investmentType.name))
+export const listInvestmentTypesWithCounts = createServerFn({
+  method: 'GET',
+}).handler(async () => {
+  const db = await getDb()
+  const userId = await requireUserId()
+  const types = await db
+    .select()
+    .from(investmentType)
+    .where(eq(investmentType.userId, userId))
+    .orderBy(asc(investmentType.sortOrder), asc(investmentType.name))
 
-    if (types.length === 0) return types.map((t) => ({ ...t, questionCount: 0 }))
+  if (types.length === 0) return types.map((t) => ({ ...t, questionCount: 0 }))
 
-    const typeIds = types.map((t) => t.id)
-    const counts = await db
-      .select({
-        investmentTypeId: question.investmentTypeId,
-        n: count().as('n'),
-      })
-      .from(question)
-      .where(inArray(question.investmentTypeId, typeIds))
-      .groupBy(question.investmentTypeId)
+  const typeIds = types.map((t) => t.id)
+  const counts = await db
+    .select({
+      investmentTypeId: question.investmentTypeId,
+      n: count().as('n'),
+    })
+    .from(question)
+    .where(inArray(question.investmentTypeId, typeIds))
+    .groupBy(question.investmentTypeId)
 
-    const byType = new Map(counts.map((c) => [c.investmentTypeId, Number(c.n)]))
-    return types.map((t) => ({
-      ...t,
-      questionCount: byType.get(t.id) ?? 0,
-    }))
-  },
-)
+  const byType = new Map(counts.map((c) => [c.investmentTypeId, Number(c.n)]))
+  return types.map((t) => ({
+    ...t,
+    questionCount: byType.get(t.id) ?? 0,
+  }))
+})
 
 const createTypeInput = z.object({
   name: z.string().min(1).max(200),
@@ -53,7 +53,8 @@ export const createInvestmentTypeFn = createServerFn({ method: 'POST' })
       })
       .from(investmentType)
       .where(eq(investmentType.userId, userId))
-    const nextOrder = data.sortOrder ?? Number(maxRow?.m ?? -1) + 1
+    // MAX(...) with no GROUP BY always returns exactly one row (COALESCE makes it non-null even with zero matches)
+    const nextOrder = data.sortOrder ?? Number(maxRow.m) + 1
 
     const [row] = await db
       .insert(investmentType)
@@ -86,8 +87,11 @@ export const updateInvestmentTypeFn = createServerFn({ method: 'POST' })
         sortOrder: data.sortOrder,
         fixedIncome: data.fixedIncome,
       })
-      .where(and(eq(investmentType.id, data.id), eq(investmentType.userId, userId)))
+      .where(
+        and(eq(investmentType.id, data.id), eq(investmentType.userId, userId)),
+      )
       .returning()
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess; UPDATE ... RETURNING with a WHERE clause returns 0 rows if id/userId don't match, so updated can be undefined at runtime
     return updated ?? null
   })
 
@@ -117,29 +121,33 @@ export const deleteInvestmentTypeFn = createServerFn({ method: 'POST' })
         ),
       )
 
-    const qn = qRow ? Number(qRow.n) : 0
-    const inum = iRow ? Number(iRow.n) : 0
+    // COUNT(*) with no GROUP BY always returns exactly one row
+    const qn = Number(qRow.n)
+    const inum = Number(iRow.n)
     if (qn > 0) return { ok: false as const, code: 'HAS_QUESTIONS' as const }
-    if (inum > 0) return { ok: false as const, code: 'HAS_INVESTMENTS' as const }
+    if (inum > 0)
+      return { ok: false as const, code: 'HAS_INVESTMENTS' as const }
 
     await db
       .delete(investmentType)
-      .where(and(eq(investmentType.id, data.id), eq(investmentType.userId, userId)))
+      .where(
+        and(eq(investmentType.id, data.id), eq(investmentType.userId, userId)),
+      )
     return { ok: true as const }
   })
 
-export const listInvestmentTypesOptionsFn = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    const db = await getDb()
-    const userId = await requireUserId()
-    return db
-      .select({
-        id: investmentType.id,
-        name: investmentType.name,
-        fixedIncome: investmentType.fixedIncome,
-      })
-      .from(investmentType)
-      .where(eq(investmentType.userId, userId))
-      .orderBy(asc(investmentType.sortOrder), asc(investmentType.name))
-  },
-)
+export const listInvestmentTypesOptionsFn = createServerFn({
+  method: 'GET',
+}).handler(async () => {
+  const db = await getDb()
+  const userId = await requireUserId()
+  return db
+    .select({
+      id: investmentType.id,
+      name: investmentType.name,
+      fixedIncome: investmentType.fixedIncome,
+    })
+    .from(investmentType)
+    .where(eq(investmentType.userId, userId))
+    .orderBy(asc(investmentType.sortOrder), asc(investmentType.name))
+})

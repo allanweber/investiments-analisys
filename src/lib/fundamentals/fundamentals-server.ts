@@ -4,7 +4,10 @@ import { z } from 'zod'
 
 import { investment, investmentAnswer, question } from '@/db/schema'
 import type { QuestionMetricSpec } from '@/db/schema'
-import { computeGrowthCheck, computeLevelCheck } from '@/lib/fundamentals/checks'
+import {
+  computeGrowthCheck,
+  computeLevelCheck,
+} from '@/lib/fundamentals/checks'
 import type { MetricPoint } from '@/lib/fundamentals/checks'
 import { getDb, requireUserId } from '@/lib/db-server'
 import { ensureFundamentalsForTicker } from '@/lib/market-data/fundamentals-refresh'
@@ -22,7 +25,10 @@ export type ComputedSuggestion = {
 
 export type RunComputedChecksResult =
   | { ok: true; suggestions: ComputedSuggestion[] }
-  | { ok: false; code: 'not_found' | 'no_questions' | 'no_ticker' | 'fetch_error' }
+  | {
+      ok: false
+      code: 'not_found' | 'no_questions' | 'no_ticker' | 'fetch_error'
+    }
 
 export type RunComputedChecksBatchItem = {
   investmentId: string
@@ -30,11 +36,7 @@ export type RunComputedChecksBatchItem = {
 }
 
 function normalizeLabel(v: string): string {
-  return v
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim()
+  return v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
 }
 
 /**
@@ -42,7 +44,10 @@ function normalizeLabel(v: string): string {
  * provider actually returned for this ticker — since we support any line item, not a fixed list,
  * exact string matches are rare; fall back to substring matching either direction.
  */
-function findMetricLabel(availableLabels: readonly string[], wanted: string): string | null {
+function findMetricLabel(
+  availableLabels: readonly string[],
+  wanted: string,
+): string | null {
   const target = normalizeLabel(wanted)
   const exact = availableLabels.find((l) => normalizeLabel(l) === target)
   if (exact) return exact
@@ -53,27 +58,50 @@ function findMetricLabel(availableLabels: readonly string[], wanted: string): st
   return substring ?? null
 }
 
-function seriesFor(years: readonly FundamentalYear[], metricLabel: string): MetricPoint[] {
-  return years.map((y) => ({ fiscalYear: y.fiscalYear, value: y.metrics[metricLabel] ?? null }))
+function seriesFor(
+  years: readonly FundamentalYear[],
+  metricLabel: string,
+): MetricPoint[] {
+  return years.map((y) => ({
+    fiscalYear: y.fiscalYear,
+    value: y.metrics[metricLabel] ?? null,
+  }))
 }
 
 function runMetric(
   spec: QuestionMetricSpec,
   years: readonly FundamentalYear[],
 ): { pass: boolean | null; detail: string } {
-  const availableLabels = [...new Set(years.flatMap((y) => Object.keys(y.metrics)))]
+  const availableLabels = [
+    ...new Set(years.flatMap((y) => Object.keys(y.metrics))),
+  ]
   const matchedLabel = findMetricLabel(availableLabels, spec.metricLabel)
   if (!matchedLabel) {
-    return { pass: null, detail: `Indicador "${spec.metricLabel}" não encontrado nos dados da empresa.` }
+    return {
+      pass: null,
+      detail: `Indicador "${spec.metricLabel}" não encontrado nos dados da empresa.`,
+    }
   }
 
   const series = seriesFor(years, matchedLabel)
   return spec.mode === 'growth'
-    ? computeGrowthCheck(series, spec.comparator, spec.threshold, spec.windowYears)
-    : computeLevelCheck(series, spec.comparator, spec.threshold, spec.windowYears)
+    ? computeGrowthCheck(
+        series,
+        spec.comparator,
+        spec.threshold,
+        spec.windowYears,
+      )
+    : computeLevelCheck(
+        series,
+        spec.comparator,
+        spec.threshold,
+        spec.windowYears,
+      )
 }
 
-export const runComputedChecksForInvestmentsFn = createServerFn({ method: 'POST' })
+export const runComputedChecksForInvestmentsFn = createServerFn({
+  method: 'POST',
+})
   .inputValidator((data: unknown) => runBatchInput.parse(data))
   .handler(async ({ data }): Promise<RunComputedChecksBatchItem[]> => {
     const db = await getDb()
@@ -83,10 +111,17 @@ export const runComputedChecksForInvestmentsFn = createServerFn({ method: 'POST'
 
     for (const investmentId of data.investmentIds) {
       const [inv] = await db
-        .select({ id: investment.id, name: investment.name, investmentTypeId: investment.investmentTypeId })
+        .select({
+          id: investment.id,
+          name: investment.name,
+          investmentTypeId: investment.investmentTypeId,
+        })
         .from(investment)
-        .where(and(eq(investment.id, investmentId), eq(investment.userId, userId)))
+        .where(
+          and(eq(investment.id, investmentId), eq(investment.userId, userId)),
+        )
         .limit(1)
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess, so TS types this as always-defined even though a 0-row match (id/userId not found) makes it undefined at runtime
       if (!inv) {
         results.set(investmentId, { ok: false, code: 'not_found' })
         continue
@@ -154,7 +189,10 @@ export const runComputedChecksForInvestmentsFn = createServerFn({ method: 'POST'
             aiCheckedAt: checkedAt,
           })
           .onConflictDoUpdate({
-            target: [investmentAnswer.investmentId, investmentAnswer.questionId],
+            target: [
+              investmentAnswer.investmentId,
+              investmentAnswer.questionId,
+            ],
             set: {
               aiSuggestedYes: pass,
               aiReasoning: detail,

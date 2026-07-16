@@ -22,7 +22,10 @@ export const listQuestionsForTypeFn = createServerFn({ method: 'POST' })
       .select({ id: investmentType.id, name: investmentType.name })
       .from(investmentType)
       .where(
-        and(eq(investmentType.id, data.typeId), eq(investmentType.userId, userId)),
+        and(
+          eq(investmentType.id, data.typeId),
+          eq(investmentType.userId, userId),
+        ),
       )
       .limit(1)
 
@@ -32,7 +35,10 @@ export const listQuestionsForTypeFn = createServerFn({ method: 'POST' })
       .select()
       .from(question)
       .where(
-        and(eq(question.investmentTypeId, data.typeId), eq(question.userId, userId)),
+        and(
+          eq(question.investmentTypeId, data.typeId),
+          eq(question.userId, userId),
+        ),
       )
       .orderBy(asc(question.sortOrder), asc(question.createdAt))
 
@@ -61,6 +67,7 @@ export const createQuestionFn = createServerFn({ method: 'POST' })
         ),
       )
       .limit(1)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess, so TS types this as always-defined even though a 0-row match (id/userId not found) makes it undefined at runtime
     if (!t) return null
 
     const [maxRow] = await db
@@ -70,7 +77,8 @@ export const createQuestionFn = createServerFn({ method: 'POST' })
       .from(question)
       .where(eq(question.investmentTypeId, data.investmentTypeId))
 
-    const order = data.sortOrder ?? Number(maxRow?.m ?? -1) + 1
+    // MAX(...) with no GROUP BY always returns exactly one row (COALESCE makes it non-null even with zero matches)
+    const order = data.sortOrder ?? Number(maxRow.m) + 1
 
     const [row] = await db
       .insert(question)
@@ -106,6 +114,7 @@ export const updateQuestionFn = createServerFn({ method: 'POST' })
       })
       .where(and(eq(question.id, data.id), eq(question.userId, userId)))
       .returning()
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess; UPDATE ... RETURNING with a WHERE clause returns 0 rows if id/userId don't match, so row can be undefined at runtime
     return row ?? null
   })
 
@@ -119,7 +128,8 @@ export const deleteQuestionFn = createServerFn({ method: 'POST' })
       .from(investmentAnswer)
       .where(eq(investmentAnswer.questionId, data.id))
 
-    if (aRow && Number(aRow.n) > 0) {
+    // COUNT(*) with no GROUP BY always returns exactly one row
+    if (Number(aRow.n) > 0) {
       return { ok: false as const, code: 'HAS_ANSWERS' as const }
     }
 
@@ -131,7 +141,9 @@ export const deleteQuestionFn = createServerFn({ method: 'POST' })
 
 const restoreDefaultsInput = z.object({ typeId: uuid })
 
-export const restoreDefaultQuestionsForTypeFn = createServerFn({ method: 'POST' })
+export const restoreDefaultQuestionsForTypeFn = createServerFn({
+  method: 'POST',
+})
   .inputValidator((data: unknown) => restoreDefaultsInput.parse(data))
   .handler(async ({ data }) => {
     const db = await getDb()
@@ -143,10 +155,14 @@ export const restoreDefaultQuestionsForTypeFn = createServerFn({ method: 'POST' 
       })
       .from(investmentType)
       .where(
-        and(eq(investmentType.id, data.typeId), eq(investmentType.userId, userId)),
+        and(
+          eq(investmentType.id, data.typeId),
+          eq(investmentType.userId, userId),
+        ),
       )
       .limit(1)
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess, so TS types this as always-defined even though a 0-row match (id/userId not found) makes it undefined at runtime
     if (!t) return { ok: false as const, code: 'NOT_FOUND' as const }
 
     if (!hasDefaultQuestionPackForTypeName(t.name)) {
@@ -158,7 +174,10 @@ export const restoreDefaultQuestionsForTypeFn = createServerFn({ method: 'POST' 
       .select({ prompt: question.prompt })
       .from(question)
       .where(
-        and(eq(question.investmentTypeId, data.typeId), eq(question.userId, userId)),
+        and(
+          eq(question.investmentTypeId, data.typeId),
+          eq(question.userId, userId),
+        ),
       )
 
     const seenNorm = new Set(
@@ -172,7 +191,8 @@ export const restoreDefaultQuestionsForTypeFn = createServerFn({ method: 'POST' 
       .from(question)
       .where(eq(question.investmentTypeId, data.typeId))
 
-    let nextOrder = Number(maxRow?.m ?? -1)
+    // MAX(...) with no GROUP BY always returns exactly one row (COALESCE makes it non-null even with zero matches)
+    let nextOrder = Number(maxRow.m)
     let inserted = 0
 
     for (const prompt of bankPrompts) {

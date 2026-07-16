@@ -1,12 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import {
-  type AdminUserRow,
   banAdminUserFn,
   deleteAdminUserFn,
   listAdminUsersFn,
   unbanAdminUserFn,
 } from '@/lib/admin-server'
+import type { AdminUserRow } from '@/lib/admin-server'
 import { confirm } from '@/lib/confirm'
 
 export const Route = createFileRoute('/admin/')({
@@ -91,7 +91,9 @@ function AdminUsersPage() {
             <p className="font-label text-xs font-semibold uppercase tracking-widest text-outline">
               {label}
             </p>
-            <p className="font-headline text-3xl font-extrabold text-on-surface">{value}</p>
+            <p className="font-headline text-3xl font-extrabold text-on-surface">
+              {value}
+            </p>
           </div>
         ))}
       </div>
@@ -100,16 +102,23 @@ function AdminUsersPage() {
         <table className="w-full min-w-[700px] text-sm">
           <thead>
             <tr className="border-b border-outline-variant/20">
-              {['Usuário', 'Criado em', 'Último acesso', 'Tipos', 'Investimentos', 'Posições', 'Status', 'Ações'].map(
-                (h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 text-left font-label text-xs font-semibold uppercase tracking-wider text-outline"
-                  >
-                    {h}
-                  </th>
-                ),
-              )}
+              {[
+                'Usuário',
+                'Criado em',
+                'Último acesso',
+                'Tipos',
+                'Investimentos',
+                'Posições',
+                'Status',
+                'Ações',
+              ].map((h) => (
+                <th
+                  key={h}
+                  className="px-4 py-3 text-left font-label text-xs font-semibold uppercase tracking-wider text-outline"
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -129,9 +138,15 @@ function AdminUsersPage() {
                 </td>
                 <td className="px-4 py-3 text-outline">{fmt(u.createdAt)}</td>
                 <td className="px-4 py-3 text-outline">{fmt(u.lastSeen)}</td>
-                <td className="px-4 py-3 tabular-nums text-on-surface">{u.typesCount}</td>
-                <td className="px-4 py-3 tabular-nums text-on-surface">{u.investmentsCount}</td>
-                <td className="px-4 py-3 tabular-nums text-on-surface">{u.holdingsCount}</td>
+                <td className="px-4 py-3 tabular-nums text-on-surface">
+                  {u.typesCount}
+                </td>
+                <td className="px-4 py-3 tabular-nums text-on-surface">
+                  {u.investmentsCount}
+                </td>
+                <td className="px-4 py-3 tabular-nums text-on-surface">
+                  {u.holdingsCount}
+                </td>
                 <td className="px-4 py-3">
                   <span
                     className={`rounded-full px-2 py-0.5 font-label text-[10px] font-bold uppercase tracking-wider ${

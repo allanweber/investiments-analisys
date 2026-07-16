@@ -1,4 +1,9 @@
-import { Link, createFileRoute, Navigate, useRouter } from '@tanstack/react-router'
+import {
+  Link,
+  createFileRoute,
+  Navigate,
+  useRouter,
+} from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -60,7 +65,9 @@ function AnswerSegmented({
         onClick={() => onChange(v)}
         className={cn(
           'flex min-h-[2.75rem] flex-1 flex-col items-center justify-center rounded-lg px-2 py-2 font-body text-sm font-semibold transition-colors',
-          selected ? selectedSegment : 'text-on-surface-variant hover:bg-surface-container-high',
+          selected
+            ? selectedSegment
+            : 'text-on-surface-variant hover:bg-surface-container-high',
         )}
       >
         <span>{label}</span>
@@ -68,7 +75,9 @@ function AnswerSegmented({
           <span
             className={cn(
               'mt-0.5 font-label text-[10px] font-normal uppercase tracking-wide',
-              selected ? 'text-on-secondary-container/85' : 'text-on-surface-variant/90',
+              selected
+                ? 'text-on-secondary-container/85'
+                : 'text-on-surface-variant/90',
             )}
           >
             {sub}
@@ -102,7 +111,10 @@ function PontuacaoPage() {
   const [aiRunning, setAiRunning] = useState(false)
   const [aiMsg, setAiMsg] = useState('')
   const [aiSuggestions, setAiSuggestions] = useState<
-    Record<string, { suggestedYes: boolean | null; reasoning: string; checkedAt: string }>
+    Record<
+      string,
+      { suggestedYes: boolean | null; reasoning: string; checkedAt: string }
+    >
   >({})
   const [clearingAi, setClearingAi] = useState(false)
 
@@ -111,6 +123,7 @@ function PontuacaoPage() {
     const next: Record<string, AnswerChoice> = {}
     for (const q of data.questions) {
       const v = data.answerByQuestionId[q.id]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- answerByQuestionId is Record<string, boolean> (no noUncheckedIndexedAccess), but it only has entries for questions with a saved answer, so v is genuinely undefined for unanswered questions
       if (v === undefined) next[q.id] = 'unanswered'
       else next[q.id] = v ? 'yes' : 'no'
     }
@@ -209,7 +222,7 @@ function PontuacaoPage() {
     setMsg('')
     const answers = questions.map((q) => {
       const c = choices[q.id]
-      if (c === 'unanswered') return { questionId: q.id, valueYes: null as null }
+      if (c === 'unanswered') return { questionId: q.id, valueYes: null }
       return { questionId: q.id, valueYes: c === 'yes' }
     })
 
@@ -237,7 +250,9 @@ function PontuacaoPage() {
     setAiMsg('')
     setAiRunning(true)
     try {
-      const [item] = await runAiScoringForInvestmentsFn({ data: { investmentIds: [id] } })
+      const [item] = await runAiScoringForInvestmentsFn({
+        data: { investmentIds: [id] },
+      })
       const res = item.result
       if (!res.ok) {
         setAiMsg(aiErrorMessage(res.code))
@@ -293,10 +308,12 @@ function PontuacaoPage() {
     const answers = questions.map((q) => {
       const c = next[q.id] ?? 'unanswered'
       return c === 'unanswered'
-        ? { questionId: q.id, valueYes: null as null }
+        ? { questionId: q.id, valueYes: null }
         : { questionId: q.id, valueYes: c === 'yes' }
     })
-    const res = await saveInvestmentScoringFn({ data: { investmentId: id, answers } })
+    const res = await saveInvestmentScoringFn({
+      data: { investmentId: id, answers },
+    })
     if (!res.ok) {
       setMsg(
         res.code === 'INVALID_QUESTIONS'
@@ -306,23 +323,32 @@ function PontuacaoPage() {
     }
   }
 
-  const onApplySuggestion = (questionId: string, suggestedYes: boolean | null) => {
+  const onApplySuggestion = (
+    questionId: string,
+    suggestedYes: boolean | null,
+  ) => {
     if (suggestedYes === null) return
-    const next = { ...choices, [questionId]: suggestedYes ? 'yes' : ('no' as AnswerChoice) }
+    const next = {
+      ...choices,
+      [questionId]: suggestedYes ? 'yes' : ('no' as AnswerChoice),
+    }
     setChoices(next)
     void persistChoices(next)
   }
 
   const applicableSuggestionCount = questions.filter(
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- aiSuggestions is Record<string,...> (no noUncheckedIndexedAccess), but it only has entries for questions with an AI suggestion, so this is genuinely undefined for the rest
     (q) => aiSuggestions[q.id] && aiSuggestions[q.id].suggestedYes !== null,
   ).length
 
   const onApplyAllSuggestions = async () => {
-    if (!(await confirm(m.ai.applyAllConfirm(applicableSuggestionCount)))) return
+    if (!(await confirm(m.ai.applyAllConfirm(applicableSuggestionCount))))
+      return
 
     const next = { ...choices }
     for (const q of questions) {
       const suggestion = aiSuggestions[q.id]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- aiSuggestions is Record<string,...> (no noUncheckedIndexedAccess); suggestion is genuinely undefined for questions with no AI suggestion
       if (suggestion && suggestion.suggestedYes !== null) {
         next[q.id] = suggestion.suggestedYes ? 'yes' : 'no'
       }
@@ -343,6 +369,7 @@ function PontuacaoPage() {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- aiSuggestions is Record<string,...> (no noUncheckedIndexedAccess); genuinely undefined for questions with no AI suggestion
   const hasAnySuggestion = questions.some((q) => aiSuggestions[q.id])
 
   const onClearAiSuggestions = async () => {
@@ -368,7 +395,10 @@ function PontuacaoPage() {
           {m.common.admin}
         </Link>
         <span className="text-surface-dim">/</span>
-        <Link to="/investimentos" className="no-underline hover:text-on-surface">
+        <Link
+          to="/investimentos"
+          className="no-underline hover:text-on-surface"
+        >
           {m.common.crumbInvestimentos}
         </Link>
         <span className="text-surface-dim">/</span>
@@ -381,7 +411,9 @@ function PontuacaoPage() {
             {m.common.crumbPontuacao}
           </h1>
           <p className="mt-2 font-body text-on-surface-variant">
-            <span className="font-semibold text-on-surface">{investment.name}</span>{' '}
+            <span className="font-semibold text-on-surface">
+              {investment.name}
+            </span>{' '}
             · {investment.typeName}
           </p>
         </div>
@@ -394,7 +426,9 @@ function PontuacaoPage() {
               onClick={() => void onApplyAllSuggestions()}
               disabled={clearingAi}
             >
-              <span className="material-symbols-outlined text-lg leading-none">done_all</span>
+              <span className="material-symbols-outlined text-lg leading-none">
+                done_all
+              </span>
               {m.ai.applyAllButton(applicableSuggestionCount)}
             </Button>
           )}
@@ -410,7 +444,9 @@ function PontuacaoPage() {
                 aria-hidden
               />
             ) : (
-              <span className="material-symbols-outlined text-lg leading-none">auto_awesome</span>
+              <span className="material-symbols-outlined text-lg leading-none">
+                auto_awesome
+              </span>
             )}
             {aiRunning ? m.ai.running : m.ai.runButton}
           </Button>
@@ -428,7 +464,9 @@ function PontuacaoPage() {
                   aria-hidden
                 />
               ) : (
-                <span className="material-symbols-outlined text-lg leading-none">delete_sweep</span>
+                <span className="material-symbols-outlined text-lg leading-none">
+                  delete_sweep
+                </span>
               )}
               {m.ai.clearAllButton}
             </Button>
@@ -437,10 +475,13 @@ function PontuacaoPage() {
       </div>
       {aiMsg && (
         <p className="mt-3 flex items-center gap-2 rounded-xl bg-error-container/40 p-3 font-body text-sm text-on-error-container">
-          <span className="material-symbols-outlined shrink-0 text-lg leading-none">error</span>
+          <span className="material-symbols-outlined shrink-0 text-lg leading-none">
+            error
+          </span>
           <span>
             {aiMsg}{' '}
-            {(aiMsg === m.ai.errorInvalidKey || aiMsg === m.ai.errorMissingKey) && (
+            {(aiMsg === m.ai.errorInvalidKey ||
+              aiMsg === m.ai.errorMissingKey) && (
               <Link to="/account/settings" className="font-semibold underline">
                 {m.ai.settingsLink}
               </Link>
@@ -494,89 +535,102 @@ function PontuacaoPage() {
                   }
                 />
               </div>
-              {aiSuggestions[q.id] && (
-                <div
-                  className={cn(
-                    'mt-3 rounded-xl p-3',
-                    aiSuggestions[q.id].suggestedYes === null
-                      ? 'bg-surface-container-high/60'
-                      : aiSuggestions[q.id].suggestedYes
-                        ? 'bg-green-50 dark:bg-green-950/40'
-                        : 'bg-error-container/20',
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined shrink-0 text-lg leading-none text-on-surface-variant">
-                      {q.kind === 'metric' ? 'calculate' : 'auto_awesome'}
-                    </span>
-                    <p className="font-label text-xs font-bold uppercase tracking-wide text-on-surface-variant">
-                      {q.kind === 'metric' ? m.ai.computedLabel : m.ai.suggestionLabel}
-                    </p>
-                    <span
-                      className={cn(
-                        'rounded-full px-2.5 py-0.5 font-label text-[11px] font-bold uppercase tracking-wide',
-                        aiSuggestions[q.id].suggestedYes === null
-                          ? 'bg-surface-container-highest text-on-surface-variant'
-                          : aiSuggestions[q.id].suggestedYes
-                            ? 'bg-green-600 text-white dark:bg-green-500'
-                            : 'bg-error text-on-error',
-                      )}
-                    >
-                      {aiSuggestions[q.id].suggestedYes === null
-                        ? m.ai.suggestionUnknown
+              {
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- aiSuggestions is Record<string,...> (no noUncheckedIndexedAccess); genuinely undefined for questions with no AI suggestion
+                aiSuggestions[q.id] && (
+                  <div
+                    className={cn(
+                      'mt-3 rounded-xl p-3',
+                      aiSuggestions[q.id].suggestedYes === null
+                        ? 'bg-surface-container-high/60'
                         : aiSuggestions[q.id].suggestedYes
-                          ? m.ai.suggestionYes
-                          : m.ai.suggestionNo}
-                    </span>
-                  </div>
-                  {aiSuggestions[q.id].reasoning && (
-                    <p className="mt-2 font-body text-sm leading-relaxed text-on-surface">
-                      {aiSuggestions[q.id].reasoning}
-                    </p>
-                  )}
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    {aiSuggestions[q.id].checkedAt && (
-                      <p className="font-body text-xs text-outline">
-                        {m.ai.checkedAt(
-                          new Date(aiSuggestions[q.id].checkedAt).toLocaleDateString('pt-BR'),
+                          ? 'bg-green-50 dark:bg-green-950/40'
+                          : 'bg-error-container/20',
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined shrink-0 text-lg leading-none text-on-surface-variant">
+                        {q.kind === 'metric' ? 'calculate' : 'auto_awesome'}
+                      </span>
+                      <p className="font-label text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                        {q.kind === 'metric'
+                          ? m.ai.computedLabel
+                          : m.ai.suggestionLabel}
+                      </p>
+                      <span
+                        className={cn(
+                          'rounded-full px-2.5 py-0.5 font-label text-[11px] font-bold uppercase tracking-wide',
+                          aiSuggestions[q.id].suggestedYes === null
+                            ? 'bg-surface-container-highest text-on-surface-variant'
+                            : aiSuggestions[q.id].suggestedYes
+                              ? 'bg-green-600 text-white dark:bg-green-500'
+                              : 'bg-error text-on-error',
                         )}
+                      >
+                        {aiSuggestions[q.id].suggestedYes === null
+                          ? m.ai.suggestionUnknown
+                          : aiSuggestions[q.id].suggestedYes
+                            ? m.ai.suggestionYes
+                            : m.ai.suggestionNo}
+                      </span>
+                    </div>
+                    {aiSuggestions[q.id].reasoning && (
+                      <p className="mt-2 font-body text-sm leading-relaxed text-on-surface">
+                        {aiSuggestions[q.id].reasoning}
                       </p>
                     )}
-                    {aiSuggestions[q.id].suggestedYes !== null && (
-                      <Button
-                        type="button"
-                        className={cn(
-                          'h-8 gap-1 rounded-lg px-3 text-xs font-semibold',
-                          aiSuggestions[q.id].suggestedYes
-                            ? 'bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600'
-                            : 'bg-primary-container text-on-primary',
-                        )}
-                        onClick={() =>
-                          onApplySuggestion(q.id, aiSuggestions[q.id].suggestedYes)
-                        }
-                      >
-                        <span className="material-symbols-outlined text-sm leading-none">
-                          check
-                        </span>
-                        {m.ai.applyButton}
-                      </Button>
-                    )}
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      {aiSuggestions[q.id].checkedAt && (
+                        <p className="font-body text-xs text-outline">
+                          {m.ai.checkedAt(
+                            new Date(
+                              aiSuggestions[q.id].checkedAt,
+                            ).toLocaleDateString('pt-BR'),
+                          )}
+                        </p>
+                      )}
+                      {aiSuggestions[q.id].suggestedYes !== null && (
+                        <Button
+                          type="button"
+                          className={cn(
+                            'h-8 gap-1 rounded-lg px-3 text-xs font-semibold',
+                            aiSuggestions[q.id].suggestedYes
+                              ? 'bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600'
+                              : 'bg-primary-container text-on-primary',
+                          )}
+                          onClick={() =>
+                            onApplySuggestion(
+                              q.id,
+                              aiSuggestions[q.id].suggestedYes,
+                            )
+                          }
+                        >
+                          <span className="material-symbols-outlined text-sm leading-none">
+                            check
+                          </span>
+                          {m.ai.applyButton}
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              }
             </li>
           ))}
         </ul>
       )}
 
       {msg && (
-        <p className="mt-6 font-body text-sm text-on-surface-variant">
-          {msg}
-        </p>
+        <p className="mt-6 font-body text-sm text-on-surface-variant">{msg}</p>
       )}
 
       <div className="mt-8 flex w-full flex-wrap items-center justify-between gap-3">
-        <Button type="button" variant="outline" className="border-outline-variant/30" onClick={() => window.history.back()}>
+        <Button
+          type="button"
+          variant="outline"
+          className="border-outline-variant/30"
+          onClick={() => window.history.back()}
+        >
           {m.investments.backToList}
         </Button>
         <Button

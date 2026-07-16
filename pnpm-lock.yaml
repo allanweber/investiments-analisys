@@ -138,6 +138,9 @@ importers:
       esbuild:
         specifier: latest
         version: 0.28.0
+      eslint:
+        specifier: 10.2.0
+        version: 10.2.0(jiti@2.6.1)
       jsdom:
         specifier: ^28.1.0
         version: 28.1.0(@noble/hashes@2.0.1)

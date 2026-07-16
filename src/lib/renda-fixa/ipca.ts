@@ -4,8 +4,8 @@ import {
   buildTaxBreakdown,
   compoundByDailyRate,
   roundMoney,
-  type TaxedReturn,
 } from './core'
+import type { TaxedReturn } from './core'
 
 export type IndexedInvestmentInput = {
   capital: number
@@ -31,7 +31,9 @@ export type IndexedMtmInput = {
 }
 
 /** Calculates an indexed investment using either a fixed index rate or monthly chained rates. */
-export function calculateIndexedInvestment(input: IndexedInvestmentInput): TaxedReturn & {
+export function calculateIndexedInvestment(
+  input: IndexedInvestmentInput,
+): TaxedReturn & {
   indexFactor: number
   realFactor: number
   vnaFinal: number

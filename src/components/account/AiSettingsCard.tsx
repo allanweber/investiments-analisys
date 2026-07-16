@@ -10,11 +10,8 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  type AiApiKeyStatus,
-  removeAiApiKeyFn,
-  saveAiApiKeyFn,
-} from '@/lib/account-server'
+import { removeAiApiKeyFn, saveAiApiKeyFn } from '@/lib/account-server'
+import type { AiApiKeyStatus } from '@/lib/account-server'
 import { messages as m } from '@/messages'
 
 type Props = {

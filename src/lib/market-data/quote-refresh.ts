@@ -12,7 +12,10 @@ const log = makeLogger('quoteRefresh')
  * If the same symbol appears with mixed `holdingCurrency` values, **any** `BRL`
  * row routes that symbol to brapi-first for this refresh.
  */
-function symbolPreferBrapiFirst(inputs: readonly MarketQuoteInput[], normalizedSymbol: string): boolean {
+function symbolPreferBrapiFirst(
+  inputs: readonly MarketQuoteInput[],
+  normalizedSymbol: string,
+): boolean {
   for (const inp of inputs) {
     if (inp.symbol.trim() !== normalizedSymbol) continue
     if (normalizeHoldingCurrency(inp.holdingCurrency) === 'BRL') return true
@@ -38,28 +41,43 @@ export async function refreshMarketQuotesForInputs(params: {
   reason: QuoteRefreshReason
   inputs: MarketQuoteInput[]
 }): Promise<{
-  bySymbol: Map<string, { quote: MarketQuote | null; fetchedAt: Date | null; ok: boolean }>
+  bySymbol: Map<
+    string,
+    { quote: MarketQuote | null; fetchedAt: Date | null; ok: boolean }
+  >
   stale: boolean
 }> {
   const logEnabled = isMarketDataLogEnabled()
   const startedAt = Date.now()
   const db = await getMarketDataDb()
 
-  const symbols = [...new Set(params.inputs.map((i) => i.symbol.trim()).filter(Boolean))]
-  const bySymbol = new Map<string, { quote: MarketQuote | null; fetchedAt: Date | null; ok: boolean }>()
+  const symbols = [
+    ...new Set(params.inputs.map((i) => i.symbol.trim()).filter(Boolean)),
+  ]
+  const bySymbol = new Map<
+    string,
+    { quote: MarketQuote | null; fetchedAt: Date | null; ok: boolean }
+  >()
   if (symbols.length === 0) return { bySymbol, stale: false }
 
   const brapi = getQuoteProvider('brapi')
   const yfinance = getQuoteProvider('yfinance')
 
-  const brlPrimary = symbols.filter((s) => symbolPreferBrapiFirst(params.inputs, s))
-  const nonBrl = symbols.filter((s) => !symbolPreferBrapiFirst(params.inputs, s))
+  const brlPrimary = symbols.filter((s) =>
+    symbolPreferBrapiFirst(params.inputs, s),
+  )
+  const nonBrl = symbols.filter(
+    (s) => !symbolPreferBrapiFirst(params.inputs, s),
+  )
 
   if (brlPrimary.length > 0) requireBrapiToken()
 
   let stale = false
 
-  const brlInputs = brlPrimary.map((s) => ({ symbol: s, holdingCurrency: 'BRL' as const }))
+  const brlInputs = brlPrimary.map((s) => ({
+    symbol: s,
+    holdingCurrency: 'BRL' as const,
+  }))
   let brlResults: QuoteFetchResult[] = []
   const brapiStart = Date.now()
   if (logEnabled && brlPrimary.length > 0) {
@@ -70,7 +88,11 @@ export async function refreshMarketQuotesForInputs(params: {
       phase: 'triggered',
       actorId: params.actorId,
       reason: params.reason,
-      request: { symbols: brlPrimary, n: brlPrimary.length, holdingCurrency: 'BRL' },
+      request: {
+        symbols: brlPrimary,
+        n: brlPrimary.length,
+        holdingCurrency: 'BRL',
+      },
     })
   }
   try {
@@ -85,7 +107,11 @@ export async function refreshMarketQuotesForInputs(params: {
       actorId: params.actorId,
       reason: params.reason,
       elapsedMs: Date.now() - brapiStart,
-      request: { symbols: brlPrimary, n: brlPrimary.length, holdingCurrency: 'BRL' },
+      request: {
+        symbols: brlPrimary,
+        n: brlPrimary.length,
+        holdingCurrency: 'BRL',
+      },
       error: {
         message: typeof e?.message === 'string' ? e.message : 'Provider error',
         stack: typeof e?.stack === 'string' ? e?.stack : undefined,
@@ -100,7 +126,7 @@ export async function refreshMarketQuotesForInputs(params: {
 
   const brlBySymbol = new Map<string, QuoteFetchResult>()
   for (let i = 0; i < brlPrimary.length; i++) {
-    brlBySymbol.set(brlPrimary[i]!, brlResults[i]!)
+    brlBySymbol.set(brlPrimary[i], brlResults[i])
   }
 
   const symbolsForYahoo = new Set<string>(nonBrl)
@@ -139,7 +165,8 @@ export async function refreshMarketQuotesForInputs(params: {
         elapsedMs: Date.now() - yStart,
         request: { symbols: yahooList, n: yahooList.length },
         error: {
-          message: typeof e?.message === 'string' ? e.message : 'Provider error',
+          message:
+            typeof e?.message === 'string' ? e.message : 'Provider error',
           stack: typeof e?.stack === 'string' ? e?.stack : undefined,
         },
       })
@@ -153,7 +180,7 @@ export async function refreshMarketQuotesForInputs(params: {
 
   const yahooBySymbol = new Map<string, QuoteFetchResult>()
   for (let i = 0; i < yahooList.length; i++) {
-    yahooBySymbol.set(yahooList[i]!, yahooResults[i]!)
+    yahooBySymbol.set(yahooList[i], yahooResults[i])
   }
 
   const toSave = new Map<string, MarketQuote>()
@@ -192,7 +219,8 @@ export async function refreshMarketQuotesForInputs(params: {
       .from(marketQuote)
       .where(inArray(marketQuote.symbol, needLogo))
     const cachedLogoBySymbol = new Map<string, string | null>()
-    for (const row of cached) cachedLogoBySymbol.set(row.symbol, row.logoUrl ?? null)
+    for (const row of cached)
+      cachedLogoBySymbol.set(row.symbol, row.logoUrl ?? null)
 
     const missing = needLogo.filter((s) => !cachedLogoBySymbol.get(s))
     if (missing.length > 0) {
@@ -275,4 +303,3 @@ export async function refreshMarketQuotesForInputs(params: {
 
   return { bySymbol, stale }
 }
-

@@ -4,9 +4,14 @@ import { useState } from 'react'
 import { DisplayCurrencySelector } from '@/components/portfolio/display-currency-selector'
 import { CurrencyInput } from '@/components/portfolio/holdings/CurrencyInput'
 import { authClient } from '@/lib/auth-client'
-import type { AporteSimulationResult, ContributionSuggestion, TypeProjection } from '@/lib/aporte-server'
+import type {
+  AporteSimulationResult,
+  ContributionSuggestion,
+  TypeProjection,
+} from '@/lib/aporte-server'
 import { simulateAporteFn } from '@/lib/aporte-server'
-import { SUPPORTED_FX_CURRENCIES, type FxCurrency } from '@/lib/fx'
+import { SUPPORTED_FX_CURRENCIES } from '@/lib/fx'
+import type { FxCurrency } from '@/lib/fx'
 import { messages as m } from '@/messages'
 
 export const Route = createFileRoute('/portfolio/aporte')({
@@ -22,7 +27,9 @@ function AportePage() {
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<AporteSimulationResult | null>(null)
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set())
-  const [removedNames, setRemovedNames] = useState<Map<string, string>>(new Map())
+  const [removedNames, setRemovedNames] = useState<Map<string, string>>(
+    new Map(),
+  )
   const [recomputing, setRecomputing] = useState(false)
 
   if (isPending) {
@@ -82,7 +89,10 @@ function AportePage() {
     }
   }
 
-  function handleRemoveSuggestion(investmentId: string, investmentName: string) {
+  function handleRemoveSuggestion(
+    investmentId: string,
+    investmentName: string,
+  ) {
     const next = new Set(excludedIds)
     next.add(investmentId)
     setExcludedIds(next)
@@ -107,9 +117,14 @@ function AportePage() {
       <h1 className="font-headline mb-1 text-3xl font-extrabold tracking-tight text-on-surface md:text-4xl">
         {m.aporte.title}
       </h1>
-      <p className="mb-8 text-sm text-on-surface-variant">{m.aporte.subtitle}</p>
+      <p className="mb-8 text-sm text-on-surface-variant">
+        {m.aporte.subtitle}
+      </p>
 
-      <form onSubmit={handleSubmit} className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-end">
+      <form
+        onSubmit={handleSubmit}
+        className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-end"
+      >
         <div className="flex flex-col gap-2">
           <span className="text-[10px] font-bold uppercase tracking-widest text-outline">
             {m.aporte.currencyLabel}
@@ -131,7 +146,11 @@ function AportePage() {
             onChange={setAmount}
           />
           {amountError && (
-            <p id="aporte-amount-error" role="alert" className="text-xs text-error">
+            <p
+              id="aporte-amount-error"
+              role="alert"
+              className="text-xs text-error"
+            >
               {amountError}
             </p>
           )}
@@ -167,7 +186,9 @@ function AportePage() {
 
       {removedNames.size > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-on-surface-variant">{m.aporte.removedChipsLabel}</span>
+          <span className="text-on-surface-variant">
+            {m.aporte.removedChipsLabel}
+          </span>
           {[...removedNames.entries()].map(([id, name]) => (
             <button
               key={id}
@@ -208,12 +229,16 @@ function ResultsSection({
   if (result.reason === 'NO_TARGETS') {
     return (
       <section className="rounded-2xl border border-outline-variant/30 bg-surface p-8 text-center">
-        <p className="mb-4 text-sm text-on-surface-variant">{m.aporte.noTargets}</p>
+        <p className="mb-4 text-sm text-on-surface-variant">
+          {m.aporte.noTargets}
+        </p>
         <Link
           to="/portfolio"
           className="inline-flex items-center gap-1 text-sm font-semibold text-primary no-underline hover:opacity-80"
         >
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+          <span className="material-symbols-outlined text-[18px]">
+            arrow_back
+          </span>
           Portfólio
         </Link>
       </section>
@@ -228,41 +253,55 @@ function ResultsSection({
     )
   }
 
-  const suggestionsByType = result.suggestions.reduce<Record<string, ContributionSuggestion[]>>(
-    (acc, s) => {
-      ;(acc[s.investmentTypeId] ??= []).push(s)
-      return acc
-    },
-    {},
-  )
+  const suggestionsByType = result.suggestions.reduce<
+    Record<string, ContributionSuggestion[]>
+  >((acc, s) => {
+    ;(acc[s.investmentTypeId] ??= []).push(s)
+    return acc
+  }, {})
 
   return (
     <section className={`space-y-3 ${recomputing ? 'opacity-60' : ''}`}>
       {result.typeProjections.map((proj) => {
         const items = suggestionsByType[proj.investmentTypeId]
         return (
-          <div key={proj.investmentTypeId} className="overflow-x-auto rounded-2xl border border-outline-variant/30">
+          <div
+            key={proj.investmentTypeId}
+            className="overflow-x-auto rounded-2xl border border-outline-variant/30"
+          >
             <TypeHeader proj={proj} />
+            {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- suggestionsByType is Record<string,...> (no noUncheckedIndexedAccess), but it only has entries for types with a contribution suggestion, so items is genuinely undefined otherwise */}
             {!items && proj.targetTypePct > 0 && (
               <p className="px-4 py-3 text-xs text-on-surface-variant">
                 {m.aporte.categoryAboveTarget}
               </p>
             )}
+            {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- same suggestionsByType Record<string,...> gap as above */}
             {items && (
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-outline-variant/15 text-left text-xs font-semibold text-on-surface-variant">
                     <th className="px-4 py-2">{m.aporte.colInvestimento}</th>
-                    <th className="px-4 py-2 text-right">{m.aporte.colValor}</th>
-                    <th className="px-4 py-2 text-right">{m.aporte.colUnidades}</th>
+                    <th className="px-4 py-2 text-right">
+                      {m.aporte.colValor}
+                    </th>
+                    <th className="px-4 py-2 text-right">
+                      {m.aporte.colUnidades}
+                    </th>
                     <th className="px-4 py-2 text-right">{m.aporte.colPct}</th>
-                    <th className="px-4 py-2 text-right">{m.aporte.colScore}</th>
+                    <th className="px-4 py-2 text-right">
+                      {m.aporte.colScore}
+                    </th>
                     <th className="px-4 py-2" />
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((s) => (
-                    <SuggestionRow key={s.investmentId} suggestion={s} onRemove={onRemove} />
+                    <SuggestionRow
+                      key={s.investmentId}
+                      suggestion={s}
+                      onRemove={onRemove}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -272,7 +311,9 @@ function ResultsSection({
       })}
       {result.unallocatedAmount > 0 && (
         <div className="flex items-center justify-between rounded-2xl border border-outline-variant/30 bg-surface-variant/20 px-4 py-3">
-          <span className="text-sm font-semibold text-on-surface">{m.aporte.naoAlocado}</span>
+          <span className="text-sm font-semibold text-on-surface">
+            {m.aporte.naoAlocado}
+          </span>
           <span className="tabular-nums text-on-surface">
             {formatCurrency(result.unallocatedAmount, currency)}
           </span>
@@ -286,15 +327,23 @@ function TypeHeader({ proj: p }: { proj: TypeProjection }) {
   const hitTarget = p.projectedTypePct >= p.targetTypePct && p.targetTypePct > 0
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant/20 bg-surface-variant/30 px-4 py-3">
-      <span className="text-sm font-semibold text-on-surface">{p.investmentTypeName}</span>
+      <span className="text-sm font-semibold text-on-surface">
+        {p.investmentTypeName}
+      </span>
       <span className="flex items-center gap-2 text-xs text-on-surface-variant">
         <span className="tabular-nums">{p.currentTypePct.toFixed(1)}%</span>
-        <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-        <span className={`font-semibold tabular-nums ${hitTarget ? 'text-primary' : 'text-on-surface'}`}>
+        <span className="material-symbols-outlined text-[14px]">
+          arrow_forward
+        </span>
+        <span
+          className={`font-semibold tabular-nums ${hitTarget ? 'text-primary' : 'text-on-surface'}`}
+        >
           {p.projectedTypePct.toFixed(1)}%
         </span>
         {p.targetTypePct > 0 && (
-          <span className="text-outline">/ meta {p.targetTypePct.toFixed(1)}%</span>
+          <span className="text-outline">
+            / meta {p.targetTypePct.toFixed(1)}%
+          </span>
         )}
       </span>
     </div>
@@ -317,7 +366,8 @@ function SuggestionRow({
   suggestion: ContributionSuggestion
   onRemove: (investmentId: string, investmentName: string) => void
 }) {
-  const showDual = s.suggestedCurrency.toUpperCase() !== s.contributionCurrency.toUpperCase()
+  const showDual =
+    s.suggestedCurrency.toUpperCase() !== s.contributionCurrency.toUpperCase()
 
   return (
     <tr className="border-b border-outline-variant/10 hover:bg-surface-variant/20">
@@ -338,7 +388,9 @@ function SuggestionRow({
       <td className="px-4 py-3 text-right tabular-nums text-on-surface">
         {showDual ? (
           <span className="flex flex-col items-end gap-0.5">
-            <span>{formatCurrency(s.suggestedAmount, s.suggestedCurrency)}</span>
+            <span>
+              {formatCurrency(s.suggestedAmount, s.suggestedCurrency)}
+            </span>
             <span className="text-xs text-on-surface-variant">
               {formatCurrency(s.contributionAmount, s.contributionCurrency)}
             </span>
@@ -357,7 +409,9 @@ function SuggestionRow({
       <td className="px-4 py-3 text-right tabular-nums text-on-surface">
         {s.contributionPct.toFixed(1)}%
       </td>
-      <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{s.score}</td>
+      <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">
+        {s.score}
+      </td>
       <td className="px-2 py-3 text-right">
         <button
           type="button"

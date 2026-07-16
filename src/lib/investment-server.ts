@@ -29,7 +29,11 @@ async function fetchTickerQuoteCurrency(
   if (!quote || quote.price == null || Number(quote.price) <= 0) {
     return { resolved: false, currency: null, stale }
   }
-  return { resolved: true, currency: normalizeHoldingCurrency(quote.currency ?? null), stale: false }
+  return {
+    resolved: true,
+    currency: normalizeHoldingCurrency(quote.currency ?? null),
+    stale: false,
+  }
 }
 
 /**
@@ -51,7 +55,11 @@ async function resolveTickerCurrency(
       if (!r.stale) break
     }
     // Fallback to the other provider (BRL ⇄ non-BRL routing) once.
-    const fallback = await fetchTickerQuoteCurrency(userId, ticker, primaryHint === 'BRL' ? null : 'BRL')
+    const fallback = await fetchTickerQuoteCurrency(
+      userId,
+      ticker,
+      primaryHint === 'BRL' ? null : 'BRL',
+    )
     return fallback
   } catch {
     return { resolved: false, currency: null }
@@ -72,7 +80,11 @@ export const createInvestmentFn = createServerFn({ method: 'POST' })
     const db = await getDb()
     const userId = await requireUserId()
     const [t] = await db
-      .select({ id: investmentType.id, name: investmentType.name, fixedIncome: investmentType.fixedIncome })
+      .select({
+        id: investmentType.id,
+        name: investmentType.name,
+        fixedIncome: investmentType.fixedIncome,
+      })
       .from(investmentType)
       .where(
         and(
@@ -81,21 +93,27 @@ export const createInvestmentFn = createServerFn({ method: 'POST' })
         ),
       )
       .limit(1)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess, so TS types this as always-defined even though a 0-row match (id/userId not found) makes it undefined at runtime
     if (!t) return { ok: false as const, code: 'BAD_TYPE' as const }
 
     const isFixed = isFixedIncomeTipo(t.fixedIncome, t.name)
     const ticker = data.ticker?.trim() ? data.ticker.trim() : null
 
-    const manualCurrency = data.currency?.trim() ? normalizeHoldingCurrency(data.currency.trim()) : null
+    const manualCurrency = data.currency?.trim()
+      ? normalizeHoldingCurrency(data.currency.trim())
+      : null
 
     let currency: string | null = null
     if (isFixed) {
       // Renda fixa: ticker is optional free text, no Yahoo lookup; currency is BRL.
       currency = 'BRL'
     } else {
-      if (!ticker) return { ok: false as const, code: 'MISSING_TICKER' as const }
-      const { resolved, currency: resolvedCurrency } = await resolveTickerCurrency(userId, ticker)
-      if (!resolved && !manualCurrency) return { ok: false as const, code: 'UNRESOLVED_TICKER' as const }
+      if (!ticker)
+        return { ok: false as const, code: 'MISSING_TICKER' as const }
+      const { resolved, currency: resolvedCurrency } =
+        await resolveTickerCurrency(userId, ticker)
+      if (!resolved && !manualCurrency)
+        return { ok: false as const, code: 'UNRESOLVED_TICKER' as const }
       // A manual override always wins — it's how the user unblocks tickers the quote
       // providers can't price (e.g. some European exchange listings) or corrects a wrong guess.
       currency = manualCurrency ?? resolvedCurrency
@@ -114,7 +132,8 @@ export const createInvestmentFn = createServerFn({ method: 'POST' })
         .returning()
       return { ok: true as const, row }
     } catch (e) {
-      if (isUniqueViolation(e)) return { ok: false as const, code: 'DUPLICATE_TICKER' as const }
+      if (isUniqueViolation(e))
+        return { ok: false as const, code: 'DUPLICATE_TICKER' as const }
       throw e
     }
   })
@@ -124,7 +143,12 @@ function isUniqueViolation(e: unknown): boolean {
   if (typeof e !== 'object' || e == null) return false
   if ('code' in e && (e as { code?: string }).code === '23505') return true
   const cause = (e as { cause?: unknown }).cause
-  return typeof cause === 'object' && cause != null && 'code' in cause && (cause as { code?: string }).code === '23505'
+  return (
+    typeof cause === 'object' &&
+    cause != null &&
+    'code' in cause &&
+    (cause as { code?: string }).code === '23505'
+  )
 }
 
 const updateInvInput = z.object({
@@ -144,6 +168,7 @@ export const updateInvestmentFn = createServerFn({ method: 'POST' })
       .from(investment)
       .where(and(eq(investment.id, data.id), eq(investment.userId, userId)))
       .limit(1)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess, so TS types this as always-defined even though a 0-row match (id/userId not found) makes it undefined at runtime
     if (!existing) return { ok: false as const, code: 'NOT_FOUND' as const }
 
     if (existing.investmentTypeId !== data.investmentTypeId) {
@@ -151,13 +176,18 @@ export const updateInvestmentFn = createServerFn({ method: 'POST' })
         .select({ n: count() })
         .from(investmentAnswer)
         .where(eq(investmentAnswer.investmentId, data.id))
-      if (aRow && Number(aRow.n) > 0) {
+      // COUNT(*) with no GROUP BY always returns exactly one row
+      if (Number(aRow.n) > 0) {
         return { ok: false as const, code: 'HAS_ANSWERS_TYPE_LOCKED' as const }
       }
     }
 
     const [t] = await db
-      .select({ id: investmentType.id, name: investmentType.name, fixedIncome: investmentType.fixedIncome })
+      .select({
+        id: investmentType.id,
+        name: investmentType.name,
+        fixedIncome: investmentType.fixedIncome,
+      })
       .from(investmentType)
       .where(
         and(
@@ -166,6 +196,7 @@ export const updateInvestmentFn = createServerFn({ method: 'POST' })
         ),
       )
       .limit(1)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess, so TS types this as always-defined even though a 0-row match (id/userId not found) makes it undefined at runtime
     if (!t) return { ok: false as const, code: 'BAD_TYPE' as const }
 
     const isFixed = isFixedIncomeTipo(t.fixedIncome, t.name)
@@ -176,10 +207,13 @@ export const updateInvestmentFn = createServerFn({ method: 'POST' })
     if (isFixed) {
       currency = 'BRL'
     } else {
-      if (!ticker) return { ok: false as const, code: 'MISSING_TICKER' as const }
+      if (!ticker)
+        return { ok: false as const, code: 'MISSING_TICKER' as const }
       if (ticker !== existing.ticker || existing.currency == null) {
-        const { resolved, currency: resolvedCurrency } = await resolveTickerCurrency(userId, ticker)
-        if (!resolved) return { ok: false as const, code: 'UNRESOLVED_TICKER' as const }
+        const { resolved, currency: resolvedCurrency } =
+          await resolveTickerCurrency(userId, ticker)
+        if (!resolved)
+          return { ok: false as const, code: 'UNRESOLVED_TICKER' as const }
         currency = resolvedCurrency
       }
     }
@@ -197,7 +231,8 @@ export const updateInvestmentFn = createServerFn({ method: 'POST' })
         .returning()
       return { ok: true as const, row }
     } catch (e) {
-      if (isUniqueViolation(e)) return { ok: false as const, code: 'DUPLICATE_TICKER' as const }
+      if (isUniqueViolation(e))
+        return { ok: false as const, code: 'DUPLICATE_TICKER' as const }
       throw e
     }
   })
@@ -214,6 +249,7 @@ export const setInvestmentActiveFn = createServerFn({ method: 'POST' })
       .set({ active: data.active })
       .where(and(eq(investment.id, data.id), eq(investment.userId, userId)))
       .returning()
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess; UPDATE ... RETURNING with a WHERE clause returns 0 rows if id/userId don't match, so row can be undefined at runtime
     if (!row) return { ok: false as const, code: 'NOT_FOUND' as const }
     return { ok: true as const, row }
   })

@@ -2,10 +2,11 @@ import { asc } from 'drizzle-orm'
 
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
-import * as schema from '@/db/schema'
+import type * as schema from '@/db/schema'
 import { fxRate } from '@/db/schema'
 
-import { buildRateMatrix, type FxRateMatrix, type FxRateRow } from './convert'
+import { buildRateMatrix } from './convert'
+import type { FxRateMatrix, FxRateRow } from './convert'
 
 type Db = NodePgDatabase<typeof schema>
 
@@ -51,7 +52,10 @@ export async function loadFxRatesFromDb(db: Db): Promise<{
   return { rows, matrix, newestFetchedAt, oldestFetchedAt }
 }
 
-export function isFxCacheStale(oldestFetchedAt: Date | null, maxAgeMs?: number): boolean {
+export function isFxCacheStale(
+  oldestFetchedAt: Date | null,
+  maxAgeMs?: number,
+): boolean {
   const ttl = maxAgeMs ?? fxRefreshTtlMsFromEnv()
   if (!oldestFetchedAt) return true
   return Date.now() - oldestFetchedAt.getTime() > ttl

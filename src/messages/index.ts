@@ -1,4 +1,5 @@
-import { type Messages, ptBR } from './pt-BR'
+import { ptBR } from './pt-BR'
+import type { Messages } from './pt-BR'
 
 export type { Messages }
 export { ptBR }

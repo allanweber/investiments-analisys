@@ -13,7 +13,9 @@ export function getRouter() {
     defaultPreloadStaleTime: 0,
     defaultErrorComponent: ({ error }) => {
       const message = error instanceof Error ? error.message : ''
-      const status = typeof error === 'object' && error ? (error as any).status : undefined
+       
+      const status =
+        typeof error === 'object' && error ? (error as any).status : undefined
 
       if (message === 'UNAUTHORIZED' || status === 401) {
         return <Navigate to="/login" />

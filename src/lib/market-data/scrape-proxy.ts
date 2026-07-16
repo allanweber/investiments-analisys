@@ -8,9 +8,9 @@
 export type ScrapeProxyProvider = {
   id: string
   /** Rewrites a target URL into one that routes through this proxy provider. */
-  wrapUrl(targetUrl: string, apiKey: string): string
+  wrapUrl: (targetUrl: string, apiKey: string) => string
   /** Whether a failed proxy response (status + body) indicates the account is out of credits/quota. */
-  isCreditsExhausted(status: number, body: string): boolean
+  isCreditsExhausted: (status: number, body: string) => boolean
 }
 
 const scrapeOpsProvider: ScrapeProxyProvider = {
@@ -40,8 +40,11 @@ type ScrapeProxyConfig = { provider: ScrapeProxyProvider; apiKey: string }
 export function getScrapeProxyConfig(): ScrapeProxyConfig | null {
   const apiKey = (process.env.SCRAPE_PROXY_API_KEY ?? '').trim()
   if (!apiKey) return null
-  const providerId = (process.env.SCRAPE_PROXY_PROVIDER ?? 'scrapeops').trim().toLowerCase()
+  const providerId = (process.env.SCRAPE_PROXY_PROVIDER ?? 'scrapeops')
+    .trim()
+    .toLowerCase()
   const provider = PROVIDERS[providerId]
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- PROVIDERS is Record<string,...> (no noUncheckedIndexedAccess), but providerId comes from an operator-set env var and can be any string, so provider is genuinely undefined at runtime for an unrecognized value
   if (!provider) return null
   return { provider, apiKey }
 }
@@ -63,6 +66,7 @@ export function isProxyCreditsExhaustedError(e: unknown): boolean {
   const match = HTTP_ERROR_RE.exec(message)
   if (!match) return false
   const status = Number(match[1])
-  const body = match[2] ?? ''
+  // both capture groups are mandatory (not optionally-quantified), so a successful match always populates them
+  const body = match[2]
   return config.provider.isCreditsExhausted(status, body)
 }

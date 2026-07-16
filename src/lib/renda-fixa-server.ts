@@ -2,22 +2,43 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { investment, portfolioHolding, rendaFixaDetail, rendaFixaValuation } from '@/db/schema'
-import { ensureBcbRatesForDisplay, refreshBcbRatesIfStale } from '@/lib/market-data/bcb-refresh'
+import {
+  investment,
+  portfolioHolding,
+  rendaFixaDetail,
+  rendaFixaValuation,
+} from '@/db/schema'
+import {
+  ensureBcbRatesForDisplay,
+  refreshBcbRatesIfStale,
+} from '@/lib/market-data/bcb-refresh'
 import { buildRendaFixaValuationRow } from '@/lib/renda-fixa-valuation'
 import { getDb, requireUserId } from '@/lib/db-server'
 import { uuid } from '@/lib/server-utils'
 
-export type { RendaFixaDetailInput, RendaFixaValuationRow } from '@/lib/renda-fixa-valuation'
+export type {
+  RendaFixaDetailInput,
+  RendaFixaValuationRow,
+} from '@/lib/renda-fixa-valuation'
 
 type Db = Awaited<ReturnType<typeof getDb>>
 
-async function computeAndSaveValuation(db: Db, userId: string, investmentId: string): Promise<void> {
+async function computeAndSaveValuation(
+  db: Db,
+  userId: string,
+  investmentId: string,
+): Promise<void> {
   const [detail] = await db
     .select()
     .from(rendaFixaDetail)
-    .where(and(eq(rendaFixaDetail.userId, userId), eq(rendaFixaDetail.investmentId, investmentId)))
+    .where(
+      and(
+        eq(rendaFixaDetail.userId, userId),
+        eq(rendaFixaDetail.investmentId, investmentId),
+      ),
+    )
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess; this WHERE clause can match 0 rows (no renda fixa detail saved yet), making detail undefined at runtime
   if (!detail) return
 
   const rates = await ensureBcbRatesForDisplay(db)
@@ -48,7 +69,14 @@ const productTypeEnum = z.enum([
   'debenture-comum',
 ])
 
-const indexerEnum = z.enum(['pre', 'cdi', 'selic', 'selic-spread', 'ipca', 'igpm'])
+const indexerEnum = z.enum([
+  'pre',
+  'cdi',
+  'selic',
+  'selic-spread',
+  'ipca',
+  'igpm',
+])
 
 const rendaFixaHoldingInput = z.object({
   investmentId: uuid,
@@ -73,19 +101,21 @@ const rendaFixaHoldingInput = z.object({
 })
 
 /** Returns current BCB indexer rates (CDI/Selic/IPCA/IGPM) as decimals for use in fixed-income calculations. */
-export const getBcbRatesFn = createServerFn({ method: 'GET' }).handler(async () => {
-  const db = await getDb()
-  const rates = await ensureBcbRatesForDisplay(db)
-  return {
-    cdiAnnual: rates.cdiAnnual,
-    selicAnnual: rates.selicAnnual,
-    ipcaAccumulated12m: rates.ipcaAccumulated12m,
-    igpmAccumulated12m: rates.igpmAccumulated12m,
-    ipcaMonthly: [...rates.ipcaMonthly],
-    igpmMonthly: [...rates.igpmMonthly],
-    asOf: rates.asOf?.toISOString() ?? null,
-  }
-})
+export const getBcbRatesFn = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    const db = await getDb()
+    const rates = await ensureBcbRatesForDisplay(db)
+    return {
+      cdiAnnual: rates.cdiAnnual,
+      selicAnnual: rates.selicAnnual,
+      ipcaAccumulated12m: rates.ipcaAccumulated12m,
+      igpmAccumulated12m: rates.igpmAccumulated12m,
+      ipcaMonthly: [...rates.ipcaMonthly],
+      igpmMonthly: [...rates.igpmMonthly],
+      asOf: rates.asOf?.toISOString() ?? null,
+    }
+  },
+)
 
 /**
  * Create or update a renda fixa holding.
@@ -100,8 +130,14 @@ export const upsertRendaFixaHoldingFn = createServerFn({ method: 'POST' })
     const [inv] = await db
       .select({ id: investment.id })
       .from(investment)
-      .where(and(eq(investment.id, data.investmentId), eq(investment.userId, userId)))
+      .where(
+        and(
+          eq(investment.id, data.investmentId),
+          eq(investment.userId, userId),
+        ),
+      )
       .limit(1)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess; this WHERE clause can match 0 rows (no matching investment for this user), making inv undefined at runtime
     if (!inv) return { ok: false as const, code: 'NOT_FOUND' as const }
 
     await refreshBcbRatesIfStale({ db })
@@ -172,15 +208,30 @@ export const deleteRendaFixaHoldingFn = createServerFn({ method: 'POST' })
 
     await db
       .delete(rendaFixaValuation)
-      .where(and(eq(rendaFixaValuation.userId, userId), eq(rendaFixaValuation.investmentId, data.investmentId)))
+      .where(
+        and(
+          eq(rendaFixaValuation.userId, userId),
+          eq(rendaFixaValuation.investmentId, data.investmentId),
+        ),
+      )
 
     await db
       .delete(rendaFixaDetail)
-      .where(and(eq(rendaFixaDetail.userId, userId), eq(rendaFixaDetail.investmentId, data.investmentId)))
+      .where(
+        and(
+          eq(rendaFixaDetail.userId, userId),
+          eq(rendaFixaDetail.investmentId, data.investmentId),
+        ),
+      )
 
     await db
       .delete(portfolioHolding)
-      .where(and(eq(portfolioHolding.userId, userId), eq(portfolioHolding.investmentId, data.investmentId)))
+      .where(
+        and(
+          eq(portfolioHolding.userId, userId),
+          eq(portfolioHolding.investmentId, data.investmentId),
+        ),
+      )
 
     return { ok: true }
   })
@@ -209,7 +260,10 @@ export const getRendaFixaDetailFn = createServerFn({ method: 'POST' })
       .from(rendaFixaDetail)
       .innerJoin(
         investment,
-        and(eq(rendaFixaDetail.investmentId, investment.id), eq(investment.userId, userId)),
+        and(
+          eq(rendaFixaDetail.investmentId, investment.id),
+          eq(investment.userId, userId),
+        ),
       )
       .innerJoin(
         portfolioHolding,
@@ -225,6 +279,7 @@ export const getRendaFixaDetailFn = createServerFn({ method: 'POST' })
         ),
       )
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess; this WHERE clause can match 0 rows, making row undefined at runtime
     return row ?? null
   })
 
@@ -232,7 +287,9 @@ export const getRendaFixaDetailFn = createServerFn({ method: 'POST' })
  * List all renda fixa holdings for the authenticated user with their contract details
  * and latest valuation snapshot. Valuation fields are null when no snapshot exists yet.
  */
-export const listRendaFixaHoldingsFn = createServerFn({ method: 'GET' }).handler(async () => {
+export const listRendaFixaHoldingsFn = createServerFn({
+  method: 'GET',
+}).handler(async () => {
   const [userId, db] = await Promise.all([requireUserId(), getDb()])
 
   return db
@@ -267,7 +324,10 @@ export const listRendaFixaHoldingsFn = createServerFn({ method: 'GET' }).handler
     .from(rendaFixaDetail)
     .innerJoin(
       investment,
-      and(eq(rendaFixaDetail.investmentId, investment.id), eq(investment.userId, userId)),
+      and(
+        eq(rendaFixaDetail.investmentId, investment.id),
+        eq(investment.userId, userId),
+      ),
     )
     .innerJoin(
       portfolioHolding,
@@ -290,7 +350,9 @@ export const listRendaFixaHoldingsFn = createServerFn({ method: 'GET' }).handler
  * Recompute and persist valuation snapshots for all of the user's renda fixa holdings.
  * Refreshes BCB rates if stale before computing. Returns the count of holdings recomputed.
  */
-export const refreshRendaFixaValuationsFn = createServerFn({ method: 'POST' }).handler(async () => {
+export const refreshRendaFixaValuationsFn = createServerFn({
+  method: 'POST',
+}).handler(async () => {
   const [userId, db] = await Promise.all([requireUserId(), getDb()])
 
   await refreshBcbRatesIfStale({ db })
@@ -300,7 +362,9 @@ export const refreshRendaFixaValuationsFn = createServerFn({ method: 'POST' }).h
     .from(rendaFixaDetail)
     .where(eq(rendaFixaDetail.userId, userId))
 
-  await Promise.all(details.map((d) => computeAndSaveValuation(db, userId, d.investmentId)))
+  await Promise.all(
+    details.map((d) => computeAndSaveValuation(db, userId, d.investmentId)),
+  )
 
   return { refreshed: details.length }
 })

@@ -47,7 +47,10 @@ const NAME_HINT_RULES: { re: RegExp; bandStart: number }[] = [
 const N = ALLOC_SEGMENT_BG.length
 
 /** Stable swatch index for a tipo: same id (+ name) always maps to the same color. */
-export function allocSwatchIndexForType(investmentTypeId: string, investmentTypeName = ''): number {
+export function allocSwatchIndexForType(
+  investmentTypeId: string,
+  investmentTypeName = '',
+): number {
   const raw = investmentTypeName.trim()
   const h = hashString(investmentTypeId)
   for (const { re, bandStart } of NAME_HINT_RULES) {
@@ -58,18 +61,29 @@ export function allocSwatchIndexForType(investmentTypeId: string, investmentType
   return h % N
 }
 
-export function allocColorForType(investmentTypeId: string, investmentTypeName = ''): string {
-  return ALLOC_SEGMENT_BG[allocSwatchIndexForType(investmentTypeId, investmentTypeName)]!
+export function allocColorForType(
+  investmentTypeId: string,
+  investmentTypeName = '',
+): string {
+  return ALLOC_SEGMENT_BG[
+    allocSwatchIndexForType(investmentTypeId, investmentTypeName)
+  ]
 }
 
 export function fmtMoneyBRL(v: number): string {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(v)
 }
 
 export function fmtMoney(v: number, currency: string | null): string {
   const c = currency ?? 'BRL'
   try {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: c }).format(v)
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: c,
+    }).format(v)
   } catch {
     return `${v.toFixed(2)} ${c}`
   }

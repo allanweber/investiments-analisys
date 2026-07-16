@@ -3,9 +3,8 @@ import {
   buildTaxBreakdown,
   compoundByDailyRate,
   compoundChain,
-  type CompoundChainPeriod,
-  type TaxedReturn,
 } from './core'
+import type { CompoundChainPeriod, TaxedReturn } from './core'
 
 export type DailyRateInvestmentInput = {
   capital: number
@@ -26,9 +25,16 @@ export type VariableDailyRateInvestmentInput = {
 }
 
 /** Calculates a daily-rate investment using an annual rate and optional multiplier. */
-export function calculateDailyRateInvestment(input: DailyRateInvestmentInput): TaxedReturn {
-  const dailyRate = annualRateToDailyRate(input.annualRate) * (input.multiplier ?? 1)
-  const grossAmount = compoundByDailyRate(input.capital, dailyRate, input.businessDays)
+export function calculateDailyRateInvestment(
+  input: DailyRateInvestmentInput,
+): TaxedReturn {
+  const dailyRate =
+    annualRateToDailyRate(input.annualRate) * (input.multiplier ?? 1)
+  const grossAmount = compoundByDailyRate(
+    input.capital,
+    dailyRate,
+    input.businessDays,
+  )
   return buildTaxBreakdown({
     capital: input.capital,
     grossAmount,
@@ -39,11 +45,10 @@ export function calculateDailyRateInvestment(input: DailyRateInvestmentInput): T
 }
 
 /** Calculates a daily-rate investment with multiple chained periods. */
-export function calculateVariableDailyRateInvestment(input: VariableDailyRateInvestmentInput): TaxedReturn {
-  const grossAmount = compoundChain(
-    input.capital,
-    input.periods,
-  )
+export function calculateVariableDailyRateInvestment(
+  input: VariableDailyRateInvestmentInput,
+): TaxedReturn {
+  const grossAmount = compoundChain(input.capital, input.periods)
 
   return buildTaxBreakdown({
     capital: input.capital,
