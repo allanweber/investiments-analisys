@@ -126,7 +126,13 @@ export const deleteQuestionFn = createServerFn({ method: 'POST' })
     const [aRow] = await db
       .select({ n: count() })
       .from(investmentAnswer)
-      .where(eq(investmentAnswer.questionId, data.id))
+      .innerJoin(question, eq(investmentAnswer.questionId, question.id))
+      .where(
+        and(
+          eq(investmentAnswer.questionId, data.id),
+          eq(question.userId, userId),
+        ),
+      )
 
     // COUNT(*) with no GROUP BY always returns exactly one row
     if (Number(aRow.n) > 0) {
