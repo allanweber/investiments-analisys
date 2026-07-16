@@ -203,6 +203,9 @@ export function useRendaFixaForm({
           ? form.multiplierPct / 100
           : undefined
 
+      // NOT_FOUND is a defense-in-depth branch (foreign investmentId) and unreachable here:
+      // investmentId is either just created via createInvestmentFn (scoped to this user) or
+      // selected from invOptions, which is already scoped to this user's own investments.
       await upsertRendaFixaHoldingFn({
         data: {
           investmentId,

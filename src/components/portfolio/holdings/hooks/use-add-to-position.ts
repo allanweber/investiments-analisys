@@ -72,6 +72,8 @@ export function useAddToPosition({ modal, refresh }: UseAddToPositionOptions): U
             ? detail.detail.purchaseDate.toISOString()
             : new Date(String(detail.detail.purchaseDate)).toISOString())
 
+      // NOT_FOUND is a defense-in-depth branch (foreign investmentId) and unreachable here:
+      // row comes from listRendaFixaHoldingsFn, which is already scoped to this user's holdings.
       await upsertRendaFixaHoldingFn({
         data: {
           investmentId: row.investmentId,

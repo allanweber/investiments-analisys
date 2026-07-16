@@ -97,6 +97,13 @@ export const upsertRendaFixaHoldingFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const [userId, db] = await Promise.all([requireUserId(), getDb()])
 
+    const [inv] = await db
+      .select({ id: investment.id })
+      .from(investment)
+      .where(and(eq(investment.id, data.investmentId), eq(investment.userId, userId)))
+      .limit(1)
+    if (!inv) return { ok: false as const, code: 'NOT_FOUND' as const }
+
     await refreshBcbRatesIfStale({ db })
 
     // quantity=1, avgCost=capital preserves the book-value invariant: marketValue = qty × avgCost = capital
@@ -149,7 +156,7 @@ export const upsertRendaFixaHoldingFn = createServerFn({ method: 'POST' })
 
     await computeAndSaveValuation(db, userId, data.investmentId)
 
-    return { ok: true }
+    return { ok: true as const }
   })
 
 /**
@@ -200,7 +207,10 @@ export const getRendaFixaDetailFn = createServerFn({ method: 'POST' })
         broker: portfolioHolding.broker,
       })
       .from(rendaFixaDetail)
-      .innerJoin(investment, eq(rendaFixaDetail.investmentId, investment.id))
+      .innerJoin(
+        investment,
+        and(eq(rendaFixaDetail.investmentId, investment.id), eq(investment.userId, userId)),
+      )
       .innerJoin(
         portfolioHolding,
         and(
@@ -255,7 +265,10 @@ export const listRendaFixaHoldingsFn = createServerFn({ method: 'GET' }).handler
       },
     })
     .from(rendaFixaDetail)
-    .innerJoin(investment, eq(rendaFixaDetail.investmentId, investment.id))
+    .innerJoin(
+      investment,
+      and(eq(rendaFixaDetail.investmentId, investment.id), eq(investment.userId, userId)),
+    )
     .innerJoin(
       portfolioHolding,
       and(
