@@ -465,6 +465,10 @@ const core = {
     amountRequired: 'Informe um valor maior que zero.',
     errorCalc: 'Não foi possível calcular o aporte. Tente novamente.',
     dash: '—',
+    removeSuggestion: 'Remover sugestão',
+    addBack: 'Adicionar de volta',
+    removedChipsLabel: 'Removidos desta simulação:',
+    naoAlocado: 'Não alocado',
   },
   ai: {
     runButton: 'Verificar com IA',

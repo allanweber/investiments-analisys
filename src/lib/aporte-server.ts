@@ -28,6 +28,7 @@ export type { AporteSimulationResult, ContributionSuggestion, TypeProjection } f
 const simulateAporteInput = z.object({
   amount: z.number().positive(),
   currency: z.enum(SUPPORTED_FX_CURRENCIES),
+  excludedInvestmentIds: z.array(z.string()).optional(),
 })
 
 export const simulateAporteFn = createServerFn({ method: 'POST' })
@@ -35,7 +36,7 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const db = await getDb()
     const userId = await requireUserId()
-    const { amount, currency: contributionCurrency } = data
+    const { amount, currency: contributionCurrency, excludedInvestmentIds } = data
 
     // --- Portfolio state ---
     const holdings = await db
@@ -122,23 +123,16 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
     let quoteMap = new Map<string, { price: number | null; currency: string | null }>()
 
     if (uniqueQuoteInputs.length > 0) {
+      // Aporte suggestions drive real buy amounts, so always refetch live prices
+      // instead of trusting the (up to 12h-stale) quote cache.
+      await refreshMarketQuotesForInputs({
+        actorId: userId,
+        reason: 'immediate',
+        inputs: uniqueQuoteInputs,
+      })
       const { bySymbol } = await loadQuotesFromDb({ inputs: uniqueQuoteInputs })
-
-      const staleInputs = uniqueQuoteInputs.filter((qi) => !bySymbol.get(qi.symbol)?.price)
-      if (staleInputs.length > 0) {
-        await refreshMarketQuotesForInputs({
-          actorId: userId,
-          reason: 'immediate',
-          inputs: staleInputs,
-        })
-        const refreshed = await loadQuotesFromDb({ inputs: uniqueQuoteInputs })
-        for (const [sym, q] of refreshed.bySymbol) {
-          quoteMap.set(sym, q)
-        }
-      } else {
-        for (const [sym, q] of bySymbol) {
-          quoteMap.set(sym, q)
-        }
+      for (const [sym, q] of bySymbol) {
+        quoteMap.set(sym, q)
       }
     }
 
@@ -160,5 +154,6 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
       scoredInvestments: eligibleScoredInvestments,
       quoteBySymbol: quoteMap,
       fxMatrix: matrix,
+      excludedInvestmentIds,
     })
   })

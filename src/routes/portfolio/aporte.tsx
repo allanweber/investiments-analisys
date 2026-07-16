@@ -21,6 +21,9 @@ function AportePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<AporteSimulationResult | null>(null)
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set())
+  const [removedNames, setRemovedNames] = useState<Map<string, string>>(new Map())
+  const [recomputing, setRecomputing] = useState(false)
 
   if (isPending) {
     return (
@@ -51,6 +54,8 @@ function AportePage() {
       return
     }
 
+    setExcludedIds(new Set())
+    setRemovedNames(new Map())
     setLoading(true)
     setResult(null)
     try {
@@ -61,6 +66,40 @@ function AportePage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function recompute(nextExcluded: Set<string>) {
+    setRecomputing(true)
+    try {
+      const res = await simulateAporteFn({
+        data: { amount, currency, excludedInvestmentIds: [...nextExcluded] },
+      })
+      setResult(res)
+    } catch {
+      setError(m.aporte.errorCalc)
+    } finally {
+      setRecomputing(false)
+    }
+  }
+
+  function handleRemoveSuggestion(investmentId: string, investmentName: string) {
+    const next = new Set(excludedIds)
+    next.add(investmentId)
+    setExcludedIds(next)
+    setRemovedNames((prev) => new Map(prev).set(investmentId, investmentName))
+    void recompute(next)
+  }
+
+  function handleAddBack(investmentId: string) {
+    const next = new Set(excludedIds)
+    next.delete(investmentId)
+    setExcludedIds(next)
+    setRemovedNames((prev) => {
+      const copy = new Map(prev)
+      copy.delete(investmentId)
+      return copy
+    })
+    void recompute(next)
   }
 
   return (
@@ -123,12 +162,46 @@ function AportePage() {
         </p>
       )}
 
-      {result && <ResultsSection result={result} />}
+      {removedNames.size > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-on-surface-variant">{m.aporte.removedChipsLabel}</span>
+          {[...removedNames.entries()].map(([id, name]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => handleAddBack(id)}
+              className="inline-flex items-center gap-1 rounded-full bg-surface-variant/50 px-3 py-1 font-medium text-on-surface-variant transition-opacity hover:opacity-80"
+            >
+              <span className="line-through">{name}</span>
+              <span className="material-symbols-outlined text-[14px]">add</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {result && (
+        <ResultsSection
+          result={result}
+          recomputing={recomputing}
+          currency={currency}
+          onRemove={handleRemoveSuggestion}
+        />
+      )}
     </main>
   )
 }
 
-function ResultsSection({ result }: { result: AporteSimulationResult }) {
+function ResultsSection({
+  result,
+  recomputing,
+  currency,
+  onRemove,
+}: {
+  result: AporteSimulationResult
+  recomputing: boolean
+  currency: string
+  onRemove: (investmentId: string, investmentName: string) => void
+}) {
   if (result.reason === 'NO_TARGETS') {
     return (
       <section className="rounded-2xl border border-outline-variant/30 bg-surface p-8 text-center">
@@ -161,7 +234,7 @@ function ResultsSection({ result }: { result: AporteSimulationResult }) {
   )
 
   return (
-    <section className="space-y-3">
+    <section className={`space-y-3 ${recomputing ? 'opacity-60' : ''}`}>
       {result.typeProjections.map((proj) => {
         const items = suggestionsByType[proj.investmentTypeId]
         return (
@@ -181,11 +254,12 @@ function ResultsSection({ result }: { result: AporteSimulationResult }) {
                     <th className="px-4 py-2 text-right">{m.aporte.colUnidades}</th>
                     <th className="px-4 py-2 text-right">{m.aporte.colPct}</th>
                     <th className="px-4 py-2 text-right">{m.aporte.colScore}</th>
+                    <th className="px-4 py-2" />
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((s) => (
-                    <SuggestionRow key={s.investmentId} suggestion={s} />
+                    <SuggestionRow key={s.investmentId} suggestion={s} onRemove={onRemove} />
                   ))}
                 </tbody>
               </table>
@@ -193,6 +267,14 @@ function ResultsSection({ result }: { result: AporteSimulationResult }) {
           </div>
         )
       })}
+      {result.unallocatedAmount > 0 && (
+        <div className="flex items-center justify-between rounded-2xl border border-outline-variant/30 bg-surface-variant/20 px-4 py-3">
+          <span className="text-sm font-semibold text-on-surface">{m.aporte.naoAlocado}</span>
+          <span className="tabular-nums text-on-surface">
+            {formatCurrency(result.unallocatedAmount, currency)}
+          </span>
+        </div>
+      )}
     </section>
   )
 }
@@ -225,7 +307,13 @@ function formatCurrency(amount: number, currency: string) {
   }).format(amount)
 }
 
-function SuggestionRow({ suggestion: s }: { suggestion: ContributionSuggestion }) {
+function SuggestionRow({
+  suggestion: s,
+  onRemove,
+}: {
+  suggestion: ContributionSuggestion
+  onRemove: (investmentId: string, investmentName: string) => void
+}) {
   const showDual = s.suggestedCurrency.toUpperCase() !== s.contributionCurrency.toUpperCase()
 
   return (
@@ -267,6 +355,17 @@ function SuggestionRow({ suggestion: s }: { suggestion: ContributionSuggestion }
         {s.contributionPct.toFixed(1)}%
       </td>
       <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">{s.score}</td>
+      <td className="px-2 py-3 text-right">
+        <button
+          type="button"
+          onClick={() => onRemove(s.investmentId, s.investmentName)}
+          aria-label={m.aporte.removeSuggestion}
+          title={m.aporte.removeSuggestion}
+          className="rounded-full p-1 text-on-surface-variant transition-opacity hover:opacity-70"
+        >
+          <span className="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </td>
     </tr>
   )
 }

@@ -71,7 +71,7 @@ export function AuthPageShell({
             </p>
           </div>
 
-          <div className="rounded-xl bg-surface-container-lowest p-8 shadow-[0px_12px_32px_-4px_rgba(25,28,30,0.06)] md:p-10">
+          <div className="rounded-xl border border-outline-variant/40 bg-surface-container-lowest p-8 shadow-[0px_12px_32px_-4px_rgba(25,28,30,0.06)] md:p-10">
             {children}
           </div>
 

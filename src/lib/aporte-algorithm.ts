@@ -46,7 +46,12 @@ export type TypeProjection = {
 export type AporteSimulationResult =
   | { reason: 'NO_TARGETS'; suggestions: [] }
   | { reason: 'NO_ELIGIBLE_INVESTMENTS'; suggestions: [] }
-  | { reason: 'OK'; suggestions: ContributionSuggestion[]; typeProjections: TypeProjection[] }
+  | {
+      reason: 'OK'
+      suggestions: ContributionSuggestion[]
+      typeProjections: TypeProjection[]
+      unallocatedAmount: number
+    }
 
 /** One holding's contribution to portfolio totals — used to compute per-type market value. */
 export type AporteHolding = {
@@ -82,6 +87,7 @@ export type AporteInput = {
   scoredInvestments: InvestmentOverviewRow[]
   quoteBySymbol: Map<string, AporteQuote>
   fxMatrix: FxRateMatrix
+  excludedInvestmentIds?: string[]
 }
 
 export function simulateAporte(input: AporteInput): AporteSimulationResult {
@@ -91,14 +97,19 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
     portfolio,
     targetsMap,
     typeRows,
-    scoredInvestments,
     quoteBySymbol,
     fxMatrix,
+    excludedInvestmentIds,
   } = input
 
   if (Object.keys(targetsMap).length === 0) {
     return { reason: 'NO_TARGETS', suggestions: [] }
   }
+
+  const excludedIds = new Set(excludedInvestmentIds ?? [])
+  const scoredInvestments = excludedIds.size > 0
+    ? input.scoredInvestments.filter((inv) => !excludedIds.has(inv.id))
+    : input.scoredInvestments
 
   // --- ETF reclassification ---
   // When the ETF category's target is 0 (or unset), ETF holdings/investments are folded into
@@ -184,6 +195,7 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
 
   const totalDeficit = eligibleTypes.reduce((sum, t) => sum + t.deficit, 0)
   const suggestions: ContributionSuggestion[] = []
+  let unallocatedAmount = 0
 
   for (const eligType of eligibleTypes) {
     const typeShare = eligType.deficit / totalDeficit
@@ -194,19 +206,26 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
     const projectedTypePct = newTotal > 0 ? ((currentTypeMv + typeAmount) / newTotal) * 100 : 0
     const targetTypePct = targetsMap[eligType.investmentTypeId]?.targetPct ?? 0
 
-    // Eligible investments for type: score > 0
-    const typeInvestments = investmentsForType(eligType.investmentTypeId).filter(
-      (inv) => inv.score > 0,
-    )
-    if (typeInvestments.length === 0) continue
+    // All investments belonging to this type (before score filtering) — only an empty type
+    // (e.g. every investment excluded) routes its share to unallocatedAmount.
+    const allTypeInvestments = investmentsForType(eligType.investmentTypeId)
+    if (allTypeInvestments.length === 0) {
+      unallocatedAmount += typeAmount
+      continue
+    }
+
+    // Prefer investments with a positive score; fall back to all of them (split evenly) so the
+    // amount is still allocated as much as possible instead of being parked as unallocated.
+    const scoredPositive = allTypeInvestments.filter((inv) => inv.score > 0)
+    const pool = scoredPositive.length > 0 ? scoredPositive : allTypeInvestments
 
     // PriorityInvestments: score >= PRIORITY_SCORE_THRESHOLD
-    const priority = typeInvestments.filter((inv) => inv.score >= PRIORITY_SCORE_THRESHOLD)
-    const selected = priority.length > 0 ? priority : typeInvestments
+    const priority = pool.filter((inv) => inv.score >= PRIORITY_SCORE_THRESHOLD)
+    const selected = priority.length > 0 ? priority : pool
     const totalScore = selected.reduce((sum, inv) => sum + inv.score, 0)
 
     for (const inv of selected) {
-      const invShare = inv.score / totalScore
+      const invShare = totalScore > 0 ? inv.score / totalScore : 1 / selected.length
       const rawAmount = typeAmount * invShare
 
       const isFixed = isFixedIncomeTipo(inv.fixedIncome, inv.typeName)
@@ -309,7 +328,7 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
     }
   }
 
-  if (suggestions.length === 0) {
+  if (suggestions.length === 0 && unallocatedAmount === 0) {
     return { reason: 'NO_ELIGIBLE_INVESTMENTS', suggestions: [] }
   }
 
@@ -350,5 +369,5 @@ export function simulateAporte(input: AporteInput): AporteSimulationResult {
     }
   }
 
-  return { reason: 'OK', suggestions, typeProjections }
+  return { reason: 'OK', suggestions, typeProjections, unallocatedAmount }
 }

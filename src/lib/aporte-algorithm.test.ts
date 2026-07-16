@@ -69,17 +69,32 @@ describe('simulateAporte — NO_TARGETS', () => {
 })
 
 describe('simulateAporte — NO_ELIGIBLE_INVESTMENTS', () => {
-  it('returns NO_ELIGIBLE_INVESTMENTS when eligible types have no scorable investments', () => {
-    const typeId = 'ti-1'
+  it('returns NO_ELIGIBLE_INVESTMENTS only when there are no target types at all', () => {
     const result = simulateAporte(
       baseInput({
-        targetsMap: { [typeId]: { targetPct: 100 } },
-        typeRows: [makeType(typeId)],
-        // all investments have score = 0 → no suggestions generated
-        scoredInvestments: [makeInv({ id: 'inv-1', investmentTypeId: typeId, score: 0 })],
+        targetsMap: { 'ti-1': { targetPct: 0 } },
+        typeRows: [makeType('ti-1')],
+        scoredInvestments: [],
       }),
     )
     expect(result.reason).toBe('NO_ELIGIBLE_INVESTMENTS')
+  })
+
+  it('falls back to zero-score investments in a type rather than leaving the amount unallocated', () => {
+    const typeId = 'ti-1'
+    const result = simulateAporte(
+      baseInput({
+        amount: 1000,
+        targetsMap: { [typeId]: { targetPct: 100 } },
+        typeRows: [makeType(typeId)],
+        // all investments have score = 0 → still eligible as a last resort
+        scoredInvestments: [makeInv({ id: 'inv-1', investmentTypeId: typeId, score: 0 })],
+      }),
+    )
+    expect(result.reason).toBe('OK')
+    if (result.reason !== 'OK') return
+    expect(result.suggestions.some((s) => s.investmentId === 'inv-1')).toBe(true)
+    expect(result.unallocatedAmount).toBeCloseTo(0, 5)
   })
 })
 
@@ -229,20 +244,103 @@ describe('simulateAporte — proportional-to-score within type', () => {
 })
 
 describe('simulateAporte — type skipped when no eligible investments', () => {
-  it('skips a type where all investments have score = 0', () => {
+  it('sends the whole amount to unallocatedAmount only when the type has no investments at all', () => {
     const typeId = 'ti-1'
 
     const result = simulateAporte(
       baseInput({
+        amount: 1000,
+        targetsMap: { [typeId]: { targetPct: 100 } },
+        typeRows: [makeType(typeId)],
+        scoredInvestments: [],
+      }),
+    )
+
+    expect(result.reason).toBe('OK')
+    if (result.reason !== 'OK') return
+    expect(result.suggestions).toEqual([])
+    expect(result.unallocatedAmount).toBeCloseTo(1000, 5)
+  })
+
+  it('splits evenly across a type\'s investments when all have score = 0, instead of parking as unallocated', () => {
+    const typeId = 'ti-1'
+
+    const result = simulateAporte(
+      baseInput({
+        amount: 1000,
         targetsMap: { [typeId]: { targetPct: 100 } },
         typeRows: [makeType(typeId)],
         scoredInvestments: [
-          makeInv({ id: 'zero', investmentTypeId: typeId, score: 0 }),
+          makeInv({ id: 'zero-a', investmentTypeId: typeId, score: 0 }),
+          makeInv({ id: 'zero-b', investmentTypeId: typeId, score: 0 }),
         ],
       }),
     )
 
-    expect(result.reason).toBe('NO_ELIGIBLE_INVESTMENTS')
+    expect(result.reason).toBe('OK')
+    if (result.reason !== 'OK') return
+    expect(result.unallocatedAmount).toBeCloseTo(0, 5)
+    const sa = result.suggestions.find((s) => s.investmentId === 'zero-a')!
+    const sb = result.suggestions.find((s) => s.investmentId === 'zero-b')!
+    expect(sa.contributionPct).toBeCloseTo(50, 5)
+    expect(sb.contributionPct).toBeCloseTo(50, 5)
+  })
+})
+
+describe('simulateAporte — excludedInvestmentIds', () => {
+  it('redistributes an excluded investment share to remaining investments in the same type', () => {
+    const typeId = 'ti-1'
+
+    const result = simulateAporte(
+      baseInput({
+        amount: 900,
+        targetsMap: { [typeId]: { targetPct: 100 } },
+        typeRows: [makeType(typeId)],
+        scoredInvestments: [
+          makeInv({ id: 'a', investmentTypeId: typeId, score: 6 }),
+          makeInv({ id: 'b', investmentTypeId: typeId, score: 3 }),
+          makeInv({ id: 'c', investmentTypeId: typeId, score: 1 }),
+        ],
+        quoteBySymbol: new Map([
+          ['a', { price: 1, currency: 'BRL' }],
+          ['b', { price: 1, currency: 'BRL' }],
+          ['c', { price: 1, currency: 'BRL' }],
+        ]),
+        excludedInvestmentIds: ['a'],
+      }),
+    )
+
+    expect(result.reason).toBe('OK')
+    if (result.reason !== 'OK') return
+    expect(result.suggestions.some((s) => s.investmentId === 'a')).toBe(false)
+    // total score among remaining = 4, shares: b=75%, c=25%
+    const sb = result.suggestions.find((s) => s.investmentId === 'b')!
+    const sc = result.suggestions.find((s) => s.investmentId === 'c')!
+    expect(sb.contributionPct).toBeCloseTo(75, 5)
+    expect(sc.contributionPct).toBeCloseTo(25, 5)
+    expect(result.unallocatedAmount).toBe(0)
+  })
+
+  it('sends the full type share to unallocatedAmount when every investment in the type is excluded', () => {
+    const typeId = 'ti-1'
+
+    const result = simulateAporte(
+      baseInput({
+        amount: 1000,
+        targetsMap: { [typeId]: { targetPct: 100 } },
+        typeRows: [makeType(typeId)],
+        scoredInvestments: [
+          makeInv({ id: 'a', investmentTypeId: typeId, score: 5 }),
+        ],
+        quoteBySymbol: new Map([['a', { price: 1, currency: 'BRL' }]]),
+        excludedInvestmentIds: ['a'],
+      }),
+    )
+
+    expect(result.reason).toBe('OK')
+    if (result.reason !== 'OK') return
+    expect(result.suggestions).toEqual([])
+    expect(result.unallocatedAmount).toBeCloseTo(1000, 5)
   })
 })
 

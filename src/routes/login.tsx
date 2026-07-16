@@ -199,12 +199,12 @@ function LoginPage() {
             </p>
           </div>
 
-          <div className="rounded-xl bg-surface-container-lowest p-8 shadow-[0px_12px_32px_-4px_rgba(25,28,30,0.06)] md:p-10">
+          <div className="rounded-xl border border-outline-variant/40 bg-surface-container-lowest p-8 shadow-[0px_12px_32px_-4px_rgba(25,28,30,0.06)] md:p-10">
             <div className="mb-8 grid grid-cols-1 gap-4">
               <button
                 type="button"
                 onClick={() => void googleSignIn()}
-                className="flex w-full items-center justify-center gap-3 rounded-lg bg-surface-container-low px-4 py-3 font-body text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high"
+                className="flex w-full items-center justify-center gap-3 rounded-lg border border-outline-variant/30 bg-surface-container-low px-4 py-3 font-body text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
                   <path
