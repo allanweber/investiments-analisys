@@ -1,17 +1,16 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
-import {
-  investment,
-  investmentType,
-  portfolioHolding,
-  rendaFixaValuation,
-} from '@/db/schema'
+import { investment, investmentType, portfolioHolding } from '@/db/schema'
 import { refreshMarketQuotesForInputs } from '@/lib/market-data/quote-refresh'
 import type { MarketQuoteInput } from '@/lib/market-data'
 import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
-import { valuateHoldings } from '@/lib/valuation-pipeline'
+import {
+  loadHoldingsForValuation,
+  valuateHoldings,
+  withRendaFixaAvgCost,
+} from '@/lib/valuation-pipeline'
 
 import { normalizeHoldingCurrency } from '@/lib/math'
 import { getDb, requireUserId } from '@/lib/db-server'
@@ -166,46 +165,12 @@ export const listPortfolioHoldingsFn = createServerFn({ method: 'POST' })
     const displayCurrency =
       normalizeHoldingCurrency(data.displayCurrency) ?? 'BRL'
 
-    const rows = await db
-      .select({
-        investmentId: portfolioHolding.investmentId,
-        ticker: investment.ticker,
-        quantity: portfolioHolding.quantity,
-        avgCost: portfolioHolding.avgCost,
-        currency: investment.currency,
-        broker: portfolioHolding.broker,
-        lastOperationAt: portfolioHolding.lastOperationAt,
-        investmentName: investment.name,
-        investmentTypeId: investmentType.id,
-        investmentTypeName: investmentType.name,
-        typeSortOrder: investmentType.sortOrder,
-        fixedIncome: investmentType.fixedIncome,
-        rfGrossAmount: rendaFixaValuation.grossAmount,
-        rfGrossProfit: rendaFixaValuation.grossProfit,
-      })
-      .from(portfolioHolding)
-      .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
-      .innerJoin(
-        investmentType,
-        eq(investment.investmentTypeId, investmentType.id),
-      )
-      .leftJoin(
-        rendaFixaValuation,
-        and(
-          eq(rendaFixaValuation.userId, userId),
-          eq(rendaFixaValuation.investmentId, portfolioHolding.investmentId),
-        ),
-      )
-      .where(
-        and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)),
-      )
-      .orderBy(asc(investmentType.sortOrder), asc(investment.name))
-
-    // For renda fixa holdings, substitute avgCost with the latest computed grossAmount
-    // so the valuation pipeline returns the interest-accrued value, not just book value.
-    const rowsForValuation = rows.map((r) =>
-      r.rfGrossAmount != null ? { ...r, avgCost: r.rfGrossAmount } : r,
+    const rows = (await loadHoldingsForValuation(db, userId)).sort(
+      (a, b) =>
+        a.typeSortOrder - b.typeSortOrder ||
+        a.investmentName.localeCompare(b.investmentName, 'pt-BR'),
     )
+    const rowsForValuation = withRendaFixaAvgCost(rows)
 
     const { valuated, quotesStale, fxAsOf, fxStale, fxMissingPairs } =
       await valuateHoldings(db, rowsForValuation, displayCurrency)

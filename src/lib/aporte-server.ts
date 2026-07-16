@@ -1,14 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, eq } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
-import {
-  investment,
-  investmentType,
-  portfolioHolding,
-  rendaFixaValuation,
-  userAllocationProfile,
-} from '@/db/schema'
+import { investmentType, userAllocationProfile } from '@/db/schema'
 import { loadInvestmentOverviewRows } from '@/lib/investment-scoring'
 import { SUPPORTED_FX_CURRENCIES } from '@/lib/fx'
 import { ensureFxRatesForDisplay } from '@/lib/market-data/fx-refresh'
@@ -16,7 +10,11 @@ import { loadQuotesFromDb } from '@/lib/market-data/quote-cache'
 import { refreshMarketQuotesForInputs } from '@/lib/market-data/quote-refresh'
 import type { MarketQuoteInput } from '@/lib/market-data'
 import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
-import { valuateHoldings } from '@/lib/valuation-pipeline'
+import {
+  loadHoldingsForValuation,
+  valuateHoldings,
+  withRendaFixaAvgCost,
+} from '@/lib/valuation-pipeline'
 import { normalizeHoldingCurrency } from '@/lib/math'
 import { getDb, requireUserId } from '@/lib/db-server'
 import { parseTargetsJson } from '@/lib/server-utils'
@@ -49,39 +47,9 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
     } = data
 
     // --- Portfolio state ---
-    const holdings = await db
-      .select({
-        currency: investment.currency,
-        ticker: investment.ticker,
-        quantity: portfolioHolding.quantity,
-        avgCost: portfolioHolding.avgCost,
-        investmentId: portfolioHolding.investmentId,
-        investmentTypeId: investmentType.id,
-        investmentTypeName: investmentType.name,
-        typeSortOrder: investmentType.sortOrder,
-        fixedIncome: investmentType.fixedIncome,
-        rfGrossAmount: rendaFixaValuation.grossAmount,
-      })
-      .from(portfolioHolding)
-      .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
-      .innerJoin(
-        investmentType,
-        eq(investment.investmentTypeId, investmentType.id),
-      )
-      .leftJoin(
-        rendaFixaValuation,
-        and(
-          eq(rendaFixaValuation.userId, userId),
-          eq(rendaFixaValuation.investmentId, portfolioHolding.investmentId),
-        ),
-      )
-      .where(
-        and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)),
-      )
+    const holdings = await loadHoldingsForValuation(db, userId)
 
-    const holdingsForValuation = holdings.map((h) =>
-      h.rfGrossAmount != null ? { ...h, avgCost: h.rfGrossAmount } : h,
-    )
+    const holdingsForValuation = withRendaFixaAvgCost(holdings)
 
     const { valuated } = await valuateHoldings(
       db,

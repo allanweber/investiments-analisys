@@ -1,18 +1,16 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, eq } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
-import {
-  investment,
-  investmentType,
-  portfolioHolding,
-  rendaFixaValuation,
-  userAllocationProfile,
-} from '@/db/schema'
+import { investmentType, userAllocationProfile } from '@/db/schema'
 import type { UserAllocationTargetsJson } from '@/db/schema'
 import { loadInvestmentOverviewRows } from '@/lib/investment-scoring'
 import { analyzePortfolioAllocation } from '@/lib/portfolio-analysis'
-import { valuateHoldings } from '@/lib/valuation-pipeline'
+import {
+  loadHoldingsForValuation,
+  valuateHoldings,
+  withRendaFixaAvgCost,
+} from '@/lib/valuation-pipeline'
 
 import { clampPct, computePct, normalizeHoldingCurrency, num } from '@/lib/math'
 import { getDb, requireUserId } from '@/lib/db-server'
@@ -28,45 +26,13 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
     const displayCurrency =
       normalizeHoldingCurrency(data.displayCurrency) ?? 'BRL'
 
-    const holdings = await db
-      .select({
-        currency: investment.currency,
-        ticker: investment.ticker,
-        quantity: portfolioHolding.quantity,
-        avgCost: portfolioHolding.avgCost,
-        investmentId: portfolioHolding.investmentId,
-        investmentName: investment.name,
-        investmentTypeId: investmentType.id,
-        investmentTypeName: investmentType.name,
-        typeSortOrder: investmentType.sortOrder,
-        fixedIncome: investmentType.fixedIncome,
-        rfGrossAmount: rendaFixaValuation.grossAmount,
-        rfGrossProfit: rendaFixaValuation.grossProfit,
-      })
-      .from(portfolioHolding)
-      .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
-      .innerJoin(
-        investmentType,
-        eq(investment.investmentTypeId, investmentType.id),
-      )
-      .leftJoin(
-        rendaFixaValuation,
-        and(
-          eq(rendaFixaValuation.userId, userId),
-          eq(rendaFixaValuation.investmentId, portfolioHolding.investmentId),
-        ),
-      )
-      .where(
-        and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)),
-      )
+    const holdings = await loadHoldingsForValuation(db, userId)
 
     const currencies = [
       ...new Set(holdings.map((h) => h.currency ?? 'BRL')),
     ].sort((a, b) => a.localeCompare(b))
 
-    const holdingsForValuation = holdings.map((h) =>
-      h.rfGrossAmount != null ? { ...h, avgCost: h.rfGrossAmount } : h,
-    )
+    const holdingsForValuation = withRendaFixaAvgCost(holdings)
 
     const {
       valuated,

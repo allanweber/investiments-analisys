@@ -1,5 +1,12 @@
+import { and, eq } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
+import {
+  investment,
+  investmentType,
+  portfolioHolding,
+  rendaFixaValuation,
+} from '@/db/schema'
 import type * as schema from '@/db/schema'
 import { convertMoney, isFxCacheStale } from '@/lib/fx'
 import { normalizeHoldingCurrency, num, toMoney } from '@/lib/math'
@@ -43,6 +50,73 @@ export type ValuationPipelineResult = {
   fxAsOf: Date | null
   fxStale: boolean
   fxMissingPairs: string[]
+}
+
+export type LoadedHoldingRow = {
+  investmentId: string
+  ticker: string | null
+  quantity: string
+  avgCost: string
+  currency: string | null
+  broker: string | null
+  lastOperationAt: Date | null
+  investmentName: string
+  investmentTypeId: string
+  investmentTypeName: string
+  typeSortOrder: number
+  fixedIncome: boolean
+  rfGrossAmount: string | null
+  rfGrossProfit: string | null
+}
+
+export async function loadHoldingsForValuation(
+  db: Db,
+  userId: string,
+): Promise<LoadedHoldingRow[]> {
+  const rows = await db
+    .select({
+      investmentId: portfolioHolding.investmentId,
+      ticker: investment.ticker,
+      quantity: portfolioHolding.quantity,
+      avgCost: portfolioHolding.avgCost,
+      currency: investment.currency,
+      broker: portfolioHolding.broker,
+      lastOperationAt: portfolioHolding.lastOperationAt,
+      investmentName: investment.name,
+      investmentTypeId: investmentType.id,
+      investmentTypeName: investmentType.name,
+      typeSortOrder: investmentType.sortOrder,
+      fixedIncome: investmentType.fixedIncome,
+      rfGrossAmount: rendaFixaValuation.grossAmount,
+      rfGrossProfit: rendaFixaValuation.grossProfit,
+    })
+    .from(portfolioHolding)
+    .innerJoin(investment, eq(portfolioHolding.investmentId, investment.id))
+    .innerJoin(
+      investmentType,
+      eq(investment.investmentTypeId, investmentType.id),
+    )
+    .leftJoin(
+      rendaFixaValuation,
+      and(
+        eq(rendaFixaValuation.userId, userId),
+        eq(rendaFixaValuation.investmentId, portfolioHolding.investmentId),
+      ),
+    )
+    .where(
+      and(eq(portfolioHolding.userId, userId), eq(investment.userId, userId)),
+    )
+  return rows
+}
+
+/** Substitutes avgCost with the latest computed renda-fixa grossAmount so the
+ * valuation pipeline returns the interest-accrued value, not just book value. */
+export function withRendaFixaAvgCost<
+  T extends { avgCost: string; rfGrossAmount: string | null },
+>(rows: T[]): T[] {
+  return rows.map((r) =>
+    r.rfGrossAmount != null ? { ...r, avgCost: r.rfGrossAmount } : r,
+  )
 }
 
 export async function valuateHoldings(
