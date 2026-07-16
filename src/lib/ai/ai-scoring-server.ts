@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import {
@@ -59,54 +59,76 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
       questions: Array<{ id: string; prompt: string; kind: string | null }>
     }> = []
 
-    for (const investmentId of data.investmentIds) {
-      const [inv] = await db
-        .select({
-          id: investment.id,
-          name: investment.name,
-          investmentTypeId: investment.investmentTypeId,
-          fixedIncome: investmentType.fixedIncome,
-        })
-        .from(investment)
-        .innerJoin(
-          investmentType,
-          eq(investment.investmentTypeId, investmentType.id),
-        )
-        .where(
-          and(eq(investment.id, investmentId), eq(investment.userId, userId)),
-        )
-        .limit(1)
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- tsconfig lacks noUncheckedIndexedAccess, so TS types this as always-defined even though a 0-row match (id/userId not found) makes it undefined at runtime
-      if (!inv) {
-        results.set(investmentId, { ok: false, code: 'not_found' })
-        continue
-      }
+    const invRows = await db
+      .select({
+        id: investment.id,
+        name: investment.name,
+        investmentTypeId: investment.investmentTypeId,
+        fixedIncome: investmentType.fixedIncome,
+      })
+      .from(investment)
+      .innerJoin(
+        investmentType,
+        eq(investment.investmentTypeId, investmentType.id),
+      )
+      .where(
+        and(
+          inArray(investment.id, data.investmentIds),
+          eq(investment.userId, userId),
+        ),
+      )
 
-      const activeQuestions = await db
-        .select({
-          id: question.id,
-          prompt: question.prompt,
-          kind: question.kind,
-        })
-        .from(question)
-        .where(
-          and(
-            eq(question.investmentTypeId, inv.investmentTypeId),
-            eq(question.userId, userId),
-            eq(question.active, true),
-          ),
-        )
-        .orderBy(asc(question.sortOrder), asc(question.createdAt))
+    const invById = new Map(invRows.map((r) => [r.id, r]))
+    for (const investmentId of data.investmentIds) {
+      if (!invById.has(investmentId))
+        results.set(investmentId, { ok: false, code: 'not_found' })
+    }
+
+    const foundTypeIds = [...new Set(invRows.map((r) => r.investmentTypeId))]
+    const allActiveQuestions =
+      foundTypeIds.length === 0
+        ? []
+        : await db
+            .select({
+              id: question.id,
+              prompt: question.prompt,
+              kind: question.kind,
+              investmentTypeId: question.investmentTypeId,
+            })
+            .from(question)
+            .where(
+              and(
+                inArray(question.investmentTypeId, foundTypeIds),
+                eq(question.userId, userId),
+                eq(question.active, true),
+              ),
+            )
+            .orderBy(asc(question.sortOrder), asc(question.createdAt))
+
+    const questionsByTypeId = new Map<string, typeof allActiveQuestions>()
+    for (const q of allActiveQuestions) {
+      const list = questionsByTypeId.get(q.investmentTypeId) ?? []
+      list.push(q)
+      questionsByTypeId.set(q.investmentTypeId, list)
+    }
+
+    for (const investmentId of data.investmentIds) {
+      const inv = invById.get(investmentId)
+      if (!inv) continue // already recorded as not_found above
+      const activeQuestions = questionsByTypeId.get(inv.investmentTypeId) ?? []
       if (activeQuestions.length === 0) {
         results.set(investmentId, { ok: false, code: 'no_questions' })
         continue
       }
-
       eligible.push({
         investmentId,
         investmentName: inv.name,
         fixedIncome: inv.fixedIncome,
-        questions: activeQuestions,
+        questions: activeQuestions.map((q) => ({
+          id: q.id,
+          prompt: q.prompt,
+          kind: q.kind,
+        })),
       })
     }
 
@@ -163,20 +185,27 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
         if (q.kind === null) unclassified.set(q.id, q.prompt)
       }
     }
-    for (const [questionId, prompt] of unclassified) {
-      const classification = await classifyQuestionKind({ apiKey, prompt })
-      if (!classification) continue
-      await db
-        .update(question)
-        .set({
-          kind: classification.kind,
-          metricSpec: classification.metricSpec,
-        })
-        .where(eq(question.id, questionId))
-      for (const e of eligible) {
-        const match = e.questions.find((item) => item.id === questionId)
-        if (match) match.kind = classification.kind
-      }
+    const CLASSIFY_CONCURRENCY = 3
+    const unclassifiedEntries = [...unclassified.entries()]
+    for (let i = 0; i < unclassifiedEntries.length; i += CLASSIFY_CONCURRENCY) {
+      const batch = unclassifiedEntries.slice(i, i + CLASSIFY_CONCURRENCY)
+      await Promise.all(
+        batch.map(async ([questionId, prompt]) => {
+          const classification = await classifyQuestionKind({ apiKey, prompt })
+          if (!classification) return
+          await db
+            .update(question)
+            .set({
+              kind: classification.kind,
+              metricSpec: classification.metricSpec,
+            })
+            .where(eq(question.id, questionId))
+          for (const e of eligible) {
+            const match = e.questions.find((item) => item.id === questionId)
+            if (match) match.kind = classification.kind
+          }
+        }),
+      )
     }
 
     // Metric-kind questions are answered deterministically elsewhere (fundamentals-server.ts) —
