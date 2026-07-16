@@ -127,10 +127,13 @@ function AportePage() {
             currency={currency}
             label={m.aporte.amountLabel}
             hasError={!!amountError}
+            errorId="aporte-amount-error"
             onChange={setAmount}
           />
           {amountError && (
-            <p className="text-xs text-error">{amountError}</p>
+            <p id="aporte-amount-error" role="alert" className="text-xs text-error">
+              {amountError}
+            </p>
           )}
         </div>
 

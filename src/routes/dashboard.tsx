@@ -153,67 +153,46 @@ function DashboardPage() {
         </section>
       )}
 
-      <section className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-        <div className="flex flex-col justify-between rounded-xl bg-surface-container-lowest p-8 transition-all hover:-translate-y-1">
-          <div className="mb-6 flex items-start justify-between">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-secondary-container text-on-secondary-container">
-              <span className="material-symbols-outlined text-2xl leading-none">
-                category
-              </span>
-            </div>
-            <span className="rounded px-2 py-1 font-label text-[10px] font-bold uppercase tracking-wider text-on-tertiary-fixed-variant bg-tertiary-fixed-dim">
-              {m.dashboard.cardTypes}
-            </span>
-          </div>
+      <section className="mb-12 flex flex-col divide-y divide-outline-variant/15 rounded-xl bg-surface-container-lowest md:flex-row md:divide-x md:divide-y-0">
+        <div className="flex flex-1 items-center gap-4 p-8">
+          <span className="material-symbols-outlined shrink-0 text-2xl leading-none text-on-secondary-container">
+            category
+          </span>
           <div>
-            <p className="mb-1 font-label text-xs font-bold uppercase tracking-widest text-outline">
+            <p className="font-headline text-4xl font-extrabold text-on-surface">
+              {fmt(tc)}
+            </p>
+            <p className="mt-1 font-label text-xs font-semibold text-outline">
               {m.dashboard.totalTypes}
             </p>
-            <h3 className="font-headline text-4xl font-extrabold text-on-surface">
-              {fmt(tc)}
-            </h3>
           </div>
         </div>
 
-        <div className="flex flex-col justify-between rounded-xl bg-surface-container-lowest p-8 transition-all hover:-translate-y-1">
-          <div className="mb-6 flex items-start justify-between">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-fixed text-on-primary-fixed-variant">
-              <span className="material-symbols-outlined text-2xl leading-none">
-                account_balance
-              </span>
-            </div>
-            <span className="rounded px-2 py-1 font-label text-[10px] font-bold uppercase tracking-wider text-on-tertiary-fixed-variant bg-tertiary-fixed-dim">
-              {m.dashboard.cardPortfolio}
-            </span>
-          </div>
+        <div className="flex flex-1 items-center gap-4 p-8">
+          <span className="material-symbols-outlined shrink-0 text-2xl leading-none text-on-primary-fixed-variant">
+            account_balance
+          </span>
           <div>
-            <p className="mb-1 font-label text-xs font-bold uppercase tracking-widest text-outline">
+            <p className="font-headline text-4xl font-extrabold text-on-surface">
+              {fmt(ic)}
+            </p>
+            <p className="mt-1 font-label text-xs font-semibold text-outline">
               {m.dashboard.totalInvestments}
             </p>
-            <h3 className="font-headline text-4xl font-extrabold text-on-surface">
-              {fmt(ic)}
-            </h3>
           </div>
         </div>
 
-        <div className="flex flex-col justify-between rounded-xl bg-surface-container-lowest p-8 transition-all hover:-translate-y-1">
-          <div className="mb-6 flex items-start justify-between">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-tertiary-container text-tertiary-fixed-dim">
-              <span className="material-symbols-outlined text-2xl leading-none">
-                quiz
-              </span>
-            </div>
-            <span className="rounded px-2 py-1 font-label text-[10px] font-bold uppercase tracking-wider text-on-tertiary-fixed-variant bg-tertiary-fixed-dim">
-              {m.dashboard.cardAnswers}
-            </span>
-          </div>
+        <div className="flex flex-1 items-center gap-4 p-8">
+          <span className="material-symbols-outlined shrink-0 text-2xl leading-none text-tertiary-fixed-dim">
+            quiz
+          </span>
           <div>
-            <p className="mb-1 font-label text-xs font-bold uppercase tracking-widest text-outline">
+            <p className="font-headline text-4xl font-extrabold text-on-surface">
+              {ac >= 100 ? String(ac) : fmt(ac)}
+            </p>
+            <p className="mt-1 font-label text-xs font-semibold text-outline">
               {m.dashboard.savedAnswers}
             </p>
-            <h3 className="font-headline text-4xl font-extrabold text-on-surface">
-              {ac >= 100 ? String(ac) : fmt(ac)}
-            </h3>
           </div>
         </div>
       </section>
@@ -221,7 +200,7 @@ function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-stretch">
         <Link
           to="/investimentos"
-          className="group relative flex min-h-[12rem] cursor-pointer flex-col overflow-hidden rounded-xl border border-outline-variant/20 bg-surface-container-low p-8 no-underline outline-none transition-all hover:bg-surface-container-high hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-[0.99] md:h-full"
+          className="group relative flex min-h-[12rem] cursor-pointer flex-col overflow-hidden rounded-xl border border-outline-variant/20 bg-surface-container-low p-8 no-underline outline-none transition hover:bg-surface-container-high hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-[0.99] md:h-full"
         >
           <div className="relative z-10 flex flex-1 flex-col">
             <h4 className="mb-2 font-headline text-xl font-bold text-on-surface">
@@ -241,7 +220,7 @@ function DashboardPage() {
 
         <Link
           to="/tipos"
-          className="group relative flex min-h-[12rem] cursor-pointer flex-col overflow-hidden rounded-xl bg-primary-container p-8 text-on-primary no-underline outline-none transition-all hover:shadow-2xl focus-visible:ring-2 focus-visible:ring-on-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-[0.99] md:h-full"
+          className="group relative flex min-h-[12rem] cursor-pointer flex-col overflow-hidden rounded-xl bg-primary-container p-8 text-on-primary no-underline outline-none transition hover:shadow-2xl focus-visible:ring-2 focus-visible:ring-on-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-[0.99] md:h-full"
         >
           <div className="relative z-10 flex flex-1 flex-col">
             <h4 className="mb-2 font-headline text-xl font-bold">
@@ -278,7 +257,7 @@ function DashboardPage() {
         </p>
         <Link
           to="/tipos"
-          className="inline-flex items-center gap-2 rounded-xl bg-tertiary-container px-8 py-4 font-headline text-sm font-bold text-tertiary-fixed-dim shadow-lg no-underline transition-all active:scale-95"
+          className="inline-flex items-center gap-2 rounded-xl bg-tertiary-container px-8 py-4 font-headline text-sm font-bold text-tertiary-fixed-dim shadow-lg no-underline transition active:scale-95"
         >
           <span className="material-symbols-outlined shrink-0 text-xl leading-none">
             add_circle

@@ -27,9 +27,8 @@ export function HoldingsEmptyState({ onAdd }: Props) {
   return (
     <>
       <section className="mx-auto max-w-3xl rounded-3xl bg-surface-container-lowest p-10 text-center md:p-14">
-        <div className="relative mx-auto mb-8 flex max-w-sm justify-center">
-          <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-secondary-fixed/25 to-transparent blur-2xl" />
-          <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl bg-surface-container-low">
+        <div className="mx-auto mb-8 flex max-w-sm justify-center">
+          <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-surface-container-low">
             <span className="material-symbols-outlined text-5xl text-secondary-container">
               account_balance_wallet
             </span>

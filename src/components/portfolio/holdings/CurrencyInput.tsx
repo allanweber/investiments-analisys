@@ -7,11 +7,12 @@ type Props = {
   label: string
   disabled?: boolean
   hasError?: boolean
+  errorId?: string
   onChange: (value: number) => void
   className?: string
 }
 
-export function CurrencyInput({ value, currency, label, disabled, hasError, onChange, className }: Props) {
+export function CurrencyInput({ value, currency, label, disabled, hasError, errorId, onChange, className }: Props) {
   const { inputProps } = useDecimalInput({
     value,
     decimals: 2,
@@ -27,6 +28,8 @@ export function CurrencyInput({ value, currency, label, disabled, hasError, onCh
         inputMode="numeric"
         autoComplete="off"
         disabled={disabled}
+        aria-invalid={hasError || undefined}
+        aria-describedby={hasError ? errorId : undefined}
         {...inputProps}
         className={`mt-2 w-full border-0 border-b-2 bg-transparent px-0 py-2.5 text-sm font-semibold text-on-surface outline-none transition-colors focus:border-primary disabled:opacity-50 ${
           hasError ? 'border-error focus:border-error' : 'border-outline-variant/50'

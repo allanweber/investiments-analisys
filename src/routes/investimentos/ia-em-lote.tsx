@@ -285,7 +285,7 @@ function BulkAiPage() {
                     <li
                       key={r.id}
                       className={cn(
-                        'flex items-center justify-between gap-3 rounded-xl bg-surface-container-lowest p-3 shadow-[0px_12px_32px_-4px_rgba(25,28,30,0.06)] transition-colors',
+                        'flex items-center justify-between gap-3 rounded-xl bg-surface-container-lowest p-3 shadow-float transition-colors',
                         status === 'running' && 'ring-1 ring-inset ring-secondary-token/40',
                         status === 'ok' && 'ring-1 ring-inset ring-primary/30',
                         status === 'error' && 'ring-1 ring-inset ring-error/30',

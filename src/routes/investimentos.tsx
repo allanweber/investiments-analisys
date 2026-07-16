@@ -802,8 +802,9 @@ function InvestimentosPage() {
                               </Link>
                               <button
                                 type="button"
-                                className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
+                                className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
                                 title={m.common.edit}
+                                aria-label={`${m.common.edit} ${row.name}`}
                                 onClick={() => startEdit(row)}
                               >
                                 <span className="material-symbols-outlined text-xl leading-none">
@@ -812,8 +813,9 @@ function InvestimentosPage() {
                               </button>
                               <button
                                 type="button"
-                                className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-error-container/30 hover:text-error"
+                                className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-error-container/30 hover:text-error"
                                 title={m.common.delete}
+                                aria-label={`${m.common.delete} ${row.name}`}
                                 onClick={() => void onDelete(row.id)}
                                 disabled={busy === row.id}
                               >

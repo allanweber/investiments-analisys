@@ -199,7 +199,7 @@ function LoginPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-outline-variant/40 bg-surface-container-lowest p-8 shadow-[0px_12px_32px_-4px_rgba(25,28,30,0.06)] md:p-10">
+          <div className="rounded-xl border border-outline-variant/40 bg-surface-container-lowest p-8 shadow-float md:p-10">
             <div className="mb-8 grid grid-cols-1 gap-4">
               <button
                 type="button"
@@ -343,7 +343,7 @@ function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary-container py-4 font-headline text-base font-bold text-on-primary shadow-lg transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary-container py-4 font-headline text-base font-bold text-on-primary shadow-lg transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? (
                   <>

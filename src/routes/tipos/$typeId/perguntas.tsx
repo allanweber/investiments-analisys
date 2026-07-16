@@ -479,7 +479,8 @@ function PerguntasPage() {
                         <button
                           type="button"
                           title={m.common.edit}
-                          className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
+                          aria-label={`${m.common.edit} ${q.prompt}`}
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
                           onClick={() => startEdit(q)}
                         >
                           <span className="material-symbols-outlined text-xl leading-none">
@@ -489,7 +490,8 @@ function PerguntasPage() {
                         <button
                           type="button"
                           title={m.common.delete}
-                          className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-error-container/30 hover:text-error"
+                          aria-label={`${m.common.delete} ${q.prompt}`}
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-error-container/30 hover:text-error"
                           onClick={() => void onDelete(q.id)}
                           disabled={busy === q.id}
                         >

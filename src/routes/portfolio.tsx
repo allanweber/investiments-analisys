@@ -154,9 +154,8 @@ function PortfolioPage() {
               <p className="mb-6 text-sm text-on-surface-variant md:hidden">
                 Consolide seus ativos e visualize sua saúde financeira.
               </p>
-              <div className="relative mx-auto mb-8 flex max-w-sm justify-center">
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-tertiary-fixed-dim/15 to-transparent blur-2xl" />
-                <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl bg-surface shadow-md ring-1 ring-outline-variant/15">
+              <div className="mx-auto mb-8 flex max-w-sm justify-center">
+                <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-surface shadow-md ring-1 ring-outline-variant/15">
                   <span className="material-symbols-outlined text-5xl text-primary">account_balance_wallet</span>
                 </div>
               </div>

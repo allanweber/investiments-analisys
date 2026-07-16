@@ -10,16 +10,22 @@ type Props = {
 export function DisplayCurrencySelector({ value, options, onChange }: Props) {
   return (
     <div className="mt-4">
-      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-outline">
+      <p id="display-currency-label" className="mb-2 text-[10px] font-bold uppercase tracking-widest text-outline">
         {m.portfolio.displayCurrencyLabel}
       </p>
-      <div className="inline-flex rounded-full bg-surface-container-low p-1 shadow-inner">
+      <div
+        role="radiogroup"
+        aria-labelledby="display-currency-label"
+        className="inline-flex rounded-full bg-surface-container-low p-1 shadow-inner"
+      >
         {options.map((c) => (
           <button
             key={c}
             type="button"
+            role="radio"
+            aria-checked={c === value}
             onClick={() => onChange(c)}
-            className={`rounded-full px-5 py-2 text-xs font-bold transition-all ${
+            className={`flex h-11 min-w-11 items-center justify-center rounded-full px-5 text-xs font-bold transition-all ${
               c === value
                 ? 'bg-surface text-on-surface shadow-sm'
                 : 'text-outline hover:text-on-surface'

@@ -73,6 +73,10 @@
   --fa-alloc-10: #be123c;
   --fa-alloc-11: #0f766e;
   --fa-alloc-12: #14b8a6;
+
+  /* Ambient "float" shadow (dropdowns, popovers) per DESIGN.md elevation rules. */
+  --fa-shadow-float: 0px 12px 32px -4px rgba(25, 28, 30, 0.06);
+  --fa-scrim: rgba(25, 28, 30, 0.4);
 }
 
 html.dark {
@@ -135,6 +139,9 @@ html.dark {
   --fa-alloc-10: #fda4af;
   --fa-alloc-11: #2dd4bf;
   --fa-alloc-12: #5eead4;
+
+  --fa-shadow-float: 0px 12px 32px -4px rgba(0, 0, 0, 0.32);
+  --fa-scrim: rgba(0, 0, 0, 0.6);
 }
 
 :root {
@@ -252,6 +259,9 @@ html.dark {
   --color-surface-tint: var(--fa-surface-tint);
   --color-tertiary-fixed: var(--fa-tertiary-fixed);
   --color-on-secondary: var(--fa-on-secondary);
+  --color-scrim: var(--fa-scrim);
+
+  --shadow-float: var(--fa-shadow-float);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

@@ -74,7 +74,7 @@ export function AddRendaFixaModal({ modal, rfForm }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:px-4 sm:py-10"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-scrim sm:items-center sm:px-4 sm:py-10"
       data-holding-modal="add-fixed-income"
       onClick={modal.close}
     >

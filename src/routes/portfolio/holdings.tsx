@@ -1,5 +1,5 @@
 import { Navigate, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { z } from 'zod'
 
 import { useDisplayCurrency } from '@/hooks/use-display-currency'
@@ -13,6 +13,7 @@ import { HoldingsListSection } from '@/components/portfolio/holdings/HoldingsLis
 import { HoldingsPageHeader } from '@/components/portfolio/holdings/HoldingsPageHeader'
 import { HoldingsSummaryStrip } from '@/components/portfolio/holdings/HoldingsSummaryStrip'
 import { StaleQuotesBanner } from '@/components/portfolio/holdings/StaleQuotesBanner'
+import type { HoldingRow } from '@/components/portfolio/holdings/types'
 import { StrategyDriftBanner } from '@/components/portfolio/holdings/StrategyDriftBanner'
 import { useAddToPosition } from '@/components/portfolio/holdings/hooks/use-add-to-position'
 import { useHoldingForm } from '@/components/portfolio/holdings/hooks/use-holding-form'
@@ -52,6 +53,16 @@ function HoldingsPage() {
   const addToPos = useAddToPosition({ modal, refresh: holdingsData.refresh })
 
   const handledAddRef = useRef(false)
+
+  const handleEditRow = useCallback(
+    (r: HoldingRow) => {
+      if (isFixedIncomeTipo(Boolean(r.fixedIncome), r.investmentTypeName))
+        modal.openEditFixedIncome(r)
+      else
+        form.openEditFromRow(r)
+    },
+    [modal, form],
+  )
 
   // Handle ?add=1 deep-link — open choose-asset-class modal then clear the param
   useEffect(() => {
@@ -132,12 +143,7 @@ function HoldingsPage() {
             quotesStale={holdingsData.quotesStale}
             displayCurrency={displayCurrency}
             deletingInvestmentId={form.deletingInvestmentId}
-            onEdit={(r) => {
-              if (isFixedIncomeTipo(Boolean(r.fixedIncome), r.investmentTypeName))
-                modal.openEditFixedIncome(r)
-              else
-                form.openEditFromRow(r)
-            }}
+            onEdit={handleEditRow}
             onAddShares={modal.openAddToPosition}
             onDelete={form.requestDelete}
           />

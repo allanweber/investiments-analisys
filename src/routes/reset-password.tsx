@@ -195,7 +195,7 @@ function ResetPasswordPage() {
         <button
           type="submit"
           disabled={loading || otp.length !== 6}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary-container py-4 font-headline text-base font-bold text-on-primary shadow-lg transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary-container py-4 font-headline text-base font-bold text-on-primary shadow-lg transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? (
             <>

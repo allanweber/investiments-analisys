@@ -4,7 +4,7 @@ type Props = {
 
 export function StaleQuotesBanner({ onReconnect }: Props) {
   return (
-    <section className="mb-8 rounded-2xl border border-error/20 border-l-4 border-l-error bg-error-container/35 p-5 pl-4 shadow-sm">
+    <section className="mb-8 rounded-2xl border border-error/20 bg-error-container/35 p-5 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <span className="material-symbols-outlined mt-0.5 text-2xl text-error">warning</span>

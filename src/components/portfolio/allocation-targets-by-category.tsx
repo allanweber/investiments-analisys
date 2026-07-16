@@ -107,7 +107,7 @@ export function AllocationTargetsByCategory({ rows, onSave, saving }: Props) {
             .map((seg) => (
               <div
                 key={seg.investmentTypeId}
-                className="h-full min-w-[2px] transition-all"
+                className="h-full min-w-[2px] transition-[width]"
                 style={{
                   width: `${seg.value}%`,
                   background: seg.color,
@@ -136,7 +136,7 @@ export function AllocationTargetsByCategory({ rows, onSave, saving }: Props) {
               ) : (
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container-high">
                   <div
-                    className="h-full rounded-full transition-all"
+                    className="h-full rounded-full transition-[width]"
                     style={{
                       width: `${Math.min(100, displayPcts[i] ?? 0)}%`,
                       background: allocColorForType(row.investmentTypeId, row.investmentTypeName),

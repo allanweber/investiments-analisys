@@ -444,8 +444,9 @@ function TiposPage() {
                           <Link
                             to="/tipos/$typeId/perguntas"
                             params={{ typeId: row.id }}
-                            className="rounded-lg p-2 text-on-surface-variant no-underline transition-colors hover:bg-surface-container-high hover:text-primary"
+                            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant no-underline transition-colors hover:bg-surface-container-high hover:text-primary"
                             title={m.types.titleManageQuestions}
+                            aria-label={`${m.types.titleManageQuestions} ${row.name}`}
                           >
                             <span className="material-symbols-outlined text-xl leading-none">
                               quiz
@@ -454,7 +455,8 @@ function TiposPage() {
                           <button
                             type="button"
                             title={m.common.edit}
-                            className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
+                            aria-label={`${m.common.edit} ${row.name}`}
+                            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
                             onClick={() => startEdit(row)}
                           >
                             <span className="material-symbols-outlined text-xl leading-none">
@@ -464,7 +466,8 @@ function TiposPage() {
                           <button
                             type="button"
                             title={m.common.delete}
-                            className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-error-container/30 hover:text-error"
+                            aria-label={`${m.common.delete} ${row.name}`}
+                            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-error-container/30 hover:text-error"
                             onClick={() => void onDelete(row.id)}
                             disabled={busy === row.id}
                           >

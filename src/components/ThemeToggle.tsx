@@ -85,7 +85,7 @@ export default function ThemeToggle() {
       onClick={toggleMode}
       aria-label={label}
       title={label}
-      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-outline-variant/25 bg-surface-container-lowest/90 text-on-surface shadow-[0px_12px_32px_-4px_rgba(25,28,30,0.06)] transition hover:bg-surface-container-high"
+      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-outline-variant/25 bg-surface-container-lowest/90 text-on-surface shadow-float transition hover:bg-surface-container-high"
     >
       <span className="material-symbols-outlined text-[22px] leading-none">
         {icon}

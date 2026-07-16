@@ -30,7 +30,7 @@ export default function BetterAuthHeader({ variant = 'default' }: Props) {
       return (
         <div className="flex items-center pl-2 sm:border-l sm:border-outline-variant/30 sm:pl-4">
           <DropdownMenu>
-            <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+            <DropdownMenuTrigger className="flex h-11 w-11 items-center justify-center rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
               {session.user.image ? (
                 <img
                   src={session.user.image}

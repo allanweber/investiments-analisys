@@ -481,7 +481,7 @@ function PontuacaoPage() {
           {questions.map((q) => (
             <li
               key={q.id}
-              className="min-w-0 rounded-xl bg-surface-container-lowest p-4 shadow-[0px_12px_32px_-4px_rgba(25,28,30,0.06)]"
+              className="min-w-0 rounded-xl bg-surface-container-lowest p-4 shadow-float"
             >
               <p className="select-text font-headline text-base font-semibold text-on-surface">
                 {q.prompt}
@@ -497,12 +497,12 @@ function PontuacaoPage() {
               {aiSuggestions[q.id] && (
                 <div
                   className={cn(
-                    'mt-3 rounded-xl border-l-4 p-3',
+                    'mt-3 rounded-xl p-3',
                     aiSuggestions[q.id].suggestedYes === null
-                      ? 'border-outline-variant/50 bg-surface-container-high/60'
+                      ? 'bg-surface-container-high/60'
                       : aiSuggestions[q.id].suggestedYes
-                        ? 'border-green-600 bg-green-50 dark:border-green-500 dark:bg-green-950/40'
-                        : 'border-error bg-error-container/20',
+                        ? 'bg-green-50 dark:bg-green-950/40'
+                        : 'bg-error-container/20',
                   )}
                 >
                   <div className="flex items-center gap-2">
