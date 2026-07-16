@@ -7,9 +7,16 @@ async function requireAdminRequest() {
 
   const allowedIp = process.env.ADMIN_ALLOWED_IP
   if (allowedIp) {
+    // Cloudflare's edge sets this and strips any client-supplied copy — trustworthy
+    // when the app is only reachable via the documented Cloudflare Tunnel topology
+    // (see docs/plans/hetzner_coolify_cloudflare_deploy.plan.md). Fall back to
+    // x-forwarded-for/x-real-ip for non-Cloudflare deployments (e.g. local dev) —
+    // those headers are attacker-controllable unless the fronting proxy is known to
+    // overwrite (not append to) them, so this fallback is weaker and best-effort only.
+    const cfIp = request.headers.get('cf-connecting-ip')
     const forwarded = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     const realIp = request.headers.get('x-real-ip')
-    const clientIp = forwarded ?? realIp
+    const clientIp = cfIp ?? forwarded ?? realIp
     if (clientIp !== allowedIp) throw new Error('FORBIDDEN')
   }
 
