@@ -57,7 +57,7 @@ A Brazilian personal investment portfolio tool. Two main capabilities:
 | **ContributionSuggestion** | One line in an AporteSimulation result: investment name, suggested amount (in the asset's native currency), and % of total contribution. |
 | **EligibleInvestment** | An investment with score > 0 within an under-allocated type. Only eligible investments receive contribution allocation. |
 | **PriorityInvestment** | An eligible investment with score ≥ 60 (PRIORITY_SCORE_THRESHOLD). When any priority investments exist in a type, only they receive allocation for that type. |
-| **AdminSession** | A short-lived signed cookie (JWT, 4h TTL) issued after successful admin login. Completely separate from Better Auth — no DB row. Signed with `ADMIN_SECRET`. |
+| **Admin access** | Gated by an ordinary Better Auth session plus `user.role === 'admin'`. An optional `ADMIN_ALLOWED_IP` env var adds a secondary IP-allowlist check (`requireAdminRequest()` in `src/lib/admin-server.ts`). No separate session system, no JWT, no signed-secret cookie. |
 | **BlockedUser** | A regular app user with `banned = true` in the `user` table (Better Auth's ban field). Active sessions are immediately invalidated on block; data is preserved. |
 | **MetricQuestion** | A Question whose answer is derived automatically from real financial data, not from user input or AI web search (`question.kind = 'metric'`). Never sent to the AI scoring provider. See ADR-0001. |
 | **QuestionMetricSpec** | `question.metricSpec` — extracted by the AI classifier, not user-entered: `{ metricLabel, mode: 'level'\|'growth', comparator: 'gt'\|'lt', threshold, windowYears }`. `metricLabel` is free text (any line item/ratio a provider reports, fuzzy-matched at check time), not a fixed enum — arbitrary user-defined metrics are supported, not just ROE/growth/Dívida Líquida-EBITDA. `windowYears: null` means "all available history." "Every year in the window must pass," not an average. |
@@ -101,7 +101,7 @@ src/
 ├── db/
 │   ├── schema.ts                   Drizzle schema (single source of truth)
 │   ├── index.ts                    DB client (server-only)
-│   ├── browser-stub.ts             Null stub — resolves #/db on the client bundle
+│   ├── browser-stub.ts             Null stub — resolves @/db on the client bundle
 │   └── default-question-bank.ts   Seed question prompts per type name
 │
 ├── components/
@@ -134,17 +134,17 @@ All RPC calls go through `createServerFn`. The file is the single server boundar
 
 ## Key invariants — read before touching anything
 
-### 1. Never import `#/db` at the top level of server files
+### 1. Never import `@/db` at the top level of server files
 ```ts
 // ✅ correct — lazy import
 async function getDb() {
-  return (await import('#/db')).db
+  return (await import('@/db')).db
 }
 
 // ❌ wrong — bundles pg into the client chunk
-import { db } from '#/db'
+import { db } from '@/db'
 ```
-The `viteDbClientStub` Vite plugin resolves `#/db` to a null stub on the client. A top-level import defeats this and breaks Better Auth at runtime.
+The `viteDbClientStub` Vite plugin resolves `@/db` to a null stub on the client. A top-level import defeats this and breaks Better Auth at runtime.
 
 ### 2. `isFixedIncomeTipo` checks both the flag AND the type name
 ```ts
@@ -229,8 +229,6 @@ Unit tests cover pure math only (`src/lib/renda-fixa/`, `src/lib/fx/`, `src/lib/
 
 ---
 
-## Active work (as of last session)
+## Active work
 
-1. **Holdings page** (`src/components/portfolio/holdings/`) — UI for listing, adding, editing, and deleting portfolio positions. Components, hooks, and modals are staged but not yet committed.
-
-2. **Renda fixa backend** — `renda_fixa_detail` and `renda_fixa_valuation` tables added (migration: `drizzle/0005_renda_fixa.sql`). Server actions live in `src/lib/renda-fixa-server.ts`. BCB rate refresh wired into quote-worker sweep. Screens not yet created.
+No work-in-progress is tracked here right now. Holdings page and renda fixa (backend + screens) shipped and are stable. Update this section when a multi-session effort is actually in flight — remove it (rather than leaving stale entries) once that effort ships.
