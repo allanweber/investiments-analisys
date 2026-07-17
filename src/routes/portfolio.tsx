@@ -128,7 +128,7 @@ function PortfolioPage() {
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0 flex-1">
                   <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">
-                    Carteira
+                    {m.portfolio.title}
                   </h1>
                   <p className="mt-2 max-w-2xl text-sm italic leading-relaxed text-on-surface-variant md:not-italic">
                     {m.portfolio.subtitleConverted}
@@ -146,7 +146,7 @@ function PortfolioPage() {
                     to="/portfolio/holdings"
                     className="text-center text-sm font-semibold text-outline no-underline hover:text-on-surface sm:order-2 sm:px-2"
                   >
-                    Ver posições
+                    {m.portfolio.viewHoldings}
                   </Link>
                   <Link
                     to="/portfolio/aporte"
@@ -155,7 +155,7 @@ function PortfolioPage() {
                     <span className="material-symbols-outlined text-[20px] leading-none">
                       add
                     </span>
-                    Novo aporte
+                    {m.portfolio.newContribution}
                   </Link>
                 </div>
               </div>
@@ -164,7 +164,7 @@ function PortfolioPage() {
             {!hasHoldings ? (
               <section className="mx-auto max-w-xl rounded-3xl bg-surface p-10 text-center shadow-lg ring-1 ring-outline-variant/10 md:max-w-2xl md:p-14">
                 <p className="mb-6 text-sm text-on-surface-variant md:hidden">
-                  Consolide seus ativos e visualize sua saúde financeira.
+                  {m.portfolio.emptyStateSubtitleShort}
                 </p>
                 <div className="mx-auto mb-8 flex max-w-sm justify-center">
                   <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-surface shadow-md ring-1 ring-outline-variant/15">
@@ -174,14 +174,13 @@ function PortfolioPage() {
                   </div>
                 </div>
                 <h2 className="font-headline mb-3 text-2xl font-extrabold text-on-surface md:text-3xl">
-                  Sua carteira está pronta para ser construída.
+                  {m.portfolio.emptyStateTitle}
                 </h2>
                 <p className="mx-auto mb-2 hidden max-w-md text-sm text-on-surface-variant md:block">
-                  Consolide seus ativos e visualize sua saúde financeira.
+                  {m.portfolio.emptyStateSubtitleLong}
                 </p>
                 <p className="mx-auto mb-8 max-w-md text-sm text-on-surface-variant">
-                  Adicione seus primeiros investimentos para visualizar sua
-                  alocação e ranking estratégico.
+                  {m.portfolio.emptyStateBody}
                 </p>
                 <Link
                   to="/portfolio/holdings"
@@ -191,7 +190,7 @@ function PortfolioPage() {
                   <span className="material-symbols-outlined text-[20px] leading-none">
                     add
                   </span>
-                  Adicionar investimento
+                  {m.portfolio.addInvestment}
                 </Link>
               </section>
             ) : null}
@@ -237,11 +236,10 @@ function PortfolioPage() {
                         </span>
                         <div>
                           <p className="font-headline text-sm font-bold text-on-surface">
-                            Cotações desatualizadas
+                            {m.portfolio.quotesStaleTitle}
                           </p>
                           <p className="text-xs text-on-surface-variant">
-                            Detectamos instabilidade na conexão com os
-                            provedores de mercado.
+                            {m.portfolio.quotesStaleBody}
                           </p>
                         </div>
                       </div>
@@ -249,7 +247,7 @@ function PortfolioPage() {
                         to="/portfolio/holdings"
                         className="inline-flex items-center justify-center rounded-xl bg-error-container px-4 py-2 text-xs font-bold text-on-error-container no-underline hover:opacity-95"
                       >
-                        Tentar reconectar
+                        {m.portfolio.quotesStaleRetry}
                       </Link>
                     </div>
                   </section>
@@ -283,9 +281,7 @@ function PortfolioPage() {
           info
         </span>
         <p className="text-xs text-on-surface-variant">
-          Os valores exibidos são estimativas calculadas com base nas
-          informações registradas e podem divergir dos valores reais na sua
-          corretora. Consulte sempre sua corretora para obter os valores exatos.
+          {m.portfolio.disclaimer}
         </p>
       </div>
     </>

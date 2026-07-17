@@ -81,6 +81,29 @@ pnpm format
 pnpm check
 ```
 
+## Dependency security
+
+`pnpm audit` works and should be run periodically (`pnpm audit`). As of
+2026-07-17 it reports several `better-auth` advisories (OAuth refresh-token
+replay, account takeover via unverified email auto-link, stored XSS via
+`redirect_uri` in oidc-provider/mcp plugins) affecting the pinned
+`better-auth@^1.5.3` — check for a patched release before relying on the
+affected OAuth/oidc-provider/mcp features. The remaining findings are in
+dev-only dependencies (`vite`, `vitest`, `jsdom`'s `undici`,
+`@tanstack/devtools-vite`) and don't ship to production.
+
+### Why several dependencies are pinned to "latest"
+
+`@tanstack/react-start`, `@tanstack/react-router`, and their related packages
+(plus `esbuild` and `nitro`) are intentionally pinned to `"latest"` in
+`package.json` rather than an explicit version range. This repo tracks
+TanStack Start's pre-1.0 API as it evolves; the _actual_ installed versions
+are pinned by `pnpm-lock.yaml`, not `package.json` — do not regenerate the
+lockfile from scratch without re-running the full test suite and a manual
+smoke test of the dev server, since a fresh `pnpm install` against `"latest"`
+can pull in breaking changes with no version-bisection trail in `package.json`
+alone.
+
 ## Setting up Better Auth
 
 1. Generate and set the `BETTER_AUTH_SECRET` environment variable in your `.env.local`:

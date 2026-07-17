@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import type { HoldingRow } from '../types'
 
@@ -25,6 +25,10 @@ export type UseHoldingModalResult = {
 export function useHoldingModal(): UseHoldingModalResult {
   const [state, setState] = useState<ModalState>({ kind: 'closed' })
 
+  const openAddToPosition = useCallback((row: HoldingRow) => {
+    setState({ kind: 'addToPosition', row })
+  }, [])
+
   return {
     state,
     close: () => setState({ kind: 'closed' }),
@@ -33,6 +37,6 @@ export function useHoldingModal(): UseHoldingModalResult {
     openEditFixedIncome: (row) => setState({ kind: 'editFixedIncome', row }),
     openAdd: () => setState({ kind: 'add' }),
     openEdit: (row) => setState({ kind: 'edit', row }),
-    openAddToPosition: (row) => setState({ kind: 'addToPosition', row }),
+    openAddToPosition,
   }
 }

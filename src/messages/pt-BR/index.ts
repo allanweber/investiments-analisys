@@ -436,6 +436,27 @@ const core = {
       'O vencimento deve ser posterior à data de aplicação.',
     rendaFixaCreateError:
       'Não foi possível registrar o investimento. Tente novamente.',
+    title: 'Carteira',
+    viewHoldings: 'Ver posições',
+    newContribution: 'Novo aporte',
+    emptyStateSubtitleShort: 'Consolide seus ativos e visualize sua saúde financeira.',
+    emptyStateTitle: 'Sua carteira está pronta para ser construída.',
+    emptyStateSubtitleLong: 'Consolide seus ativos e visualize sua saúde financeira.',
+    emptyStateBody:
+      'Adicione seus primeiros investimentos para visualizar sua alocação e ranking estratégico.',
+    addInvestment: 'Adicionar investimento',
+    quotesStaleTitle: 'Cotações desatualizadas',
+    quotesStaleBody:
+      'Detectamos instabilidade na conexão com os provedores de mercado.',
+    quotesStaleRetry: 'Tentar reconectar',
+    disclaimer:
+      'Os valores exibidos são estimativas calculadas com base nas informações registradas e podem divergir dos valores reais na sua corretora. Consulte sempre sua corretora para obter os valores exatos.',
+    holdings: {
+      strategyDriftTitle: 'Desvio de estratégia detectado',
+      strategyDriftBody:
+        'Sua carteira divergiu do plano de alocação. Revise os alvos por tipo na Carteira para realinhar risco e retorno.',
+      strategyDriftViewDetails: 'Ver detalhes',
+    },
   },
   aporte: {
     title: 'Simulação de Aporte',

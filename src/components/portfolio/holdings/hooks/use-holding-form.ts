@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { createInvestmentFn } from '@/lib/investment-server'
 import { listInvestmentTypesOptionsFn } from '@/lib/investment-type-server'
@@ -275,9 +275,9 @@ export function useHoldingForm({ rows, modal, displayCurrency, refresh }: UseHol
     await refresh()
   }
 
-  function requestDelete(row: HoldingRow) {
+  const requestDelete = useCallback((row: HoldingRow) => {
     setPendingDelete(row)
-  }
+  }, [])
 
   function cancelDelete() {
     setPendingDelete(null)
