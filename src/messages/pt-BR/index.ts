@@ -305,6 +305,8 @@ const core = {
     toggleActiveTitle: (active: boolean) => (active ? 'Desativar' : 'Ativar'),
     toggleActiveHint:
       'Investimentos desativados não entram nas sugestões de aporte.',
+    noteLabel: 'Nota (opcional)',
+    notePlaceholder: 'Por que essa resposta? (opcional)',
   },
   types: {
     deleteConfirm: (label: string) =>
@@ -357,6 +359,11 @@ const core = {
   },
   scoring: {
     legend: 'Sim = +1 · Não = −1 · Não respondida = 0 (não entra na soma)',
+    explainTitle: 'Por que essa pontuação?',
+    explainDriversTitle: 'Perguntas respondidas',
+    explainUnansweredTitle: 'Perguntas sem resposta',
+    explainUnansweredHint: 'Responder qualquer uma destas pode mudar a pontuação.',
+    explainEmpty: 'Nenhuma pergunta ativa para explicar.',
   },
   portfolio: {
     displayCurrencyLabel: 'Moeda de exibição',

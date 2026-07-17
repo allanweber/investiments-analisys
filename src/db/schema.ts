@@ -194,6 +194,8 @@ export const investmentAnswer = pgTable(
       .references(() => question.id, { onDelete: 'cascade' }),
     /** The user's real answer. Null means only an AI suggestion is on file — no answer given yet. */
     valueYes: boolean('value_yes'),
+    /** Optional short user note explaining their yes/no answer. Distinct from aiReasoning (AI-generated). */
+    note: varchar('note', { length: 500 }),
     /** Latest AI-suggested answer for this question, pending user review/apply. Null = no suggestion, or AI reported "unknown". */
     aiSuggestedYes: boolean('ai_suggested_yes'),
     aiReasoning: text('ai_reasoning'),

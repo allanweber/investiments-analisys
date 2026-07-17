@@ -1,0 +1,1 @@
+ALTER TABLE "investment_answer" ADD COLUMN "note" varchar(500);

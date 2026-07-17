@@ -79,6 +79,11 @@ export const loadInvestmentScoringFn = createServerFn({ method: 'POST' })
       answerByQ,
     )
 
+    const noteByQuestionId: Record<string, string> = {}
+    for (const a of answers) {
+      if (a.note != null) noteByQuestionId[a.questionId] = a.note
+    }
+
     const aiSuggestionByQuestionId = Object.fromEntries(
       answers
         .filter((a) => a.aiSuggestedYes != null || a.aiReasoning != null)
@@ -96,6 +101,7 @@ export const loadInvestmentScoringFn = createServerFn({ method: 'POST' })
       investment: inv,
       questions: activeQs,
       answerByQuestionId: Object.fromEntries(answerByQ),
+      noteByQuestionId,
       aiSuggestionByQuestionId,
       total,
     }
@@ -107,6 +113,7 @@ const saveScoringInput = z.object({
     z.object({
       questionId: uuid,
       valueYes: z.boolean().nullable(),
+      note: z.string().max(500).nullable().optional(),
     }),
   ),
 })
@@ -153,11 +160,12 @@ export const saveInvestmentScoringFn = createServerFn({ method: 'POST' })
     }
 
     for (const a of data.answers) {
+      const note = a.note ?? null
       if (a.valueYes === null) {
-        // Clear the real answer but keep the row if it still holds an AI suggestion.
+        // Clear the real answer but keep the row if it still holds an AI suggestion or a note.
         await db
           .update(investmentAnswer)
-          .set({ valueYes: null, updatedAt: new Date() })
+          .set({ valueYes: null, note, updatedAt: new Date() })
           .where(
             and(
               eq(investmentAnswer.investmentId, data.investmentId),
@@ -171,6 +179,7 @@ export const saveInvestmentScoringFn = createServerFn({ method: 'POST' })
               eq(investmentAnswer.investmentId, data.investmentId),
               eq(investmentAnswer.questionId, a.questionId),
               isNull(investmentAnswer.valueYes),
+              isNull(investmentAnswer.note),
               isNull(investmentAnswer.aiSuggestedYes),
               isNull(investmentAnswer.aiReasoning),
             ),
@@ -183,11 +192,13 @@ export const saveInvestmentScoringFn = createServerFn({ method: 'POST' })
           investmentId: data.investmentId,
           questionId: a.questionId,
           valueYes: a.valueYes,
+          note,
         })
         .onConflictDoUpdate({
           target: [investmentAnswer.investmentId, investmentAnswer.questionId],
           set: {
             valueYes: a.valueYes,
+            note,
             updatedAt: sql`now()`,
           },
         })

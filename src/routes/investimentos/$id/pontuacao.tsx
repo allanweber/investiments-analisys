@@ -12,6 +12,7 @@ import { runComputedChecksForInvestmentsFn } from '@/lib/fundamentals/fundamenta
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth-client'
 import { confirm } from '@/lib/confirm'
+import { explainScore } from '@/lib/investment-scoring'
 import {
   clearAiSuggestionsFn,
   loadInvestmentScoringFn,
@@ -106,6 +107,7 @@ function PontuacaoPage() {
   const { data: session, isPending: sessionPending } = authClient.useSession()
   const data = Route.useLoaderData()
   const [choices, setChoices] = useState<Record<string, AnswerChoice>>({})
+  const [notes, setNotes] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const [aiRunning, setAiRunning] = useState(false)
@@ -128,6 +130,7 @@ function PontuacaoPage() {
       else next[q.id] = v ? 'yes' : 'no'
     }
     setChoices(next)
+    setNotes({ ...data.noteByQuestionId })
     setAiSuggestions(
       Object.fromEntries(
         Object.entries(data.aiSuggestionByQuestionId).map(([qId, s]) => [
@@ -218,12 +221,33 @@ function PontuacaoPage() {
     return sum
   }, 0)
 
+  const explanation = explainScore(
+    questions,
+    new Map(
+      questions.map((q) => {
+        const c = choices[q.id]
+        return [
+          q.id,
+          {
+            valueYes: c === 'yes' ? true : c === 'no' ? false : null,
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- notes is Record<string, string> (no noUncheckedIndexedAccess), but it only has entries for questions with a typed note, so this is genuinely undefined for the rest
+            note: notes[q.id]?.trim() || null,
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- aiSuggestions is Record<string,...> (no noUncheckedIndexedAccess); genuinely undefined for questions with no AI suggestion
+            aiReasoning: aiSuggestions[q.id]?.reasoning || null,
+          },
+        ]
+      }),
+    ),
+  )
+
   const onSave = async () => {
     setMsg('')
     const answers = questions.map((q) => {
       const c = choices[q.id]
-      if (c === 'unanswered') return { questionId: q.id, valueYes: null }
-      return { questionId: q.id, valueYes: c === 'yes' }
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- notes is Record<string, string> (no noUncheckedIndexedAccess), but it only has entries for questions with a typed note, so this is genuinely undefined for the rest
+      const note = notes[q.id]?.trim() || null
+      if (c === 'unanswered') return { questionId: q.id, valueYes: null, note }
+      return { questionId: q.id, valueYes: c === 'yes', note }
     })
 
     setBusy(true)
@@ -307,9 +331,11 @@ function PontuacaoPage() {
   const persistChoices = async (next: Record<string, AnswerChoice>) => {
     const answers = questions.map((q) => {
       const c = next[q.id] ?? 'unanswered'
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- notes is Record<string, string> (no noUncheckedIndexedAccess), but it only has entries for questions with a typed note, so this is genuinely undefined for the rest
+      const note = notes[q.id]?.trim() || null
       return c === 'unanswered'
-        ? { questionId: q.id, valueYes: null }
-        : { questionId: q.id, valueYes: c === 'yes' }
+        ? { questionId: q.id, valueYes: null, note }
+        : { questionId: q.id, valueYes: c === 'yes', note }
     })
     const res = await saveInvestmentScoringFn({
       data: { investmentId: id, answers },
@@ -506,6 +532,67 @@ function PontuacaoPage() {
         </p>
       </div>
 
+      {questions.length > 0 && (
+        <details className="mt-4 rounded-xl bg-surface-container-low p-4">
+          <summary className="cursor-pointer font-headline text-sm font-bold text-on-surface">
+            {m.scoring.explainTitle}
+          </summary>
+          <div className="mt-3 space-y-4">
+            {explanation.drivers.length > 0 && (
+              <div>
+                <p className="font-label text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                  {m.scoring.explainDriversTitle}
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {explanation.drivers.map((d) => (
+                    <li
+                      key={d.questionId}
+                      className="flex items-start justify-between gap-3 font-body text-sm text-on-surface"
+                    >
+                      <span className="min-w-0 flex-1">{d.prompt}</span>
+                      <span
+                        className={cn(
+                          'shrink-0 font-headline font-bold tabular-nums',
+                          d.contribution > 0 ? 'text-green-600 dark:text-green-400' : 'text-error',
+                        )}
+                      >
+                        {d.contribution > 0 ? '+1' : '−1'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {explanation.unanswered.length > 0 && (
+              <div>
+                <p className="font-label text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                  {m.scoring.explainUnansweredTitle}
+                </p>
+                <p className="mt-1 font-body text-xs text-outline">
+                  {m.scoring.explainUnansweredHint}
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {explanation.unanswered.map((d) => (
+                    <li
+                      key={d.questionId}
+                      className="font-body text-sm text-on-surface-variant"
+                    >
+                      {d.prompt}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {explanation.drivers.length === 0 &&
+              explanation.unanswered.length === 0 && (
+                <p className="font-body text-sm text-on-surface-variant">
+                  {m.scoring.explainEmpty}
+                </p>
+              )}
+          </div>
+        </details>
+      )}
+
       {questions.length === 0 ? (
         <p className="mt-8 font-body text-on-surface-variant">
           {m.investments.noActiveQuestions}{' '}
@@ -535,6 +622,19 @@ function PontuacaoPage() {
                   }
                 />
               </div>
+              <label className="mt-3 block">
+                <span className="sr-only">{m.investments.noteLabel}</span>
+                <textarea
+                  className="w-full min-w-0 resize-none rounded-lg border border-outline-variant/40 bg-surface-container-highest px-3 py-2 font-body text-sm text-on-surface placeholder:text-on-surface-variant/70 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  rows={1}
+                  maxLength={500}
+                  placeholder={m.investments.notePlaceholder}
+                  value={notes[q.id] ?? ''}
+                  onChange={(e) =>
+                    setNotes((prev) => ({ ...prev, [q.id]: e.target.value }))
+                  }
+                />
+              </label>
               {
                 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- aiSuggestions is Record<string,...> (no noUncheckedIndexedAccess); genuinely undefined for questions with no AI suggestion
                 aiSuggestions[q.id] && (

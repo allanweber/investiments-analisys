@@ -32,6 +32,64 @@ export function computeScoreFromActiveQuestions(
   }
 }
 
+export type ScoreDriver = {
+  questionId: string
+  prompt: string
+  answer: boolean | null // null = unanswered
+  note: string | null
+  aiReasoning: string | null
+  contribution: 1 | -1 | 0 // +1 for yes, -1 for no, 0 for unanswered
+}
+
+export type ScoreExplanation = {
+  drivers: ScoreDriver[] // answered questions, sorted by contribution (yes first, then no)
+  unanswered: ScoreDriver[] // active questions with no answer yet — these are what "could change the ranking"
+}
+
+/**
+ * Pure explanation layer on top of `computeScoreFromActiveQuestions` — does not decide
+ * which unanswered question would move the ranking most, beyond "all unanswered active
+ * questions are potential movers, equally weighted" (matching the equal-weight scoring model).
+ */
+export function explainScore(
+  activeQuestions: readonly { id: string; prompt: string }[],
+  answers: ReadonlyMap<
+    string,
+    {
+      valueYes: boolean | null
+      note: string | null
+      aiReasoning: string | null
+    }
+  >,
+): ScoreExplanation {
+  const drivers: ScoreDriver[] = []
+  const unanswered: ScoreDriver[] = []
+  for (const q of activeQuestions) {
+    const a = answers.get(q.id)
+    if (!a || a.valueYes == null) {
+      unanswered.push({
+        questionId: q.id,
+        prompt: q.prompt,
+        answer: null,
+        note: a?.note ?? null,
+        aiReasoning: a?.aiReasoning ?? null,
+        contribution: 0,
+      })
+      continue
+    }
+    drivers.push({
+      questionId: q.id,
+      prompt: q.prompt,
+      answer: a.valueYes,
+      note: a.note,
+      aiReasoning: a.aiReasoning,
+      contribution: a.valueYes ? 1 : -1,
+    })
+  }
+  drivers.sort((a, b) => b.contribution - a.contribution)
+  return { drivers, unanswered }
+}
+
 /** Ranking within a type: higher score first; tie-break by name (pt-BR locale). */
 export function compareInvestmentsByRank(
   a: { score: number; name: string },
