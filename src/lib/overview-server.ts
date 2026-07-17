@@ -42,6 +42,58 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
       fxMissingPairs,
     } = await valuateHoldings(db, holdingsForValuation, displayCurrency)
 
+    const profileSelect = await db
+      .select({ targets: userAllocationProfile.targets })
+      .from(userAllocationProfile)
+      .where(eq(userAllocationProfile.userId, userId))
+
+    const targetsMap: UserAllocationTargetsJson =
+      profileSelect.length > 0 ? parseTargetsJson(profileSelect[0].targets) : {}
+
+    const targetsRows = await db
+      .select({
+        investmentTypeId: investmentType.id,
+        investmentTypeName: investmentType.name,
+        typeSortOrder: investmentType.sortOrder,
+      })
+      .from(investmentType)
+      .where(eq(investmentType.userId, userId))
+      .orderBy(asc(investmentType.sortOrder), asc(investmentType.name))
+
+    const targets = targetsRows.map((t) => {
+      const entry = targetsMap[t.investmentTypeId]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- targetsMap is `Record<string, ...>` (no noUncheckedIndexedAccess), but it's parsed from a jsonb column that may simply not have an entry for this investmentTypeId, so entry is genuinely undefined at runtime for types without a saved target
+      const rawPct = entry === undefined ? 0 : entry.targetPct
+      return {
+        investmentTypeId: t.investmentTypeId,
+        investmentTypeName: t.investmentTypeName,
+        typeSortOrder: t.typeSortOrder,
+        targetPct: clampPct(num(rawPct)),
+      }
+    })
+
+    // ETFs conflate domestic and international equity exposure under one label. If the user
+    // doesn't track "ETF" as its own target (missing or 0%) but does track "Ações" / "Ações
+    // internacionais" separately, fold each ETF holding into whichever of those two it actually
+    // represents (BRL = domestic, anything else = international) so the allocation/drift views
+    // reflect real exposure instead of an untracked ETF bucket next to two under-counted ones.
+    const normalizeTypeName = (v: string) =>
+      v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+
+    const etfTypeRow = targets.find(
+      (t) => normalizeTypeName(t.investmentTypeName) === 'etf',
+    )
+    const acoesTypeRow = targets.find(
+      (t) => normalizeTypeName(t.investmentTypeName) === 'acoes',
+    )
+    const acoesIntlTypeRow = targets.find(
+      (t) => normalizeTypeName(t.investmentTypeName) === 'acoes internacionais',
+    )
+    const etfFold =
+      etfTypeRow && acoesTypeRow && acoesIntlTypeRow && etfTypeRow.targetPct === 0
+        ? { etfTypeId: etfTypeRow.investmentTypeId, acoesTypeRow, acoesIntlTypeRow }
+        : null
+
     const byType = new Map<
       string,
       {
@@ -87,12 +139,22 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
       nativeBucket.holdingCount += 1
       byNativeMap.set(nativeCurrency, nativeBucket)
 
-      const prev = byType.get(r.investmentTypeId)
+      const foldedType =
+        etfFold && r.investmentTypeId === etfFold.etfTypeId
+          ? nativeCurrency === 'BRL'
+            ? etfFold.acoesTypeRow
+            : etfFold.acoesIntlTypeRow
+          : null
+      const typeId = foldedType?.investmentTypeId ?? r.investmentTypeId
+      const typeName = foldedType?.investmentTypeName ?? r.investmentTypeName
+      const typeSortOrder = foldedType?.typeSortOrder ?? r.typeSortOrder
+
+      const prev = byType.get(typeId)
       if (!prev) {
-        byType.set(r.investmentTypeId, {
-          investmentTypeId: r.investmentTypeId,
-          investmentTypeName: r.investmentTypeName,
-          typeSortOrder: r.typeSortOrder,
+        byType.set(typeId, {
+          investmentTypeId: typeId,
+          investmentTypeName: typeName,
+          typeSortOrder,
           marketValue: mvDisplay,
         })
       } else {
@@ -109,36 +171,6 @@ export const loadPortfolioOverviewFn = createServerFn({ method: 'POST' })
         holdingCount: bucket.holdingCount,
         pctOfPortfolio: clampPct(computePct(bucket.marketValueDisplay, total)),
       }))
-
-    const profileSelect = await db
-      .select({ targets: userAllocationProfile.targets })
-      .from(userAllocationProfile)
-      .where(eq(userAllocationProfile.userId, userId))
-
-    const targetsMap: UserAllocationTargetsJson =
-      profileSelect.length > 0 ? parseTargetsJson(profileSelect[0].targets) : {}
-
-    const targetsRows = await db
-      .select({
-        investmentTypeId: investmentType.id,
-        investmentTypeName: investmentType.name,
-        typeSortOrder: investmentType.sortOrder,
-      })
-      .from(investmentType)
-      .where(eq(investmentType.userId, userId))
-      .orderBy(asc(investmentType.sortOrder), asc(investmentType.name))
-
-    const targets = targetsRows.map((t) => {
-      const entry = targetsMap[t.investmentTypeId]
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- targetsMap is `Record<string, ...>` (no noUncheckedIndexedAccess), but it's parsed from a jsonb column that may simply not have an entry for this investmentTypeId, so entry is genuinely undefined at runtime for types without a saved target
-      const rawPct = entry === undefined ? 0 : entry.targetPct
-      return {
-        investmentTypeId: t.investmentTypeId,
-        investmentTypeName: t.investmentTypeName,
-        typeSortOrder: t.typeSortOrder,
-        targetPct: clampPct(num(rawPct)),
-      }
-    })
 
     const allocation = [...byType.values()]
       .sort(
