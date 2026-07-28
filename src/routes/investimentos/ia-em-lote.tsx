@@ -310,26 +310,36 @@ function BulkAiPage() {
                     <li
                       key={r.id}
                       className={cn(
-                        'flex items-center justify-between gap-3 rounded-xl bg-surface-container-lowest p-3 shadow-float transition-colors',
+                        'rounded-xl bg-surface-container-lowest p-3 shadow-float transition-colors',
                         status === 'running' &&
                           'ring-1 ring-inset ring-secondary-token/40',
                         status === 'ok' && 'ring-1 ring-inset ring-primary/30',
                         status === 'error' && 'ring-1 ring-inset ring-error/30',
                       )}
                     >
-                      <label className="flex min-w-0 flex-1 items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={selected.has(r.id)}
-                          onChange={() => toggleSelected(r.id)}
-                          disabled={running}
-                          className="h-4 w-4 shrink-0 accent-primary"
-                        />
-                        <span className="min-w-0 truncate font-body text-sm font-medium text-on-surface">
-                          {r.name}
-                        </span>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <label className="flex min-w-0 grow basis-full items-center gap-3 sm:basis-0">
+                          <input
+                            type="checkbox"
+                            checked={selected.has(r.id)}
+                            onChange={() => toggleSelected(r.id)}
+                            disabled={running}
+                            className="h-4 w-4 shrink-0 accent-primary"
+                          />
+                          <span className="flex min-w-0 flex-1 flex-col">
+                            <span className="truncate font-body text-sm font-medium text-on-surface">
+                              {r.name}
+                            </span>
+                            {r.ticker && (
+                              <span className="truncate font-label text-[11px] font-medium text-on-surface-variant">
+                                {r.ticker}
+                                {r.currency ? ` (${r.currency})` : ''}
+                              </span>
+                            )}
+                          </span>
+                        </label>
                         <span
-                          className="ml-1 inline-flex shrink-0 items-center gap-2 font-label text-[11px] tabular-nums text-on-surface-variant"
+                          className="inline-flex shrink-0 items-center gap-2 font-label text-[11px] tabular-nums text-on-surface-variant"
                           title={`${m.common.labelPontos}: ${r.score} · ${m.common.labelRespAtivasShort}: ${r.answeredActiveCount}/${r.activeQuestionCount}`}
                         >
                           <span className="rounded-full bg-surface-container-high px-2 py-0.5 font-semibold">
@@ -339,23 +349,23 @@ function BulkAiPage() {
                             {r.answeredActiveCount}/{r.activeQuestionCount}
                           </span>
                         </span>
-                      </label>
-                      <div className="flex shrink-0 items-center gap-3">
-                        <StatusBadge
-                          status={status}
-                          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- same statusById Record<string,...> gap as above; liveStatus is genuinely undefined for investments not touched by a batch run
-                          checkedAt={liveStatus ? null : r.lastAiCheckedAt}
-                        />
-                        <Link
-                          to="/investimentos/$id/pontuacao"
-                          params={{ id: r.id }}
-                          className="inline-flex items-center gap-1 font-body text-sm font-semibold text-primary no-underline hover:underline"
-                        >
-                          {m.ai.bulkOpenLink}
-                          <span className="material-symbols-outlined text-base leading-none">
-                            arrow_forward
-                          </span>
-                        </Link>
+                        <div className="flex shrink-0 items-center gap-3">
+                          <StatusBadge
+                            status={status}
+                            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- same statusById Record<string,...> gap as above; liveStatus is genuinely undefined for investments not touched by a batch run
+                            checkedAt={liveStatus ? null : r.lastAiCheckedAt}
+                          />
+                          <Link
+                            to="/investimentos/$id/pontuacao"
+                            params={{ id: r.id }}
+                            className="inline-flex items-center gap-1 font-body text-sm font-semibold text-primary no-underline hover:underline"
+                          >
+                            {m.ai.bulkOpenLink}
+                            <span className="material-symbols-outlined text-base leading-none">
+                              arrow_forward
+                            </span>
+                          </Link>
+                        </div>
                       </div>
                     </li>
                   )
