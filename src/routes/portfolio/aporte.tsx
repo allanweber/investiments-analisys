@@ -267,7 +267,7 @@ function ResultsSection({
         return (
           <div
             key={proj.investmentTypeId}
-            className="overflow-x-auto rounded-2xl border border-outline-variant/30"
+            className="rounded-2xl border border-outline-variant/30"
           >
             <TypeHeader proj={proj} />
             {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- suggestionsByType is Record<string,...> (no noUncheckedIndexedAccess), but it only has entries for types with a contribution suggestion, so items is genuinely undefined otherwise */}
@@ -278,33 +278,50 @@ function ResultsSection({
             )}
             {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- same suggestionsByType Record<string,...> gap as above */}
             {items && (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-outline-variant/15 text-left text-xs font-semibold text-on-surface-variant">
-                    <th className="px-4 py-2">{m.aporte.colInvestimento}</th>
-                    <th className="px-4 py-2 text-right">
-                      {m.aporte.colValor}
-                    </th>
-                    <th className="px-4 py-2 text-right">
-                      {m.aporte.colUnidades}
-                    </th>
-                    <th className="px-4 py-2 text-right">{m.aporte.colPct}</th>
-                    <th className="px-4 py-2 text-right">
-                      {m.aporte.colScore}
-                    </th>
-                    <th className="px-4 py-2" />
-                  </tr>
-                </thead>
-                <tbody>
+              <>
+                <div className="md:hidden">
                   {items.map((s) => (
-                    <SuggestionRow
+                    <SuggestionCard
                       key={s.investmentId}
                       suggestion={s}
                       onRemove={onRemove}
                     />
                   ))}
-                </tbody>
-              </table>
+                </div>
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-outline-variant/15 text-left text-xs font-semibold text-on-surface-variant">
+                        <th className="px-4 py-2">
+                          {m.aporte.colInvestimento}
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          {m.aporte.colValor}
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          {m.aporte.colUnidades}
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          {m.aporte.colPct}
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          {m.aporte.colScore}
+                        </th>
+                        <th className="px-4 py-2" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((s) => (
+                        <SuggestionRow
+                          key={s.investmentId}
+                          suggestion={s}
+                          onRemove={onRemove}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         )
@@ -359,6 +376,93 @@ function formatCurrency(amount: number, currency: string) {
   }).format(amount)
 }
 
+function formatUnits(units: number | null | undefined): string {
+  if (units == null) return m.aporte.dash
+  return Number.isInteger(units)
+    ? String(units)
+    : units.toLocaleString('pt-BR', { maximumFractionDigits: 3 })
+}
+
+function SuggestionCard({
+  suggestion: s,
+  onRemove,
+}: {
+  suggestion: ContributionSuggestion
+  onRemove: (investmentId: string, investmentName: string) => void
+}) {
+  const showDual =
+    s.suggestedCurrency.toUpperCase() !== s.contributionCurrency.toUpperCase()
+
+  return (
+    <div className="border-b border-outline-variant/10 p-4 last:border-b-0">
+      <div className="flex items-start justify-between gap-2">
+        <span className="flex items-center gap-1.5 font-medium text-on-surface">
+          {s.investmentName}
+          {s.missingQuote && (
+            <span
+              className="material-symbols-outlined text-[16px] text-tertiary"
+              title={m.aporte.missingQuoteTooltip}
+              aria-label={m.aporte.missingQuoteTooltip}
+            >
+              info
+            </span>
+          )}
+        </span>
+        <button
+          type="button"
+          onClick={() => onRemove(s.investmentId, s.investmentName)}
+          aria-label={m.aporte.removeSuggestion}
+          title={m.aporte.removeSuggestion}
+          className="-mr-1 shrink-0 rounded-full p-1 text-on-surface-variant transition-opacity hover:opacity-70"
+        >
+          <span className="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <div className="mt-3 flex flex-col gap-0.5">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-outline">
+          {m.aporte.colValor}
+        </span>
+        <span className="text-lg font-semibold tabular-nums text-on-surface">
+          {formatCurrency(s.suggestedAmount, s.suggestedCurrency)}
+        </span>
+        {showDual && (
+          <span className="text-xs tabular-nums text-on-surface-variant">
+            {formatCurrency(s.contributionAmount, s.contributionCurrency)}
+          </span>
+        )}
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-outline">
+            {m.aporte.colUnidades}
+          </p>
+          <p className="mt-1 font-semibold tabular-nums text-on-surface">
+            {formatUnits(s.units)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-outline">
+            {m.aporte.colPct}
+          </p>
+          <p className="mt-1 font-semibold tabular-nums text-on-surface">
+            {s.contributionPct.toFixed(1)}%
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-outline">
+            {m.aporte.colScore}
+          </p>
+          <p className="mt-1 font-semibold tabular-nums text-on-surface">
+            {s.score}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function SuggestionRow({
   suggestion: s,
   onRemove,
@@ -400,11 +504,7 @@ function SuggestionRow({
         )}
       </td>
       <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">
-        {s.units != null
-          ? Number.isInteger(s.units)
-            ? s.units
-            : s.units.toLocaleString('pt-BR', { maximumFractionDigits: 3 })
-          : m.aporte.dash}
+        {formatUnits(s.units)}
       </td>
       <td className="px-4 py-3 text-right tabular-nums text-on-surface">
         {s.contributionPct.toFixed(1)}%
