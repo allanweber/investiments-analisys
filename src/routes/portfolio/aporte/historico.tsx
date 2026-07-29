@@ -161,7 +161,7 @@ function HistoricoPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="history-detail-title"
-            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl bg-surface px-4 pb-8 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-6 sm:pt-8"
+            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl bg-surface px-4 pb-24 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-6 sm:pb-10 sm:pt-8"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-start justify-between gap-3">
