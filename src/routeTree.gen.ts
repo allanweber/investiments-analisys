@@ -29,6 +29,7 @@ import { Route as InvestimentosIaEmLoteRouteImport } from './routes/investimento
 import { Route as AccountSettingsRouteImport } from './routes/account/settings'
 import { Route as AccountProfileRouteImport } from './routes/account/profile'
 import { Route as TiposTypeIdPerguntasRouteImport } from './routes/tipos/$typeId/perguntas'
+import { Route as PortfolioAporteHistoricoRouteImport } from './routes/portfolio/aporte/historico'
 import { Route as InvestimentosIdPontuacaoRouteImport } from './routes/investimentos/$id/pontuacao'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -132,6 +133,12 @@ const TiposTypeIdPerguntasRoute = TiposTypeIdPerguntasRouteImport.update({
   path: '/$typeId/perguntas',
   getParentRoute: () => TiposRoute,
 } as any)
+const PortfolioAporteHistoricoRoute =
+  PortfolioAporteHistoricoRouteImport.update({
+    id: '/historico',
+    path: '/historico',
+    getParentRoute: () => PortfolioAporteRoute,
+  } as any)
 const InvestimentosIdPontuacaoRoute =
   InvestimentosIdPontuacaoRouteImport.update({
     id: '/$id/pontuacao',
@@ -160,12 +167,13 @@ export interface FileRoutesByFullPath {
   '/account/profile': typeof AccountProfileRoute
   '/account/settings': typeof AccountSettingsRoute
   '/investimentos/ia-em-lote': typeof InvestimentosIaEmLoteRoute
-  '/portfolio/aporte': typeof PortfolioAporteRoute
+  '/portfolio/aporte': typeof PortfolioAporteRouteWithChildren
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
+  '/portfolio/aporte/historico': typeof PortfolioAporteHistoricoRoute
   '/tipos/$typeId/perguntas': typeof TiposTypeIdPerguntasRoute
 }
 export interface FileRoutesByTo {
@@ -182,12 +190,13 @@ export interface FileRoutesByTo {
   '/account/profile': typeof AccountProfileRoute
   '/account/settings': typeof AccountSettingsRoute
   '/investimentos/ia-em-lote': typeof InvestimentosIaEmLoteRoute
-  '/portfolio/aporte': typeof PortfolioAporteRoute
+  '/portfolio/aporte': typeof PortfolioAporteRouteWithChildren
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/account': typeof AccountIndexRoute
   '/admin': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
+  '/portfolio/aporte/historico': typeof PortfolioAporteHistoricoRoute
   '/tipos/$typeId/perguntas': typeof TiposTypeIdPerguntasRoute
 }
 export interface FileRoutesById {
@@ -207,12 +216,13 @@ export interface FileRoutesById {
   '/account/profile': typeof AccountProfileRoute
   '/account/settings': typeof AccountSettingsRoute
   '/investimentos/ia-em-lote': typeof InvestimentosIaEmLoteRoute
-  '/portfolio/aporte': typeof PortfolioAporteRoute
+  '/portfolio/aporte': typeof PortfolioAporteRouteWithChildren
   '/portfolio/holdings': typeof PortfolioHoldingsRoute
   '/account/': typeof AccountIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/investimentos/$id/pontuacao': typeof InvestimentosIdPontuacaoRoute
+  '/portfolio/aporte/historico': typeof PortfolioAporteHistoricoRoute
   '/tipos/$typeId/perguntas': typeof TiposTypeIdPerguntasRoute
 }
 export interface FileRouteTypes {
@@ -239,6 +249,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
+    | '/portfolio/aporte/historico'
     | '/tipos/$typeId/perguntas'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -261,6 +272,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
+    | '/portfolio/aporte/historico'
     | '/tipos/$typeId/perguntas'
   id:
     | '__root__'
@@ -285,6 +297,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/api/auth/$'
     | '/investimentos/$id/pontuacao'
+    | '/portfolio/aporte/historico'
     | '/tipos/$typeId/perguntas'
   fileRoutesById: FileRoutesById
 }
@@ -446,6 +459,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TiposTypeIdPerguntasRouteImport
       parentRoute: typeof TiposRoute
     }
+    '/portfolio/aporte/historico': {
+      id: '/portfolio/aporte/historico'
+      path: '/historico'
+      fullPath: '/portfolio/aporte/historico'
+      preLoaderRoute: typeof PortfolioAporteHistoricoRouteImport
+      parentRoute: typeof PortfolioAporteRoute
+    }
     '/investimentos/$id/pontuacao': {
       id: '/investimentos/$id/pontuacao'
       path: '/$id/pontuacao'
@@ -502,13 +522,25 @@ const InvestimentosRouteWithChildren = InvestimentosRoute._addFileChildren(
   InvestimentosRouteChildren,
 )
 
+interface PortfolioAporteRouteChildren {
+  PortfolioAporteHistoricoRoute: typeof PortfolioAporteHistoricoRoute
+}
+
+const PortfolioAporteRouteChildren: PortfolioAporteRouteChildren = {
+  PortfolioAporteHistoricoRoute: PortfolioAporteHistoricoRoute,
+}
+
+const PortfolioAporteRouteWithChildren = PortfolioAporteRoute._addFileChildren(
+  PortfolioAporteRouteChildren,
+)
+
 interface PortfolioRouteChildren {
-  PortfolioAporteRoute: typeof PortfolioAporteRoute
+  PortfolioAporteRoute: typeof PortfolioAporteRouteWithChildren
   PortfolioHoldingsRoute: typeof PortfolioHoldingsRoute
 }
 
 const PortfolioRouteChildren: PortfolioRouteChildren = {
-  PortfolioAporteRoute: PortfolioAporteRoute,
+  PortfolioAporteRoute: PortfolioAporteRouteWithChildren,
   PortfolioHoldingsRoute: PortfolioHoldingsRoute,
 }
 

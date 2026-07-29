@@ -13,6 +13,11 @@ import {
 } from 'drizzle-orm/pg-core'
 import { relations, sql } from 'drizzle-orm'
 
+import type {
+  ContributionSuggestion,
+  TypeProjection,
+} from '@/lib/aporte-algorithm'
+
 // —— Better Auth (PostgreSQL) ——
 export const user = pgTable('user', {
   id: varchar('id', { length: 255 }).primaryKey(),
@@ -536,4 +541,44 @@ export const userApiKey = pgTable(
 
 export const userApiKeyRelations = relations(userApiKey, ({ one }) => ({
   user: one(user, { fields: [userApiKey.userId], references: [user.id] }),
+}))
+
+/**
+ * Frozen snapshot of a computed aporte simulation, saved for future reference.
+ * `snapshot` captures the exact suggestions/projections as shown (prices, units, %),
+ * the input (amount/currency/exclusions) and which rows were "Aportado" at save time.
+ * It is never recomputed — history is a read-only record.
+ */
+export type AporteRunSnapshot = {
+  input: {
+    amount: number
+    currency: string
+    excludedInvestmentIds: string[]
+  }
+  suggestions: ContributionSuggestion[]
+  typeProjections: TypeProjection[]
+  unallocatedAmount: number
+  /** investmentIds marked Aportado when the run was saved. */
+  appliedInvestmentIds: string[]
+}
+
+export const aporteRun = pgTable('aporte_run', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: varchar('user_id', { length: 255 })
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  /** User-provided label; defaults (client-side) to "date · amount". */
+  name: varchar('name', { length: 200 }).notNull(),
+  amount: numeric('amount', { precision: 24, scale: 8 }).notNull(),
+  currency: varchar('currency', { length: 3 }).notNull(),
+  /** When the simulation was run (mirrors createdAt at save time). */
+  simulatedAt: timestamp('simulated_at', { withTimezone: true }).notNull(),
+  snapshot: jsonb('snapshot').$type<AporteRunSnapshot>().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
+export const aporteRunRelations = relations(aporteRun, ({ one }) => ({
+  user: one(user, { fields: [aporteRun.userId], references: [user.id] }),
 }))

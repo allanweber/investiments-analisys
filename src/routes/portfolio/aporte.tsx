@@ -1,15 +1,30 @@
-import { Link, Navigate, createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import {
+  Link,
+  Navigate,
+  Outlet,
+  createFileRoute,
+  useRouterState,
+} from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 import { DisplayCurrencySelector } from '@/components/portfolio/display-currency-selector'
 import { CurrencyInput } from '@/components/portfolio/holdings/CurrencyInput'
+import {
+  AporteResults,
+  formatCurrency,
+} from '@/components/portfolio/aporte-results'
 import { authClient } from '@/lib/auth-client'
 import type {
   AporteSimulationResult,
   ContributionSuggestion,
-  TypeProjection,
 } from '@/lib/aporte-server'
 import { simulateAporteFn } from '@/lib/aporte-server'
+import {
+  aportarFn,
+  getInvestmentLiveQuoteFn,
+  saveAporteRunFn,
+} from '@/lib/aporte-run-server'
 import { SUPPORTED_FX_CURRENCIES } from '@/lib/fx'
 import type { FxCurrency } from '@/lib/fx'
 import { messages as m } from '@/messages'
@@ -18,19 +33,35 @@ export const Route = createFileRoute('/portfolio/aporte')({
   component: AportePage,
 })
 
+function todayInputValue() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function round2(n: number) {
+  return Math.round((n + Number.EPSILON) * 100) / 100
+}
+
 function AportePage() {
   const { data: session, isPending } = authClient.useSession()
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const isAporteIndex =
+    pathname === '/portfolio/aporte' || pathname === '/portfolio/aporte/'
   const [currency, setCurrency] = useState<FxCurrency>('BRL')
   const [amount, setAmount] = useState(0)
   const [amountError, setAmountError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<AporteSimulationResult | null>(null)
+  const [computedAt, setComputedAt] = useState<string>('')
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set())
   const [removedNames, setRemovedNames] = useState<Map<string, string>>(
     new Map(),
   )
   const [recomputing, setRecomputing] = useState(false)
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set())
+  const [aportarTarget, setAportarTarget] =
+    useState<ContributionSuggestion | null>(null)
+  const [saveOpen, setSaveOpen] = useState(false)
 
   if (isPending) {
     return (
@@ -63,11 +94,13 @@ function AportePage() {
 
     setExcludedIds(new Set())
     setRemovedNames(new Map())
+    setAppliedIds(new Set())
     setLoading(true)
     setResult(null)
     try {
       const res = await simulateAporteFn({ data: { amount, currency } })
       setResult(res)
+      setComputedAt(new Date().toISOString())
     } catch {
       setError(m.aporte.errorCalc)
     } finally {
@@ -112,11 +145,31 @@ function AportePage() {
     void recompute(next)
   }
 
+  function handleAportarSuccess(investmentId: string) {
+    setAppliedIds((prev) => new Set(prev).add(investmentId))
+    setAportarTarget(null)
+  }
+
+  if (!isAporteIndex) {
+    return <Outlet />
+  }
+
   return (
     <main className="w-full max-w-4xl px-4 py-8 sm:p-8">
-      <h1 className="font-headline mb-1 text-3xl font-extrabold tracking-tight text-on-surface md:text-4xl">
-        {m.aporte.title}
-      </h1>
+      <div className="mb-1 flex items-start justify-between gap-4">
+        <h1 className="font-headline text-3xl font-extrabold tracking-tight text-on-surface md:text-4xl">
+          {m.aporte.title}
+        </h1>
+        <Link
+          to="/portfolio/aporte/historico"
+          className="mt-1 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-outline-variant/30 px-3.5 py-2 font-body text-sm font-semibold text-on-surface-variant no-underline transition-colors hover:bg-surface-container-high"
+        >
+          <span className="material-symbols-outlined text-lg leading-none">
+            history
+          </span>
+          {m.aporte.historyLink}
+        </Link>
+      </div>
       <p className="mb-8 text-sm text-on-surface-variant">
         {m.aporte.subtitle}
       </p>
@@ -203,326 +256,435 @@ function AportePage() {
         </div>
       )}
 
-      {result && (
-        <ResultsSection
+      {result?.reason === 'NO_TARGETS' && (
+        <section className="rounded-2xl border border-outline-variant/30 bg-surface p-8 text-center">
+          <p className="mb-4 text-sm text-on-surface-variant">
+            {m.aporte.noTargets}
+          </p>
+          <Link
+            to="/portfolio"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-primary no-underline hover:opacity-80"
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              arrow_back
+            </span>
+            Portfólio
+          </Link>
+        </section>
+      )}
+
+      {result?.reason === 'NO_ELIGIBLE_INVESTMENTS' && (
+        <section className="rounded-2xl border border-outline-variant/30 bg-surface p-8 text-center">
+          <p className="text-sm text-on-surface-variant">
+            {m.aporte.noEligible}
+          </p>
+        </section>
+      )}
+
+      {result?.reason === 'OK' && (
+        <>
+          <div className="mb-3 flex items-center justify-end">
+            <button
+              type="button"
+              onClick={() => setSaveOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant/30 px-4 py-2 font-body text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container-high"
+            >
+              <span className="material-symbols-outlined text-lg leading-none">
+                bookmark_add
+              </span>
+              {m.aporte.saveButton}
+            </button>
+          </div>
+          <AporteResults
+            suggestions={result.suggestions}
+            typeProjections={result.typeProjections}
+            unallocatedAmount={result.unallocatedAmount}
+            currency={currency}
+            appliedIds={appliedIds}
+            recomputing={recomputing}
+            onAportar={(s) => setAportarTarget(s)}
+            onRemove={handleRemoveSuggestion}
+          />
+        </>
+      )}
+
+      {aportarTarget && (
+        <AportarModal
+          suggestion={aportarTarget}
+          onClose={() => setAportarTarget(null)}
+          onSuccess={handleAportarSuccess}
+        />
+      )}
+
+      {saveOpen && result?.reason === 'OK' && (
+        <SaveModal
           result={result}
-          recomputing={recomputing}
+          amount={amount}
           currency={currency}
-          onRemove={handleRemoveSuggestion}
+          computedAt={computedAt || new Date().toISOString()}
+          excludedIds={excludedIds}
+          appliedIds={appliedIds}
+          onClose={() => setSaveOpen(false)}
+          onSaved={() => setSaveOpen(false)}
         />
       )}
     </main>
   )
 }
 
-function ResultsSection({
-  result,
-  recomputing,
-  currency,
-  onRemove,
+function ModalShell({
+  labelledBy,
+  onClose,
+  children,
 }: {
-  result: AporteSimulationResult
-  recomputing: boolean
-  currency: string
-  onRemove: (investmentId: string, investmentName: string) => void
+  labelledBy: string
+  onClose: () => void
+  children: React.ReactNode
 }) {
-  if (result.reason === 'NO_TARGETS') {
-    return (
-      <section className="rounded-2xl border border-outline-variant/30 bg-surface p-8 text-center">
-        <p className="mb-4 text-sm text-on-surface-variant">
-          {m.aporte.noTargets}
-        </p>
-        <Link
-          to="/portfolio"
-          className="inline-flex items-center gap-1 text-sm font-semibold text-primary no-underline hover:opacity-80"
-        >
-          <span className="material-symbols-outlined text-[18px]">
-            arrow_back
-          </span>
-          Portfólio
-        </Link>
-      </section>
-    )
-  }
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-scrim backdrop-blur-[2px] sm:items-center sm:px-4 sm:py-10"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={labelledBy}
+        className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-surface px-6 pb-8 pt-6 shadow-2xl sm:max-h-[90vh] sm:rounded-3xl sm:px-8 sm:pt-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
 
-  if (result.reason === 'NO_ELIGIBLE_INVESTMENTS') {
-    return (
-      <section className="rounded-2xl border border-outline-variant/30 bg-surface p-8 text-center">
-        <p className="text-sm text-on-surface-variant">{m.aporte.noEligible}</p>
-      </section>
-    )
-  }
+function AportarModal({
+  suggestion: s,
+  onClose,
+  onSuccess,
+}: {
+  suggestion: ContributionSuggestion
+  onClose: () => void
+  onSuccess: (investmentId: string) => void
+}) {
+  const [mode, setMode] = useState<'loading' | 'rv' | 'rf'>('loading')
+  const [qty, setQty] = useState<number>(s.units ?? 0)
+  const [unitPrice, setUnitPrice] = useState<number>(0)
+  const [capital, setCapital] = useState<number>(round2(s.suggestedAmount))
+  const [date, setDate] = useState<string>(todayInputValue())
+  const [needsRf, setNeedsRf] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const isNewPosition = s.units == null && mode === 'rv'
 
-  const suggestionsByType = result.suggestions.reduce<
-    Record<string, ContributionSuggestion[]>
-  >((acc, s) => {
-    ;(acc[s.investmentTypeId] ??= []).push(s)
-    return acc
-  }, {})
+  useEffect(() => {
+    let cancelled = false
+    void getInvestmentLiveQuoteFn({ data: { investmentId: s.investmentId } })
+      .then((res) => {
+        if (cancelled) return
+        if (res.ok) {
+          setMode('rv')
+          setQty(s.units ?? 0)
+          setUnitPrice(res.price ?? 0)
+        } else if (res.code === 'FIXED_INCOME') {
+          setMode('rf')
+          setCapital(round2(s.suggestedAmount))
+        } else {
+          setMode('rv')
+          setQty(s.units ?? 0)
+          setUnitPrice(0)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setMode('rv')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [s.investmentId, s.units, s.suggestedAmount])
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setErr(null)
+    const operationDate = new Date(`${date}T12:00:00`).toISOString()
+    try {
+      setBusy(true)
+      let res: Awaited<ReturnType<typeof aportarFn>>
+      if (mode === 'rf') {
+        if (!(capital > 0)) {
+          setErr(m.aporte.aportarPriceRequired)
+          return
+        }
+        res = await aportarFn({
+          data: { investmentId: s.investmentId, capital, operationDate },
+        })
+      } else {
+        if (!(qty > 0)) {
+          setErr(m.aporte.aportarQtyRequired)
+          return
+        }
+        if (!(unitPrice > 0)) {
+          setErr(m.aporte.aportarPriceRequired)
+          return
+        }
+        res = await aportarFn({
+          data: {
+            investmentId: s.investmentId,
+            units: qty,
+            unitPrice,
+            operationDate,
+          },
+        })
+      }
+      if (res.ok) {
+        toast.success(m.aporte.aportarSuccess(s.investmentName))
+        onSuccess(s.investmentId)
+      } else if (res.code === 'NEEDS_RF_DETAILS') {
+        setNeedsRf(true)
+      } else {
+        setErr(m.aporte.aportarError)
+      }
+    } catch {
+      setErr(m.aporte.aportarError)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
-    <section className={`space-y-3 ${recomputing ? 'opacity-60' : ''}`}>
-      {result.typeProjections.map((proj) => {
-        const items = suggestionsByType[proj.investmentTypeId]
-        return (
+    <ModalShell labelledBy="aportar-modal-title" onClose={onClose}>
+      <h2
+        id="aportar-modal-title"
+        className="font-headline text-xl font-bold text-on-surface"
+      >
+        {m.aporte.aportarTitle} · {s.investmentName}
+      </h2>
+      <p className="mt-1 text-sm text-on-surface-variant">
+        {m.aporte.aportarSubtitle}
+      </p>
+
+      {mode === 'loading' && (
+        <div className="flex items-center gap-3 py-8 text-sm text-on-surface-variant">
           <div
-            key={proj.investmentTypeId}
-            className="rounded-2xl border border-outline-variant/30"
-          >
-            <TypeHeader proj={proj} />
-            {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- suggestionsByType is Record<string,...> (no noUncheckedIndexedAccess), but it only has entries for types with a contribution suggestion, so items is genuinely undefined otherwise */}
-            {!items && proj.targetTypePct > 0 && (
-              <p className="px-4 py-3 text-xs text-on-surface-variant">
-                {m.aporte.categoryAboveTarget}
-              </p>
-            )}
-            {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- same suggestionsByType Record<string,...> gap as above */}
-            {items && (
-              <>
-                <div className="md:hidden">
-                  {items.map((s) => (
-                    <SuggestionCard
-                      key={s.investmentId}
-                      suggestion={s}
-                      onRemove={onRemove}
-                    />
-                  ))}
-                </div>
-                <div className="hidden overflow-x-auto md:block">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-outline-variant/15 text-left text-xs font-semibold text-on-surface-variant">
-                        <th className="px-4 py-2">
-                          {m.aporte.colInvestimento}
-                        </th>
-                        <th className="px-4 py-2 text-right">
-                          {m.aporte.colValor}
-                        </th>
-                        <th className="px-4 py-2 text-right">
-                          {m.aporte.colUnidades}
-                        </th>
-                        <th className="px-4 py-2 text-right">
-                          {m.aporte.colPct}
-                        </th>
-                        <th className="px-4 py-2 text-right">
-                          {m.aporte.colScore}
-                        </th>
-                        <th className="px-4 py-2" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((s) => (
-                        <SuggestionRow
-                          key={s.investmentId}
-                          suggestion={s}
-                          onRemove={onRemove}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-          </div>
-        )
-      })}
-      {result.unallocatedAmount > 0 && (
-        <div className="flex items-center justify-between rounded-2xl border border-outline-variant/30 bg-surface-variant/20 px-4 py-3">
-          <span className="text-sm font-semibold text-on-surface">
-            {m.aporte.naoAlocado}
-          </span>
-          <span className="tabular-nums text-on-surface">
-            {formatCurrency(result.unallocatedAmount, currency)}
-          </span>
+            className="h-5 w-5 animate-spin rounded-full border-2 border-outline-variant border-t-primary"
+            aria-hidden
+          />
+          {m.aporte.aportarFetchingQuote}
         </div>
       )}
-    </section>
-  )
-}
 
-function TypeHeader({ proj: p }: { proj: TypeProjection }) {
-  const hitTarget = p.projectedTypePct >= p.targetTypePct && p.targetTypePct > 0
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant/20 bg-surface-variant/30 px-4 py-3">
-      <span className="text-sm font-semibold text-on-surface">
-        {p.investmentTypeName}
-      </span>
-      <span className="flex items-center gap-2 text-xs text-on-surface-variant">
-        <span className="tabular-nums">{p.currentTypePct.toFixed(1)}%</span>
-        <span className="material-symbols-outlined text-[14px]">
-          arrow_forward
-        </span>
-        <span
-          className={`font-semibold tabular-nums ${hitTarget ? 'text-primary' : 'text-on-surface'}`}
-        >
-          {p.projectedTypePct.toFixed(1)}%
-        </span>
-        {p.targetTypePct > 0 && (
-          <span className="text-outline">
-            / meta {p.targetTypePct.toFixed(1)}%
-          </span>
-        )}
-      </span>
-    </div>
-  )
-}
-
-function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount)
-}
-
-function formatUnits(units: number | null | undefined): string {
-  if (units == null) return m.aporte.dash
-  return Number.isInteger(units)
-    ? String(units)
-    : units.toLocaleString('pt-BR', { maximumFractionDigits: 3 })
-}
-
-function SuggestionCard({
-  suggestion: s,
-  onRemove,
-}: {
-  suggestion: ContributionSuggestion
-  onRemove: (investmentId: string, investmentName: string) => void
-}) {
-  const showDual =
-    s.suggestedCurrency.toUpperCase() !== s.contributionCurrency.toUpperCase()
-
-  return (
-    <div className="border-b border-outline-variant/10 p-4 last:border-b-0">
-      <div className="flex items-start justify-between gap-2">
-        <span className="flex items-center gap-1.5 font-medium text-on-surface">
-          {s.investmentName}
-          {s.missingQuote && (
-            <span
-              className="material-symbols-outlined text-[16px] text-tertiary"
-              title={m.aporte.missingQuoteTooltip}
-              aria-label={m.aporte.missingQuoteTooltip}
+      {mode !== 'loading' && needsRf && (
+        <div className="mt-5 space-y-4">
+          <p className="rounded-xl bg-tertiary-container/40 px-4 py-3 text-sm text-on-surface">
+            {m.aporte.aportarNeedsRfDetails}
+          </p>
+          <div className="flex gap-2">
+            <Link
+              to="/portfolio/holdings"
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary-container px-4 py-2.5 font-body text-sm font-semibold text-on-primary no-underline"
             >
-              info
-            </span>
+              <span className="material-symbols-outlined text-lg leading-none">
+                account_balance_wallet
+              </span>
+              {m.aporte.aportarGoToCarteira}
+            </Link>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-outline-variant/30 px-4 py-2.5 font-body text-sm font-semibold text-on-surface-variant"
+            >
+              {m.aporte.aportarCancel}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mode !== 'loading' && !needsRf && (
+        <form onSubmit={submit} className="mt-5 space-y-4">
+          {mode === 'rv' ? (
+            <>
+              {isNewPosition && (
+                <p className="rounded-xl bg-surface-variant/40 px-3 py-2 text-xs text-on-surface-variant">
+                  {m.aporte.aportarNewPositionHint}
+                </p>
+              )}
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-outline">
+                  {m.aporte.aportarQtyLabel}
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputMode="decimal"
+                  value={qty || ''}
+                  onChange={(e) => setQty(Number(e.target.value))}
+                  className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-3 py-2.5 text-sm font-semibold text-on-surface outline-none focus:border-primary"
+                />
+              </label>
+              <CurrencyInput
+                value={unitPrice}
+                currency={s.suggestedCurrency}
+                label={m.aporte.aportarUnitPriceLabel}
+                onChange={setUnitPrice}
+              />
+              <p className="text-xs text-on-surface-variant">
+                {m.aporte.colValor}:{' '}
+                <span className="font-semibold tabular-nums text-on-surface">
+                  {formatCurrency(round2(qty * unitPrice), s.suggestedCurrency)}
+                </span>
+              </p>
+            </>
+          ) : (
+            <CurrencyInput
+              value={capital}
+              currency={s.contributionCurrency}
+              label={m.aporte.aportarCapitalLabel}
+              onChange={setCapital}
+            />
           )}
-        </span>
-        <button
-          type="button"
-          onClick={() => onRemove(s.investmentId, s.investmentName)}
-          aria-label={m.aporte.removeSuggestion}
-          title={m.aporte.removeSuggestion}
-          className="-mr-1 shrink-0 rounded-full p-1 text-on-surface-variant transition-opacity hover:opacity-70"
-        >
-          <span className="material-symbols-outlined text-[18px]">close</span>
-        </button>
-      </div>
 
-      <div className="mt-3 flex flex-col gap-0.5">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-outline">
-          {m.aporte.colValor}
-        </span>
-        <span className="text-lg font-semibold tabular-nums text-on-surface">
-          {formatCurrency(s.suggestedAmount, s.suggestedCurrency)}
-        </span>
-        {showDual && (
-          <span className="text-xs tabular-nums text-on-surface-variant">
-            {formatCurrency(s.contributionAmount, s.contributionCurrency)}
-          </span>
-        )}
-      </div>
+          <label className="block">
+            <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-outline">
+              {m.aporte.aportarDateLabel}
+            </span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-3 py-2.5 text-sm font-semibold text-on-surface outline-none focus:border-primary"
+            />
+          </label>
 
-      <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-outline">
-            {m.aporte.colUnidades}
-          </p>
-          <p className="mt-1 font-semibold tabular-nums text-on-surface">
-            {formatUnits(s.units)}
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-outline">
-            {m.aporte.colPct}
-          </p>
-          <p className="mt-1 font-semibold tabular-nums text-on-surface">
-            {s.contributionPct.toFixed(1)}%
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-outline">
-            {m.aporte.colScore}
-          </p>
-          <p className="mt-1 font-semibold tabular-nums text-on-surface">
-            {s.score}
-          </p>
-        </div>
-      </div>
-    </div>
+          {err && (
+            <p role="alert" className="text-xs text-error">
+              {err}
+            </p>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="submit"
+              disabled={busy}
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary-container px-4 py-2.5 font-body text-sm font-semibold text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
+            >
+              {busy ? m.aporte.aportarSaving : m.aporte.aportarConfirm}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-outline-variant/30 px-4 py-2.5 font-body text-sm font-semibold text-on-surface-variant"
+            >
+              {m.aporte.aportarCancel}
+            </button>
+          </div>
+        </form>
+      )}
+    </ModalShell>
   )
 }
 
-function SuggestionRow({
-  suggestion: s,
-  onRemove,
+function SaveModal({
+  result,
+  amount,
+  currency,
+  computedAt,
+  excludedIds,
+  appliedIds,
+  onClose,
+  onSaved,
 }: {
-  suggestion: ContributionSuggestion
-  onRemove: (investmentId: string, investmentName: string) => void
+  result: Extract<AporteSimulationResult, { reason: 'OK' }>
+  amount: number
+  currency: string
+  computedAt: string
+  excludedIds: Set<string>
+  appliedIds: Set<string>
+  onClose: () => void
+  onSaved: () => void
 }) {
-  const showDual =
-    s.suggestedCurrency.toUpperCase() !== s.contributionCurrency.toUpperCase()
+  const defaultName = `${new Date(computedAt).toLocaleDateString('pt-BR')} · ${formatCurrency(amount, currency)}`
+  const [name, setName] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setErr(null)
+    try {
+      setBusy(true)
+      await saveAporteRunFn({
+        data: {
+          name: name.trim() || defaultName,
+          amount,
+          currency,
+          simulatedAt: computedAt,
+          snapshot: {
+            input: {
+              amount,
+              currency,
+              excludedInvestmentIds: [...excludedIds],
+            },
+            suggestions: result.suggestions,
+            typeProjections: result.typeProjections,
+            unallocatedAmount: result.unallocatedAmount,
+            appliedInvestmentIds: [...appliedIds],
+          },
+        },
+      })
+      toast.success(m.aporte.saveSuccess)
+      onSaved()
+    } catch {
+      setErr(m.aporte.saveError)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
-    <tr className="border-b border-outline-variant/10 hover:bg-surface-variant/20">
-      <td className="px-4 py-3 font-medium text-on-surface">
-        <span className="flex items-center gap-1.5">
-          {s.investmentName}
-          {s.missingQuote && (
-            <span
-              className="material-symbols-outlined text-[16px] text-tertiary"
-              title={m.aporte.missingQuoteTooltip}
-              aria-label={m.aporte.missingQuoteTooltip}
-            >
-              info
-            </span>
-          )}
-        </span>
-      </td>
-      <td className="px-4 py-3 text-right tabular-nums text-on-surface">
-        {showDual ? (
-          <span className="flex flex-col items-end gap-0.5">
-            <span>
-              {formatCurrency(s.suggestedAmount, s.suggestedCurrency)}
-            </span>
-            <span className="text-xs text-on-surface-variant">
-              {formatCurrency(s.contributionAmount, s.contributionCurrency)}
-            </span>
+    <ModalShell labelledBy="save-modal-title" onClose={onClose}>
+      <h2
+        id="save-modal-title"
+        className="font-headline text-xl font-bold text-on-surface"
+      >
+        {m.aporte.saveTitle}
+      </h2>
+      <form onSubmit={submit} className="mt-5 space-y-4">
+        <label className="block">
+          <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-outline">
+            {m.aporte.saveNameLabel}
           </span>
-        ) : (
-          formatCurrency(s.suggestedAmount, s.suggestedCurrency)
+          <input
+            type="text"
+            value={name}
+            placeholder={defaultName}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-high px-3 py-2.5 text-sm font-semibold text-on-surface outline-none focus:border-primary"
+          />
+        </label>
+        {err && (
+          <p role="alert" className="text-xs text-error">
+            {err}
+          </p>
         )}
-      </td>
-      <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">
-        {formatUnits(s.units)}
-      </td>
-      <td className="px-4 py-3 text-right tabular-nums text-on-surface">
-        {s.contributionPct.toFixed(1)}%
-      </td>
-      <td className="px-4 py-3 text-right tabular-nums text-on-surface-variant">
-        {s.score}
-      </td>
-      <td className="px-2 py-3 text-right">
-        <button
-          type="button"
-          onClick={() => onRemove(s.investmentId, s.investmentName)}
-          aria-label={m.aporte.removeSuggestion}
-          title={m.aporte.removeSuggestion}
-          className="rounded-full p-1 text-on-surface-variant transition-opacity hover:opacity-70"
-        >
-          <span className="material-symbols-outlined text-[18px]">close</span>
-        </button>
-      </td>
-    </tr>
+        <div className="flex gap-2 pt-1">
+          <button
+            type="submit"
+            disabled={busy}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary-container px-4 py-2.5 font-body text-sm font-semibold text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
+          >
+            {busy ? m.aporte.saveSaving : m.aporte.saveConfirm}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-outline-variant/30 px-4 py-2.5 font-body text-sm font-semibold text-on-surface-variant"
+          >
+            {m.aporte.saveCancel}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
   )
 }
