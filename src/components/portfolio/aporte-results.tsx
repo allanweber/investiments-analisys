@@ -218,7 +218,7 @@ function SuggestionRow({
             <button
               type="button"
               onClick={() => onAportar?.(s)}
-              className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-primary-container/25 px-2.5 py-1.5 font-body text-xs font-semibold text-on-surface transition-colors hover:bg-primary-container/45"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-primary-container px-3 py-1.5 font-body text-xs font-semibold text-on-primary transition-opacity hover:opacity-90"
               title={m.aporte.aportarButton}
             >
               <span className="material-symbols-outlined text-base leading-none">
