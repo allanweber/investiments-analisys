@@ -270,7 +270,8 @@ const core = {
     addInvestmentsHint:
       'Informe o nome e o ticker (obrigatório, exceto para renda fixa) e escolha o tipo.',
     labelTicker: 'Ticker',
-    tickerHint: 'Ex.: PETR4, AAPL, VWRL.L. Deixe em branco apenas para renda fixa.',
+    tickerHint:
+      'Ex.: PETR4, AAPL, VWRL.L. Deixe em branco apenas para renda fixa.',
     selectTypePlaceholder: 'Escolher tipo',
     createListSubmit: 'Adicionar',
     filterAllPlaceholder: 'Todos ou um tipo',
@@ -362,7 +363,8 @@ const core = {
     explainTitle: 'Por que essa pontuação?',
     explainDriversTitle: 'Perguntas respondidas',
     explainUnansweredTitle: 'Perguntas sem resposta',
-    explainUnansweredHint: 'Responder qualquer uma destas pode mudar a pontuação.',
+    explainUnansweredHint:
+      'Responder qualquer uma destas pode mudar a pontuação.',
     explainEmpty: 'Nenhuma pergunta ativa para explicar.',
   },
   portfolio: {
@@ -446,9 +448,11 @@ const core = {
     title: 'Carteira',
     viewHoldings: 'Ver posições',
     newContribution: 'Novo aporte',
-    emptyStateSubtitleShort: 'Consolide seus ativos e visualize sua saúde financeira.',
+    emptyStateSubtitleShort:
+      'Consolide seus ativos e visualize sua saúde financeira.',
     emptyStateTitle: 'Sua carteira está pronta para ser construída.',
-    emptyStateSubtitleLong: 'Consolide seus ativos e visualize sua saúde financeira.',
+    emptyStateSubtitleLong:
+      'Consolide seus ativos e visualize sua saúde financeira.',
     emptyStateBody:
       'Adicione seus primeiros investimentos para visualizar sua alocação e ranking estratégico.',
     addInvestment: 'Adicionar investimento',
@@ -486,8 +490,7 @@ const core = {
       'Defina seus alvos por categoria em Portfólio antes de simular um aporte.',
     noEligible:
       'Nenhum investimento com pontuação suficiente para as categorias abaixo do alvo.',
-    categoryAboveTarget:
-      'Categoria já acima do alvo — sem sugestão de aporte.',
+    categoryAboveTarget: 'Categoria já acima do alvo — sem sugestão de aporte.',
     missingQuoteTooltip:
       'Cotação não disponível — valor estimado na moeda do aporte.',
     amountRequired: 'Informe um valor maior que zero.',
@@ -497,6 +500,55 @@ const core = {
     addBack: 'Adicionar de volta',
     removedChipsLabel: 'Removidos desta simulação:',
     naoAlocado: 'Não alocado',
+    // —— Aportar (apply a suggestion to real holdings) ——
+    aportarButton: 'Aportar',
+    aportarDone: 'Aportado',
+    aportarTitle: 'Aportar',
+    aportarSubtitle: 'Confirme os dados antes de lançar na sua carteira.',
+    aportarQtyLabel: 'Quantidade',
+    aportarUnitPriceLabel: 'Preço unitário',
+    aportarCapitalLabel: 'Valor do aporte',
+    aportarDateLabel: 'Data da operação',
+    aportarConfirm: 'Confirmar aporte',
+    aportarCancel: 'Cancelar',
+    aportarSaving: 'Lançando…',
+    aportarFetchingQuote: 'Buscando cotação atual…',
+    aportarSuccess: (name: string) => `Aporte lançado em ${name}.`,
+    aportarError: 'Não foi possível lançar o aporte. Tente novamente.',
+    aportarNeedsRfDetails:
+      'Cadastre este título de renda fixa na Carteira (com indexador, taxa e vencimento) antes de aportar.',
+    aportarGoToCarteira: 'Abrir Carteira',
+    aportarQtyRequired: 'Informe uma quantidade maior que zero.',
+    aportarPriceRequired: 'Informe o preço unitário.',
+    aportarNewPositionHint: 'Você ainda não possui este ativo — será criado.',
+    // —— Salvar / histórico ——
+    saveButton: 'Salvar',
+    saveTitle: 'Salvar simulação',
+    saveNameLabel: 'Nome (opcional)',
+    saveConfirm: 'Salvar',
+    saveCancel: 'Cancelar',
+    saveSaving: 'Salvando…',
+    saveSuccess: 'Simulação salva.',
+    saveError: 'Não foi possível salvar. Tente novamente.',
+    historyLink: 'Histórico',
+    historyTitle: 'Aportes salvos',
+    historySubtitle: 'Simulações de aporte salvas para referência futura.',
+    historyEmpty: 'Nenhuma simulação salva ainda.',
+    historyEmptyHint:
+      'Calcule um aporte e toque em Salvar para guardá-lo aqui.',
+    historyBackToAporte: 'Nova simulação',
+    historyOpen: 'Abrir',
+    historyClose: 'Fechar',
+    historyDelete: 'Excluir',
+    historyDeleteConfirm: (name: string) => `Excluir "${name}"?`,
+    historyDeleted: 'Simulação excluída.',
+    historyDeleteError: 'Não foi possível excluir. Tente novamente.',
+    historyAppliedBadge: (n: number, total: number) =>
+      `${n}/${total} aportados`,
+    historySimulatedAt: 'Simulado em',
+    historyReadOnly: 'Registro somente leitura da simulação salva.',
+    historySuggestionCount: (n: number) =>
+      n === 1 ? '1 sugestão' : `${n} sugestões`,
   },
   ai: {
     runButton: 'Verificar com IA',
@@ -513,13 +565,17 @@ const core = {
     clearAllButton: 'Limpar sugestões da IA',
     clearAllConfirm: 'Remover todas as sugestões da IA para este investimento?',
     clearAllSuccess: 'Sugestões da IA removidas.',
-    clearAllError: 'Não foi possível remover as sugestões da IA. Tente novamente.',
+    clearAllError:
+      'Não foi possível remover as sugestões da IA. Tente novamente.',
     checkedAt: (date: string) => `Verificado em ${date}`,
     errorMissingKey: 'Nenhuma chave de API da Claude configurada.',
-    errorInvalidKey: 'Chave de API da Claude inválida. Verifique em Configurações.',
-    errorRateLimited: 'Limite de uso da IA atingido. Tente novamente em instantes.',
+    errorInvalidKey:
+      'Chave de API da Claude inválida. Verifique em Configurações.',
+    errorRateLimited:
+      'Limite de uso da IA atingido. Tente novamente em instantes.',
     errorRefused: 'A IA recusou esta consulta. Tente novamente mais tarde.',
-    errorGeneric: 'Não foi possível concluir a verificação com IA. Tente novamente.',
+    errorGeneric:
+      'Não foi possível concluir a verificação com IA. Tente novamente.',
     errorNotFound: 'Investimento não encontrado.',
     errorNoQuestions: 'Este tipo não tem perguntas ativas para verificar.',
     settingsLink: 'Ir para Configurações',
@@ -531,7 +587,8 @@ const core = {
     bulkSelectedSuffix: 'selecionado(s)',
     bulkPending: 'Na fila',
     bulkRunSelected: (n: number) => `Verificar ${n} selecionado(s)`,
-    bulkRunning: (done: number, total: number) => `Verificando… ${done}/${total}`,
+    bulkRunning: (done: number, total: number) =>
+      `Verificando… ${done}/${total}`,
     bulkDone: 'Concluído',
     bulkOpenLink: 'Abrir e revisar',
   },
