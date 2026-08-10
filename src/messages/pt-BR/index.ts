@@ -521,6 +521,10 @@ const core = {
     aportarQtyRequired: 'Informe uma quantidade maior que zero.',
     aportarPriceRequired: 'Informe o preço unitário.',
     aportarNewPositionHint: 'Você ainda não possui este ativo — será criado.',
+    // —— Descartar ——
+    discardButton: 'Descartar',
+    discardConfirm:
+      'Descartar esta simulação de aporte? Os aportes já aplicados na carteira permanecem.',
     // —— Salvar / histórico ——
     saveButton: 'Salvar',
     saveTitle: 'Salvar simulação',
