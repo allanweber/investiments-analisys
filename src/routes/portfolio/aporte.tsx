@@ -27,6 +27,12 @@ import {
 } from '@/lib/aporte-run-server'
 import { SUPPORTED_FX_CURRENCIES } from '@/lib/fx'
 import type { FxCurrency } from '@/lib/fx'
+import {
+  clearPersistedAporte,
+  loadPersistedAporte,
+  savePersistedAporte,
+} from '@/lib/aporte-storage'
+import { confirm } from '@/lib/confirm'
 import { messages as m } from '@/messages'
 
 export const Route = createFileRoute('/portfolio/aporte')({
@@ -62,6 +68,51 @@ function AportePage() {
   const [aportarTarget, setAportarTarget] =
     useState<ContributionSuggestion | null>(null)
   const [saveOpen, setSaveOpen] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
+
+  // Restore the last unsaved simulation from localStorage on mount so it stays
+  // on screen across reloads and navigation.
+  useEffect(() => {
+    const persisted = loadPersistedAporte()
+    if (persisted) {
+      setCurrency(persisted.currency)
+      setAmount(persisted.amount)
+      setResult(persisted.result)
+      setComputedAt(persisted.computedAt)
+      setExcludedIds(new Set(persisted.excludedIds))
+      setRemovedNames(new Map(persisted.removedNames))
+      setAppliedIds(new Set(persisted.appliedIds))
+    }
+    setHydrated(true)
+  }, [])
+
+  // Keep localStorage in sync with the current simulation. Only OK results are
+  // worth restoring; anything else clears the stored value.
+  useEffect(() => {
+    if (!hydrated) return
+    if (result?.reason === 'OK') {
+      savePersistedAporte({
+        currency,
+        amount,
+        result,
+        computedAt,
+        excludedIds: [...excludedIds],
+        removedNames: [...removedNames.entries()],
+        appliedIds: [...appliedIds],
+      })
+    } else {
+      clearPersistedAporte()
+    }
+  }, [
+    hydrated,
+    result,
+    currency,
+    amount,
+    computedAt,
+    excludedIds,
+    removedNames,
+    appliedIds,
+  ])
 
   if (isPending) {
     return (
@@ -148,6 +199,21 @@ function AportePage() {
   function handleAportarSuccess(investmentId: string) {
     setAppliedIds((prev) => new Set(prev).add(investmentId))
     setAportarTarget(null)
+  }
+
+  function clearSimulation() {
+    setResult(null)
+    setComputedAt('')
+    setError(null)
+    setExcludedIds(new Set())
+    setRemovedNames(new Map())
+    setAppliedIds(new Set())
+    clearPersistedAporte()
+  }
+
+  async function handleDiscard() {
+    if (!(await confirm(m.aporte.discardConfirm))) return
+    clearSimulation()
   }
 
   if (!isAporteIndex) {
@@ -283,7 +349,17 @@ function AportePage() {
 
       {result?.reason === 'OK' && (
         <>
-          <div className="mb-3 flex items-center justify-end">
+          <div className="mb-3 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => void handleDiscard()}
+              className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant/30 px-4 py-2 font-body text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-high"
+            >
+              <span className="material-symbols-outlined text-lg leading-none">
+                delete_sweep
+              </span>
+              {m.aporte.discardButton}
+            </button>
             <button
               type="button"
               onClick={() => setSaveOpen(true)}
@@ -325,7 +401,10 @@ function AportePage() {
           excludedIds={excludedIds}
           appliedIds={appliedIds}
           onClose={() => setSaveOpen(false)}
-          onSaved={() => setSaveOpen(false)}
+          onSaved={() => {
+            setSaveOpen(false)
+            clearSimulation()
+          }}
         />
       )}
     </main>
