@@ -490,6 +490,8 @@ const core = {
       'Defina seus alvos por categoria em Portfólio antes de simular um aporte.',
     noEligible:
       'Nenhum investimento com pontuação suficiente para as categorias abaixo do alvo.',
+    belowMin: (minUnit: string) =>
+      `Valor abaixo do preço de 1 cota do ativo mais barato (${minUnit}). Aumente o aporte para receber sugestões.`,
     categoryAboveTarget: 'Categoria já acima do alvo — sem sugestão de aporte.',
     missingQuoteTooltip:
       'Cotação não disponível — valor estimado na moeda do aporte.',

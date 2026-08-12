@@ -347,6 +347,16 @@ function AportePage() {
         </section>
       )}
 
+      {result?.reason === 'AMOUNT_BELOW_MIN' && (
+        <section className="rounded-2xl border border-outline-variant/30 bg-surface p-8 text-center">
+          <p className="text-sm text-on-surface-variant">
+            {m.aporte.belowMin(
+              formatCurrency(result.minUnitAmount, result.minUnitCurrency),
+            )}
+          </p>
+        </section>
+      )}
+
       {result?.reason === 'OK' && (
         <>
           <div className="mb-3 flex items-center justify-end gap-2">
