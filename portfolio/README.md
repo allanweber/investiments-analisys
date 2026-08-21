@@ -13,6 +13,9 @@ functions), backed by **PostgreSQL / Drizzle ORM**, with a Material-3 editorial 
 system in light and dark, and a responsive layout that works from a 390px phone to a
 wide desktop.
 
+> 🖥️ **A visual landing page is included: [`landing.html`](./landing.html)** — open it in
+> a browser for a designed, scrollable tour of the app with the real screenshots.
+
 > The interface is in Brazilian Portuguese (pt-BR), tailored to Brazilian investors —
 > FIIs, Tesouro Direto, CDI/IPCA-indexed fixed income, B3 tickers, and BRL/USD/EUR
 > conversion are all first-class.
