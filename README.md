@@ -36,12 +36,11 @@ docker compose up -d postgres   # if not already running
 docker compose up --build app   # http://localhost:3000
 ```
 
-Put secrets in `.env.local` (optional `env_file` for the `app` service): `BRAPI_TOKEN`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, etc. `DATABASE_URL` is set by compose for the `app` → `postgres` link.
+Put secrets in `.env.local` (optional `env_file` for the `app` service): `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, etc. `DATABASE_URL` is set by compose for the `app` → `postgres` link.
 
 ### Environment (web + worker in one container)
 
 - **Required**: `DATABASE_URL`
-- **If you have BRL tickers**: `BRAPI_TOKEN`
 - **Optional**:
   - `RUN_QUOTE_WORKER` (default: `true`) — set `false` on web if you use a dedicated worker container
   - `MARKET_QUOTE_TTL_HOURS` (default: 12)

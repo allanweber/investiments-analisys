@@ -16,10 +16,7 @@ export type YahooFxFetchResult = {
 }
 
 export async function fetchYahooFxRates(): Promise<YahooFxFetchResult[]> {
-  const inputs = YAHOO_FX_PAIRS.map((p) => ({
-    symbol: p.symbol,
-    holdingCurrency: null,
-  }))
+  const inputs = YAHOO_FX_PAIRS.map((p) => ({ symbol: p.symbol }))
   const results = await yfinanceProvider.fetchQuotes(inputs)
   const out: YahooFxFetchResult[] = []
 

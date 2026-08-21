@@ -43,7 +43,8 @@ export async function fetchYahooLogoUrls(
   for (const raw of symbols) {
     const symbol = raw.trim()
     if (!symbol) continue
-    const req = { symbol, module: 'assetProfile' }
+    const yahooSymbol = yahooSymbolFor(symbol)
+    const req = { symbol: yahooSymbol, module: 'assetProfile' }
     try {
       if (isMarketDataLogEnabled()) {
         logMarketDataProviderEvent({
@@ -52,7 +53,7 @@ export async function fetchYahooLogoUrls(
           request: req,
         })
       }
-      const payload: any = await yahooFinance.quoteSummary(symbol, {
+      const payload: any = await yahooFinance.quoteSummary(yahooSymbol, {
         modules: ['assetProfile'],
       })
       let logoUrl: string | null =
@@ -168,7 +169,12 @@ export const yfinanceProvider: QuoteProvider = {
     for (let start = 0; start < inputs.length; start += QUOTE_BATCH) {
       const slice = inputs.slice(start, start + QUOTE_BATCH)
       const unique = [
-        ...new Set(slice.map((i) => i.symbol.trim()).filter(Boolean)),
+        ...new Set(
+          slice
+            .map((i) => i.symbol.trim())
+            .filter(Boolean)
+            .map(yahooSymbolFor),
+        ),
       ]
 
       if (unique.length === 0) {
@@ -209,7 +215,7 @@ export const yfinanceProvider: QuoteProvider = {
             })
             continue
           }
-          const row = pickQuoteRow(obj, sym)
+          const row = pickQuoteRow(obj, yahooSymbolFor(sym))
           const quote = parseYahooQuote(sym, row)
           if (!quote || quote.price == null) {
             out.push({

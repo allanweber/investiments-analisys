@@ -49,7 +49,6 @@ export const refreshPortfolioQuotesFn = createServerFn({ method: 'POST' })
     const holdings = await db
       .select({
         ticker: investment.ticker,
-        holdingCurrency: investment.currency,
         fixedIncome: investmentType.fixedIncome,
         investmentTypeName: investmentType.name,
       })
@@ -65,10 +64,7 @@ export const refreshPortfolioQuotesFn = createServerFn({ method: 'POST' })
 
     const inputs: MarketQuoteInput[] = holdings
       .filter((h) => !isFixedIncomeTipo(h.fixedIncome, h.investmentTypeName))
-      .map((h) => ({
-        symbol: (h.ticker ?? '').trim(),
-        holdingCurrency: normalizeHoldingCurrency(h.holdingCurrency),
-      }))
+      .map((h) => ({ symbol: (h.ticker ?? '').trim() }))
       .filter((i) => i.symbol.length > 0)
 
     const { stale } = await refreshMarketQuotesForInputs({

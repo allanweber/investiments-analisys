@@ -1,37 +1,16 @@
 import { inArray, sql } from 'drizzle-orm'
 
 import { marketQuote } from '../../db/schema'
-import { normalizeHoldingCurrency } from '../math'
 import { getMarketDataDb, makeLogger } from './db'
-import { getQuoteProvider } from './index'
+import { fetchYahooLogoUrls, yfinanceProvider } from './providers/yfinance'
 import type { MarketQuote, MarketQuoteInput, QuoteFetchResult } from './types'
 
 const log = makeLogger('quoteRefresh')
-
-/**
- * If the same symbol appears with mixed `holdingCurrency` values, **any** `BRL`
- * row routes that symbol to brapi-first for this refresh.
- */
-function symbolPreferBrapiFirst(
-  inputs: readonly MarketQuoteInput[],
-  normalizedSymbol: string,
-): boolean {
-  for (const inp of inputs) {
-    if (inp.symbol.trim() !== normalizedSymbol) continue
-    if (normalizeHoldingCurrency(inp.holdingCurrency) === 'BRL') return true
-  }
-  return false
-}
 
 function isMarketDataLogEnabled(): boolean {
   const v = (process.env.MARKET_DATA_LOG ?? '').trim().toLowerCase()
   if (v === '1' || v === 'true' || v === 'yes' || v === 'on') return true
   return false
-}
-
-function requireBrapiToken() {
-  const token = (process.env.BRAPI_TOKEN ?? '').trim()
-  if (!token) throw new Error('Missing BRAPI_TOKEN (required)')
 }
 
 export type QuoteRefreshReason = 'worker' | 'immediate'
@@ -60,156 +39,59 @@ export async function refreshMarketQuotesForInputs(params: {
   >()
   if (symbols.length === 0) return { bySymbol, stale: false }
 
-  const brapi = getQuoteProvider('brapi')
-  const yfinance = getQuoteProvider('yfinance')
-
-  const brlPrimary = symbols.filter((s) =>
-    symbolPreferBrapiFirst(params.inputs, s),
-  )
-  const nonBrl = symbols.filter(
-    (s) => !symbolPreferBrapiFirst(params.inputs, s),
-  )
-
-  if (brlPrimary.length > 0) requireBrapiToken()
-
   let stale = false
 
-  const brlInputs = brlPrimary.map((s) => ({
-    symbol: s,
-    holdingCurrency: 'BRL' as const,
-  }))
-  let brlResults: QuoteFetchResult[] = []
-  const brapiStart = Date.now()
-  if (logEnabled && brlPrimary.length > 0) {
+  const yStart = Date.now()
+  if (logEnabled) {
     log({
       level: 'info',
-      msg: 'brapi -> triggered',
-      provider: 'brapi',
+      msg: 'yfinance -> triggered',
+      provider: 'yfinance',
       phase: 'triggered',
       actorId: params.actorId,
       reason: params.reason,
-      request: {
-        symbols: brlPrimary,
-        n: brlPrimary.length,
-        holdingCurrency: 'BRL',
-      },
+      request: { symbols, n: symbols.length },
     })
   }
+  let results: QuoteFetchResult[] = []
   try {
-    brlResults = brlPrimary.length > 0 ? await brapi.fetchQuotes(brlInputs) : []
+    results = await yfinanceProvider.fetchQuotes(
+      symbols.map((s) => ({ symbol: s })),
+    )
   } catch (e: any) {
     stale = true
     log({
       level: 'error',
-      msg: 'brapi -> error',
-      provider: 'brapi',
+      msg: 'yfinance -> error',
+      provider: 'yfinance',
       phase: 'error',
       actorId: params.actorId,
       reason: params.reason,
-      elapsedMs: Date.now() - brapiStart,
-      request: {
-        symbols: brlPrimary,
-        n: brlPrimary.length,
-        holdingCurrency: 'BRL',
-      },
+      elapsedMs: Date.now() - yStart,
+      request: { symbols, n: symbols.length },
       error: {
         message: typeof e?.message === 'string' ? e.message : 'Provider error',
         stack: typeof e?.stack === 'string' ? e?.stack : undefined,
       },
     })
-    brlResults = brlPrimary.map(() => ({
+    results = symbols.map(() => ({
       ok: false as const,
       code: 'PROVIDER_ERROR' as const,
       message: typeof e?.message === 'string' ? e.message : 'Provider error',
     }))
   }
 
-  const brlBySymbol = new Map<string, QuoteFetchResult>()
-  for (let i = 0; i < brlPrimary.length; i++) {
-    brlBySymbol.set(brlPrimary[i], brlResults[i])
-  }
-
-  const symbolsForYahoo = new Set<string>(nonBrl)
-  for (const s of brlPrimary) {
-    const r = brlBySymbol.get(s)
-    if (!r?.ok) symbolsForYahoo.add(s)
-  }
-  const yahooList = [...symbolsForYahoo]
-
-  const yahooInputs = yahooList.map((s) => ({ symbol: s }))
-  let yahooResults: QuoteFetchResult[] = []
-  if (yahooList.length > 0) {
-    const yStart = Date.now()
-    if (logEnabled) {
-      log({
-        level: 'info',
-        msg: 'yfinance -> triggered',
-        provider: 'yfinance',
-        phase: 'triggered',
-        actorId: params.actorId,
-        reason: params.reason,
-        request: { symbols: yahooList, n: yahooList.length },
-      })
-    }
-    try {
-      yahooResults = await yfinance.fetchQuotes(yahooInputs)
-    } catch (e: any) {
-      stale = true
-      log({
-        level: 'error',
-        msg: 'yfinance -> error',
-        provider: 'yfinance',
-        phase: 'error',
-        actorId: params.actorId,
-        reason: params.reason,
-        elapsedMs: Date.now() - yStart,
-        request: { symbols: yahooList, n: yahooList.length },
-        error: {
-          message:
-            typeof e?.message === 'string' ? e.message : 'Provider error',
-          stack: typeof e?.stack === 'string' ? e?.stack : undefined,
-        },
-      })
-      yahooResults = yahooList.map(() => ({
-        ok: false as const,
-        code: 'PROVIDER_ERROR' as const,
-        message: typeof e?.message === 'string' ? e.message : 'Provider error',
-      }))
-    }
-  }
-
-  const yahooBySymbol = new Map<string, QuoteFetchResult>()
-  for (let i = 0; i < yahooList.length; i++) {
-    yahooBySymbol.set(yahooList[i], yahooResults[i])
-  }
-
   const toSave = new Map<string, MarketQuote>()
-
-  for (const s of brlPrimary) {
-    const br = brlBySymbol.get(s)!
-    if (!br.ok && br.code === 'PROVIDER_ERROR') stale = true
-    if (br.ok) toSave.set(s, br.quote)
+  for (let i = 0; i < symbols.length; i++) {
+    const r = results[i]
+    if (!r.ok && r.code === 'PROVIDER_ERROR') stale = true
+    if (r.ok) toSave.set(symbols[i], r.quote)
   }
 
-  for (const s of nonBrl) {
-    const yr = yahooBySymbol.get(s)!
-    if (!yr.ok && yr.code === 'PROVIDER_ERROR') stale = true
-    if (yr.ok) toSave.set(s, yr.quote)
-  }
-
-  // Yahoo fallback for BRL-primary failures.
-  for (const s of brlPrimary) {
-    if (toSave.has(s)) continue
-    const yr = yahooBySymbol.get(s)!
-    if (!yr.ok && yr.code === 'PROVIDER_ERROR') stale = true
-    if (yr.ok) toSave.set(s, yr.quote)
-  }
-
-  // Fetch missing logos for yfinance quotes immediately after quote,
-  // but only when market_quote doesn't already have a cached logo for the symbol.
+  // Fetch missing logos immediately after quote, but only when market_quote
+  // doesn't already have a cached logo for the symbol.
   const needLogo: string[] = []
   for (const [symbol, q] of toSave.entries()) {
-    if (q.provider !== 'yfinance') continue
     if (q.logoUrl) continue
     needLogo.push(symbol)
   }
@@ -224,14 +106,12 @@ export async function refreshMarketQuotesForInputs(params: {
 
     const missing = needLogo.filter((s) => !cachedLogoBySymbol.get(s))
     if (missing.length > 0) {
-      const { fetchYahooLogoUrls } = await import('./providers/yfinance')
       const logos = await fetchYahooLogoUrls(missing)
       for (const sym of missing) {
         const logoUrl = logos.get(sym) ?? null
         if (!logoUrl) continue
         const q = toSave.get(sym)
         if (!q) continue
-        if (q.provider !== 'yfinance') continue
         toSave.set(sym, { ...q, logoUrl })
       }
     }

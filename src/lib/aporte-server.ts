@@ -15,7 +15,6 @@ import {
   valuateHoldings,
   withRendaFixaAvgCost,
 } from '@/lib/valuation-pipeline'
-import { normalizeHoldingCurrency } from '@/lib/math'
 import { getDb, requireUserId } from '@/lib/db-server'
 import { parseTargetsJson } from '@/lib/server-utils'
 import { simulateAporte } from '@/lib/aporte-algorithm'
@@ -104,12 +103,7 @@ export const simulateAporteFn = createServerFn({ method: 'POST' })
       if (isFixedIncomeTipo(inv.fixedIncome, inv.typeName)) continue
       const ticker = inv.ticker?.trim()
       if (!ticker) continue
-      varQuoteInputs.push({
-        symbol: ticker,
-        holdingCurrency: normalizeHoldingCurrency(
-          inv.currency ?? contributionCurrency,
-        ),
-      })
+      varQuoteInputs.push({ symbol: ticker })
     }
 
     // Deduplicate by symbol

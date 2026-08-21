@@ -9,21 +9,14 @@ import { normalizeHoldingCurrency } from '@/lib/math'
 import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
 import { idInput, uuid } from '@/lib/server-utils'
 
-/** B3-style tickers (end in a digit, no exchange suffix) resolve via brapi; others via yfinance. */
-function looksLikeB3Ticker(ticker: string): boolean {
-  const t = ticker.trim().toUpperCase()
-  return !t.includes('.') && /\d$/.test(t)
-}
-
 async function fetchTickerQuoteCurrency(
   userId: string,
   ticker: string,
-  holdingCurrency: string | null,
 ): Promise<{ resolved: boolean; currency: string | null; stale: boolean }> {
   const { bySymbol, stale } = await refreshMarketQuotesForInputs({
     actorId: userId,
     reason: 'immediate',
-    inputs: [{ symbol: ticker, holdingCurrency }],
+    inputs: [{ symbol: ticker }],
   })
   const quote = bySymbol.get(ticker)?.quote
   if (!quote || quote.price == null || Number(quote.price) <= 0) {
@@ -37,30 +30,22 @@ async function fetchTickerQuoteCurrency(
 }
 
 /**
- * Resolves a ticker to its quote currency. B3 tickers (e.g. PETR4) route to brapi via a BRL hint;
- * everything else routes to yfinance. Retries on transient provider failures (`stale` — e.g. brapi's
- * cold-request timeout/abort) before giving up, then falls back to the other provider so a
- * mis-guessed exchange still resolves. A `price` of null/0 counts as unresolved (VWRL 0-price case).
+ * Resolves a ticker to its quote currency via yfinance (B3 tickers get a `.SA` suffix there).
+ * Retries on transient provider failures (`stale` — e.g. a cold-request timeout/abort) before
+ * giving up. A `price` of null/0 counts as unresolved (VWRL 0-price case).
  */
 async function resolveTickerCurrency(
   userId: string,
   ticker: string,
 ): Promise<{ resolved: boolean; currency: string | null }> {
-  const primaryHint = looksLikeB3Ticker(ticker) ? 'BRL' : null
   try {
-    // Try the primary provider, retrying on transient (stale) failures — not on a genuine miss.
+    // Retry on transient (stale) failures — not on a genuine miss.
     for (let attempt = 0; attempt < 3; attempt++) {
-      const r = await fetchTickerQuoteCurrency(userId, ticker, primaryHint)
+      const r = await fetchTickerQuoteCurrency(userId, ticker)
       if (r.resolved) return r
       if (!r.stale) break
     }
-    // Fallback to the other provider (BRL ⇄ non-BRL routing) once.
-    const fallback = await fetchTickerQuoteCurrency(
-      userId,
-      ticker,
-      primaryHint === 'BRL' ? null : 'BRL',
-    )
-    return fallback
+    return { resolved: false, currency: null }
   } catch {
     return { resolved: false, currency: null }
   }
