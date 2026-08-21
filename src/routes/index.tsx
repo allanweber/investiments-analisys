@@ -38,6 +38,7 @@ const LANDING_CSS = `
   background: var(--paper);
   color: var(--text);
   min-height: 100vh;
+  overflow-x: hidden;
   font-family: "Inter", system-ui, -apple-system, sans-serif;
   font-size: 17px;
   line-height: 1.6;
@@ -58,6 +59,7 @@ html.dark .tfa-root {
 }
 
 .tfa-root * { box-sizing: border-box; }
+.tfa-root img { max-width: 100%; }
 .tfa-root h1, .tfa-root h2, .tfa-root h3 { font-family: "Manrope", system-ui, sans-serif; color: var(--ink); text-wrap: balance; margin: 0; }
 .tfa-root p { margin: 0; }
 .tfa-root a { color: inherit; }
@@ -85,18 +87,19 @@ html.dark .tfa-root {
   backdrop-filter: saturate(1.4) blur(12px);
   border-bottom: 1px solid var(--line);
 }
-.tfa-root .nav__inner { display: flex; align-items: center; justify-content: space-between; height: 66px; gap: 20px; }
+.tfa-root .nav__inner { display: flex; align-items: center; justify-content: space-between; min-height: 66px; gap: 16px; padding-block: 10px; }
 .tfa-root .brand { display: flex; align-items: center; gap: 11px; font-family: "Manrope"; font-weight: 800; color: var(--ink); font-size: 17px; letter-spacing: -.01em; text-decoration: none; }
 .tfa-root .brand .mark { width: 30px; height: 30px; border-radius: 8px; background: var(--navy); display: grid; place-items: center; color: var(--mint-on-navy); flex: none; }
 .tfa-root .brand .mark svg { width: 17px; height: 17px; }
 .tfa-root .nav__links { display: flex; gap: 28px; }
-.tfa-root .nav__links a { font-size: 14.5px; font-weight: 500; color: var(--muted); text-decoration: none; transition: color .15s; }
+.tfa-root .nav__links a { font-size: 14.5px; font-weight: 500; color: var(--muted); text-decoration: none; transition: color .15s; white-space: nowrap; }
 .tfa-root .nav__links a:hover { color: var(--ink); }
-.tfa-root .nav__actions { display: flex; align-items: center; gap: 10px; }
+.tfa-root .nav__actions { display: flex; align-items: center; gap: 10px; flex: none; }
 .tfa-root .btn {
   display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14.5px;
   padding: 10px 18px; border-radius: 99px; text-decoration: none; border: 1px solid transparent;
-  transition: transform .15s ease, background .15s, border-color .15s, opacity .15s; cursor: pointer;
+  white-space: nowrap; cursor: pointer;
+  transition: transform .15s ease, background .15s, border-color .15s, opacity .15s;
 }
 .tfa-root .btn:active { transform: translateY(1px); }
 .tfa-root .btn--primary { background: var(--navy); color: #fff; }
@@ -106,30 +109,36 @@ html.dark .tfa-root {
 .tfa-root .btn--ghost:hover { background: var(--surface-2); }
 .tfa-root .btn--ghost-navy { border-color: var(--on-navy-line); color: var(--on-navy); background: transparent; }
 .tfa-root .btn--ghost-navy:hover { background: rgba(255,255,255,.06); }
-@media (max-width: 760px){ .tfa-root .nav__links { display: none; } }
+@media (max-width: 900px){ .tfa-root .nav__links { display: none; } }
+@media (max-width: 560px){
+  .tfa-root .nav__actions .btn--ghost { display: none; }
+  .tfa-root .brand { font-size: 15px; gap: 9px; }
+  .tfa-root .btn { padding: 9px 15px; font-size: 14px; }
+}
 
 .tfa-root .hero { background: radial-gradient(120% 120% at 80% -10%, #1b2c44 0%, var(--navy) 42%, var(--navy-2) 100%); color: var(--on-navy); position: relative; overflow: hidden; }
 .tfa-root .hero::after { content: ""; position: absolute; inset: 0; background: radial-gradient(60% 50% at 15% 110%, rgba(42,211,149,.10), transparent 70%); pointer-events: none; }
-.tfa-root .hero__grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; padding: 84px 0 92px; position: relative; z-index: 1; }
-.tfa-root .hero h1 { color: #fff; font-size: clamp(38px, 5.4vw, 62px); font-weight: 800; line-height: 1.02; letter-spacing: -.025em; }
+.tfa-root .hero__grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; padding-block: 84px 92px; position: relative; z-index: 1; }
+.tfa-root .hero__grid > * { min-width: 0; }
+.tfa-root .hero h1 { color: #fff; font-size: clamp(34px, 5.4vw, 62px); font-weight: 800; line-height: 1.03; letter-spacing: -.025em; }
 .tfa-root .hero h1 .accent { color: var(--mint-on-navy); }
 .tfa-root .hero .lede { color: var(--on-navy-muted); font-size: 19px; margin-top: 22px; max-width: 40ch; }
 .tfa-root .hero__cta { display: flex; gap: 14px; margin-top: 34px; flex-wrap: wrap; }
 .tfa-root .hero__meta { margin-top: 30px; display: flex; align-items: center; gap: 14px; color: var(--on-navy-muted); font-size: 13.5px; font-family: "JetBrains Mono", monospace; }
 .tfa-root .hero__meta .allocbar { width: 120px; }
-@media (max-width: 940px){ .tfa-root .hero__grid { grid-template-columns: 1fr; gap: 40px; padding: 60px 0 68px; } .tfa-root .hero__shot { order: 2; } }
+@media (max-width: 940px){ .tfa-root .hero__grid { grid-template-columns: 1fr; gap: 40px; padding-block: 56px 60px; } .tfa-root .hero__shot { order: 2; } }
 
 .tfa-root .window { border-radius: 14px; overflow: hidden; background: var(--surface); box-shadow: var(--shadow); border: 1px solid var(--line); }
 .tfa-root .window--float { box-shadow: 0 40px 80px -30px rgba(0,0,0,.55), 0 8px 24px -12px rgba(0,0,0,.4); border-color: rgba(255,255,255,.08); }
 .tfa-root .window__bar { height: 38px; display: flex; align-items: center; gap: 7px; padding: 0 14px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
-.tfa-root .window__bar i { width: 11px; height: 11px; border-radius: 50%; background: #cfd6de; }
+.tfa-root .window__bar i { width: 11px; height: 11px; border-radius: 50%; background: #cfd6de; flex: none; }
 .tfa-root .window__bar i:nth-child(1){ background:#ec6a5e; } .tfa-root .window__bar i:nth-child(2){ background:#f4bf4f; } .tfa-root .window__bar i:nth-child(3){ background:#61c554; }
-.tfa-root .window__bar span { margin-left: 10px; font-family: "JetBrains Mono", monospace; font-size: 11.5px; color: var(--muted); }
+.tfa-root .window__bar span { margin-left: 10px; font-family: "JetBrains Mono", monospace; font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tfa-root .window__shot { display: block; width: 100%; object-fit: cover; object-position: top; background: var(--surface); }
 
 .tfa-root section { padding: 92px 0; }
 .tfa-root .section-head { max-width: 720px; margin: 0 auto 8px; text-align: center; }
-.tfa-root .section-head h2 { font-size: clamp(28px, 3.6vw, 40px); font-weight: 800; letter-spacing: -.02em; }
+.tfa-root .section-head h2 { font-size: clamp(26px, 3.6vw, 40px); font-weight: 800; letter-spacing: -.02em; }
 .tfa-root .section-head p { color: var(--muted); font-size: 18px; margin-top: 14px; }
 
 .tfa-root .stats { padding: 30px 0; border-bottom: 1px solid var(--line); background: var(--surface); }
@@ -140,9 +149,10 @@ html.dark .tfa-root {
 @media (max-width: 780px){ .tfa-root .stats__row { grid-template-columns: repeat(2, 1fr); gap: 18px 8px; } .tfa-root .stat:last-child { grid-column: span 2; } }
 
 .tfa-root .feature { display: grid; grid-template-columns: 1fr 1.12fr; gap: 60px; align-items: center; }
+.tfa-root .feature > * { min-width: 0; }
 .tfa-root .feature + .feature { margin-top: 96px; }
 .tfa-root .feature.reverse .feature__text { order: 2; }
-.tfa-root .feature__text h3 { font-size: clamp(25px, 2.9vw, 33px); font-weight: 800; letter-spacing: -.015em; line-height: 1.12; }
+.tfa-root .feature__text h3 { font-size: clamp(23px, 2.9vw, 33px); font-weight: 800; letter-spacing: -.015em; line-height: 1.14; }
 .tfa-root .feature__text p.claim { font-size: 18px; color: var(--text); margin-top: 16px; }
 .tfa-root .feature__list { list-style: none; padding: 0; margin: 24px 0 0; display: flex; flex-direction: column; gap: 13px; }
 .tfa-root .feature__list li { position: relative; padding-left: 30px; color: var(--text); font-size: 15.5px; }
@@ -156,6 +166,7 @@ html.dark .tfa-root {
 .tfa-root .spotlight h2 { color: #fff; }
 .tfa-root .spotlight .section-head p { color: var(--on-navy-muted); }
 .tfa-root .spotlight__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; margin-top: 54px; }
+.tfa-root .spotlight__grid > * { min-width: 0; }
 .tfa-root .spotlight__grid .lead { color: var(--on-navy-muted); font-size: 17px; }
 .tfa-root .callout { display: flex; gap: 14px; padding: 18px 20px; border: 1px solid var(--on-navy-line); border-radius: 14px; background: rgba(255,255,255,.03); margin-top: 22px; }
 .tfa-root .callout .num { font-family: "Manrope"; font-weight: 800; color: var(--mint-on-navy); font-size: 30px; line-height: 1; flex: none; }
@@ -179,11 +190,11 @@ html.dark .tfa-root {
 .tfa-root .chip b { color: var(--mint-ink); font-weight: 600; }
 
 .tfa-root .cta { background: radial-gradient(90% 120% at 50% -20%, #1b2c44, var(--navy) 55%, var(--navy-2)); color: var(--on-navy); text-align: center; }
-.tfa-root .cta h2 { color: #fff; font-size: clamp(30px, 4vw, 46px); font-weight: 800; letter-spacing: -.02em; }
+.tfa-root .cta h2 { color: #fff; font-size: clamp(28px, 4vw, 46px); font-weight: 800; letter-spacing: -.02em; }
 .tfa-root .cta p { color: var(--on-navy-muted); font-size: 18px; margin: 16px auto 0; max-width: 46ch; }
 .tfa-root .cta__buttons { display: flex; gap: 14px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
 .tfa-root .foot { background: var(--navy-2); color: var(--on-navy-muted); border-top: 1px solid var(--on-navy-line); }
-.tfa-root .foot__inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 26px 0; font-size: 13.5px; }
+.tfa-root .foot__inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-block: 26px; font-size: 13.5px; }
 .tfa-root .foot .brand { color: #fff; }
 .tfa-root .foot__inner a { color: var(--on-navy-muted); text-decoration: none; }
 .tfa-root .foot__inner a:hover { color: #fff; }
@@ -256,16 +267,16 @@ function LandingPage() {
           <a
             className="brand"
             href="#top"
-            aria-label="The Financial Architect — home"
+            aria-label="The Financial Architect — início"
           >
             <span className="mark">{HOUSE_SVG}</span>
             The Financial Architect
           </a>
-          <nav className="nav__links" aria-label="Landing">
-            <a href="#aporte">Contribution engine</a>
-            <a href="#features">Features</a>
-            <a href="#mobile">Mobile</a>
-            <a href="#stack">Stack</a>
+          <nav className="nav__links" aria-label="Seções">
+            <a href="#aporte">Simulação de aporte</a>
+            <a href="#recursos">Recursos</a>
+            <a href="#mobile">No celular</a>
+            <a href="#tecnologia">Tecnologia</a>
           </nav>
           <div className="nav__actions">
             <a
@@ -274,7 +285,7 @@ function LandingPage() {
               target="_blank"
               rel="noopener"
             >
-              View the code
+              Ver o código
             </a>
             <a className="btn btn--primary" href="/login">
               Entrar
@@ -289,7 +300,7 @@ function LandingPage() {
           <div className="wrap hero__grid">
             <div>
               <p className="eyebrow on-navy">
-                Portfolio allocation, done right
+                Alocação de carteira, do jeito certo
               </p>
               <h1>
                 Seu patrimônio,
@@ -297,17 +308,17 @@ function LandingPage() {
                 <span className="accent">arquitetado.</span>
               </h1>
               <p className="lede">
-                The allocation command center that tells you{' '}
+                O centro de comando da sua alocação que mostra{' '}
                 <strong style={{ color: '#fff', fontWeight: 600 }}>
-                  exactly what to buy next
+                  exatamente o que comprar no próximo aporte
                 </strong>{' '}
-                — multi-currency valuation, target-driven rebalancing,
-                investment scoring, and a built-in AI analyst, in one editorial
-                dashboard.
+                — valorização multimoeda, rebalanceamento por metas, pontuação
+                de investimentos e um analista de IA integrado, em um único
+                painel.
               </p>
               <div className="hero__cta">
                 <a className="btn btn--mint" href="#aporte">
-                  See the contribution engine
+                  Ver a simulação de aporte
                 </a>
                 <a className="btn btn--ghost-navy" href="/login">
                   Entrar
@@ -324,12 +335,12 @@ function LandingPage() {
                   <i />
                   <i />
                   <i />
-                  <span>financial-architect.app / carteira</span>
+                  <span>invest.tradefastapp.com · carteira</span>
                 </div>
                 <img
                   className="window__shot"
                   src="/landing/03-allocation.png"
-                  alt="Portfolio allocation: current vs target percentages with per-category drift analysis"
+                  alt="Alocação da carteira: percentuais atual vs alvo com análise de desvio por categoria"
                   style={{ aspectRatio: '1440 / 1180' }}
                 />
               </div>
@@ -341,7 +352,7 @@ function LandingPage() {
         <div className="stats">
           <div className="wrap stats__row">
             <div className="stat">
-              <b>3 currencies</b>
+              <b>3 moedas</b>
               <span>BRL · USD · EUR</span>
             </div>
             <div className="stat">
@@ -349,16 +360,16 @@ function LandingPage() {
               <span>RF · Ações · FII · ETF · Cripto</span>
             </div>
             <div className="stat">
-              <b>Whole-unit</b>
-              <span>Rebalancing</span>
+              <b>Cotas inteiras</b>
+              <span>Rebalanceamento</span>
             </div>
             <div className="stat">
-              <b>Claude AI</b>
-              <span>Built-in analyst</span>
+              <b>IA Claude</b>
+              <span>Analista integrado</span>
             </div>
             <div className="stat">
-              <b>132 tests</b>
-              <span>Passing</span>
+              <b>132 testes</b>
+              <span>Aprovados</span>
             </div>
           </div>
         </div>
@@ -367,12 +378,14 @@ function LandingPage() {
         <section className="spotlight" id="aporte">
           <div className="wrap">
             <div className="section-head">
-              <p className="eyebrow">The centerpiece · Simulação de Aporte</p>
-              <h2>Turn “how much should I invest?” into a buy list.</h2>
+              <p className="eyebrow">O destaque · Simulação de Aporte</p>
+              <h2>
+                Transforme “quanto devo investir?” em uma lista de compra.
+              </h2>
               <p>
-                Enter an amount; get a concrete, execute-today plan that pushes
-                every asset class back toward its target — in whole tradable
-                units, not fantasy fractions.
+                Informe um valor e receba um plano concreto e executável hoje,
+                que aproxima cada classe de ativo da sua meta — em cotas
+                inteiras negociáveis, não em frações impossíveis.
               </p>
             </div>
             <div className="spotlight__grid">
@@ -387,50 +400,52 @@ function LandingPage() {
                   <img
                     className="window__shot"
                     src="/landing/05-aporte.png"
-                    alt="Contribution simulation: per-category projections and whole-unit buy suggestions with only R$3,90 left unallocated"
+                    alt="Simulação de aporte: projeções por categoria e sugestões em cotas inteiras, com apenas R$ 3,90 não alocados"
                     style={{ aspectRatio: '1440 / 1453' }}
                   />
                 </div>
               </div>
               <div>
                 <p className="lead">
-                  A real allocation algorithm, not a percentage split. It
-                  water-fills the categories furthest below target, rounds every
-                  buy to whole units, and redeploys the rounding residual across
-                  categories so almost nothing is wasted.
+                  Um algoritmo de alocação de verdade, não uma simples divisão
+                  por porcentagem. Ele preenche primeiro as categorias mais
+                  abaixo da meta, arredonda cada compra para cotas inteiras e
+                  redistribui a sobra entre as categorias — para que quase nada
+                  fique parado.
                 </p>
                 <div className="callout">
-                  <div className="num">R$3,90</div>
+                  <div className="num">R$ 3,90</div>
                   <div>
                     <div className="k">
-                      left unallocated from a R$5.000 contribution
+                      não alocados em um aporte de R$ 5.000
                     </div>
                     <div className="d">
-                      Everything that <em>could</em> be deployed, was — the
-                      remainder is only what can't buy another whole unit, shown
-                      transparently as “Não alocado”.
+                      Tudo o que <em>podia</em> ser investido, foi — a sobra é
+                      só o que não compra mais uma cota inteira, mostrada de
+                      forma transparente como “Não alocado”.
                     </div>
                   </div>
                 </div>
                 <ul className="feature__list" style={{ marginTop: 24 }}>
                   <li>
-                    <strong>Whole-unit reality</strong> — the suggested value is{' '}
-                    <code>units × price</code>; no orders you can't place.
+                    <strong>Cotas inteiras de verdade</strong> — o valor
+                    sugerido é <code>cotas × preço</code>; nenhuma ordem
+                    impossível de executar.
                   </li>
                   <li>
-                    <strong>Water-filling</strong> — biggest allocation gaps get
-                    filled first, so the whole portfolio converges toward
-                    target.
+                    <strong>Preenchimento por nível</strong> — as maiores
+                    lacunas de alocação são preenchidas primeiro, e a carteira
+                    inteira converge para a meta.
                   </li>
                   <li>
-                    <strong>Residual redistribution</strong> — leftover money
-                    buys additional units elsewhere; fixed income absorbs the
-                    rest while under target.
+                    <strong>Redistribuição da sobra</strong> — o dinheiro que
+                    resta compra cotas em outros ativos; a renda fixa absorve o
+                    restante enquanto está abaixo da meta.
                   </li>
                   <li>
-                    <strong>One click to apply</strong> — launch the position at
-                    the suggested quantity, and save the whole plan as a
-                    read-only snapshot.
+                    <strong>Aplicar com um clique</strong> — lance a posição na
+                    quantidade sugerida e salve o plano inteiro como um registro
+                    somente leitura.
                   </li>
                 </ul>
               </div>
@@ -438,33 +453,33 @@ function LandingPage() {
           </div>
         </section>
 
-        {/* FEATURES */}
-        <section id="features">
+        {/* RECURSOS */}
+        <section id="recursos">
           <div className="wrap">
             <div className="section-head" style={{ marginBottom: 64 }}>
-              <p className="eyebrow">Everything in one place</p>
-              <h2>A command center for the long-term investor.</h2>
+              <p className="eyebrow">Tudo em um só lugar</p>
+              <h2>Um centro de comando para o investidor de longo prazo.</h2>
             </div>
 
             <div className="feature reverse">
               <div className="feature__text">
-                <p className="eyebrow">Targets, not vibes</p>
-                <h3>See exactly how far you've drifted from the plan.</h3>
+                <p className="eyebrow">Metas, não achismo</p>
+                <h3>Veja exatamente o quanto você se afastou do plano.</h3>
                 <p className="claim">
-                  Set a target percentage per asset class and the app measures
-                  reality against it, continuously.
+                  Defina uma meta em % para cada classe de ativo e o app mede a
+                  realidade contra ela, continuamente.
                 </p>
                 <ul className="feature__list">
                   <li>
-                    Current vs projected vs target %, category by category.
+                    Atual vs projetado vs meta %, categoria por categoria.
                   </li>
                   <li>
-                    Drift table with <strong>over / under-allocated</strong>{' '}
-                    status at a glance.
+                    Tabela de desvio com status{' '}
+                    <strong>acima / abaixo da meta</strong> num relance.
                   </li>
                   <li>
-                    Total wealth and unrealized P/L, with a per-currency
-                    breakdown.
+                    Patrimônio total e P/L não realizado, com detalhamento por
+                    moeda.
                   </li>
                 </ul>
               </div>
@@ -479,7 +494,7 @@ function LandingPage() {
                   <img
                     className="window__shot"
                     src="/landing/03-allocation.png"
-                    alt="Allocation vs target with drift analysis table"
+                    alt="Alocação vs meta com tabela de análise de desvio"
                     style={{ aspectRatio: '1440 / 900' }}
                   />
                 </div>
@@ -488,23 +503,24 @@ function LandingPage() {
 
             <div className="feature">
               <div className="feature__text">
-                <p className="eyebrow">Live valuation</p>
-                <h3>Every position, valued live and converted.</h3>
+                <p className="eyebrow">Valorização ao vivo</p>
+                <h3>Cada posição, valorizada ao vivo e convertida.</h3>
                 <p className="claim">
-                  Stocks, FIIs, ETFs, international equity, crypto and fixed
-                  income — one table, one currency of your choosing.
+                  Ações, FIIs, ETFs, ações internacionais, cripto e renda fixa —
+                  uma tabela, na moeda que você escolher.
                 </p>
                 <ul className="feature__list">
                   <li>
-                    Positions held in <strong>BRL, USD and EUR</strong>, shown
-                    native <em>and</em> converted.
+                    Posições em <strong>BRL, USD e EUR</strong>, exibidas na
+                    moeda nativa <em>e</em> convertidas.
                   </li>
                   <li>
-                    Live price, variation vs average cost, and quote status per
-                    asset.
+                    Preço ao vivo, variação vs preço médio e status da cotação
+                    por ativo.
                   </li>
                   <li>
-                    Allocation donut and a “strategy drift detected” nudge.
+                    Rosca de alocação e um alerta de “desvio de estratégia
+                    detectado”.
                   </li>
                 </ul>
               </div>
@@ -519,7 +535,7 @@ function LandingPage() {
                   <img
                     className="window__shot"
                     src="/landing/04-holdings.png"
-                    alt="Live holdings table with multi-currency valuation and allocation donut"
+                    alt="Tabela de posições com valorização multimoeda e rosca de alocação"
                     style={{ aspectRatio: '1440 / 1000' }}
                   />
                 </div>
@@ -528,21 +544,21 @@ function LandingPage() {
 
             <div className="feature reverse">
               <div className="feature__text">
-                <p className="eyebrow">Investment quality</p>
-                <h3>Score what you own against your own checklist.</h3>
+                <p className="eyebrow">Qualidade dos investimentos</p>
+                <h3>Pontue o que você tem com o seu próprio checklist.</h3>
                 <p className="claim">
-                  Each asset class has its own questionnaire; yes/no answers
-                  become a score that ranks holdings within their class.
+                  Cada classe de ativo tem seu questionário; respostas sim/não
+                  viram uma pontuação que ordena os ativos dentro da classe.
                 </p>
                 <ul className="feature__list">
                   <li>
-                    Editable question bank per category —{' '}
-                    <strong>68 questions</strong> out of the box.
+                    Banco de perguntas editável por categoria —{' '}
+                    <strong>68 perguntas</strong> prontas para usar.
                   </li>
-                  <li>Comparable score and ranking inside each asset class.</li>
+                  <li>Pontuação comparável e ranking dentro de cada classe.</li>
                   <li>
-                    Transparent “why this score” breakdown, question by
-                    question.
+                    Detalhamento transparente do “porquê da pontuação”, pergunta
+                    por pergunta.
                   </li>
                 </ul>
               </div>
@@ -557,7 +573,7 @@ function LandingPage() {
                   <img
                     className="window__shot"
                     src="/landing/08-scoring.png"
-                    alt="Per-investment scoring with a yes/no questionnaire"
+                    alt="Pontuação por investimento com questionário sim/não"
                     style={{ aspectRatio: '1440 / 1020' }}
                   />
                 </div>
@@ -566,18 +582,21 @@ function LandingPage() {
 
             <div className="feature">
               <div className="feature__text">
-                <p className="eyebrow">AI-assisted</p>
-                <h3>Let Claude do the reading for you.</h3>
+                <p className="eyebrow">Com ajuda de IA</p>
+                <h3>Deixe o Claude ler por você.</h3>
                 <p className="claim">
-                  Bring your own Anthropic key and have AI answer the checklist
-                  from fundamentals — one asset, or a whole category in batch.
+                  Use sua própria chave da Anthropic e deixe a IA responder o
+                  checklist a partir dos fundamentos — um ativo ou uma categoria
+                  inteira em lote.
                 </p>
                 <ul className="feature__list">
-                  <li>Batch verification across an entire asset class.</li>
-                  <li>Review and apply AI suggestions before they count.</li>
+                  <li>Verificação em lote em uma classe de ativo inteira.</li>
                   <li>
-                    Keys stored <strong>encrypted at rest</strong>{' '}
-                    (AES-256-GCM).
+                    Revise e aplique as sugestões da IA antes de elas valerem.
+                  </li>
+                  <li>
+                    Chaves armazenadas{' '}
+                    <strong>criptografadas em repouso</strong> (AES-256-GCM).
                   </li>
                 </ul>
               </div>
@@ -592,7 +611,7 @@ function LandingPage() {
                   <img
                     className="window__shot"
                     src="/landing/09-ai-batch.png"
-                    alt="Batch AI verification across investments"
+                    alt="Verificação em lote com IA entre investimentos"
                     style={{ aspectRatio: '1440 / 1000' }}
                   />
                 </div>
@@ -605,31 +624,37 @@ function LandingPage() {
         <section className="mobile" id="mobile">
           <div className="wrap">
             <div className="section-head">
-              <p className="eyebrow">Fits in your pocket</p>
-              <h2>Full feature parity on a phone.</h2>
+              <p className="eyebrow">Cabe no seu bolso</p>
+              <h2>Todos os recursos também no celular.</h2>
               <p>
-                A dedicated bottom navigation, single-column cards, and the same
-                numbers — from a 390px screen up.
+                Navegação inferior dedicada, cards em coluna única e os mesmos
+                números — a partir de uma tela de 390px.
               </p>
             </div>
             <div className="phones">
               <div>
                 <div className="phone">
-                  <img src="/landing/m1-dashboard.png" alt="Mobile dashboard" />
+                  <img
+                    src="/landing/m1-dashboard.png"
+                    alt="Início no celular"
+                  />
                 </div>
-                <p className="phone-cap">Dashboard</p>
+                <p className="phone-cap">Início</p>
               </div>
               <div>
                 <div className="phone">
-                  <img src="/landing/m2-holdings.png" alt="Mobile holdings" />
+                  <img
+                    src="/landing/m2-holdings.png"
+                    alt="Posições no celular"
+                  />
                 </div>
-                <p className="phone-cap">Holdings</p>
+                <p className="phone-cap">Posições</p>
               </div>
               <div>
                 <div className="phone">
                   <img
                     src="/landing/m3-aporte.png"
-                    alt="Mobile contribution simulation"
+                    alt="Simulação de aporte no celular"
                   />
                 </div>
                 <p className="phone-cap">Aporte</p>
@@ -638,24 +663,25 @@ function LandingPage() {
                 <div className="phone">
                   <img
                     src="/landing/m4-allocation.png"
-                    alt="Mobile allocation"
+                    alt="Alocação no celular"
                   />
                 </div>
-                <p className="phone-cap">Allocation</p>
+                <p className="phone-cap">Alocação</p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* TECH */}
-        <section className="tech" id="stack">
+        {/* TECNOLOGIA */}
+        <section className="tech" id="tecnologia">
           <div className="wrap">
             <div className="section-head">
-              <p className="eyebrow">Under the hood</p>
-              <h2>Type-safe, from schema to pixel.</h2>
+              <p className="eyebrow">Por baixo do capô</p>
+              <h2>Type-safe, do schema ao pixel.</h2>
               <p>
-                A modern full-stack app built for correctness — market data is a
-                cache, not a dependency, and the allocation math is unit-tested.
+                Um app full-stack moderno feito para ser correto — os dados de
+                mercado são cache, não dependência, e a matemática da alocação
+                tem testes.
               </p>
             </div>
             <div className="chips">
@@ -700,12 +726,12 @@ function LandingPage() {
         <section className="cta">
           <div className="wrap">
             <p className="eyebrow" style={{ color: 'var(--mint-on-navy)' }}>
-              Ready when you are
+              Quando você quiser
             </p>
-            <h2>Build your portfolio with an architect's precision.</h2>
+            <h2>Construa sua carteira com a precisão de um arquiteto.</h2>
             <p>
-              Set your targets, value everything live, and let the contribution
-              engine tell you what to buy next.
+              Defina suas metas, valorize tudo ao vivo e deixe a simulação de
+              aporte dizer o que comprar a seguir.
             </p>
             <div className="cta__buttons">
               <a className="btn btn--mint" href="/login">
@@ -717,7 +743,7 @@ function LandingPage() {
                 target="_blank"
                 rel="noopener"
               >
-                View the code
+                Ver o código
               </a>
             </div>
           </div>
@@ -732,7 +758,7 @@ function LandingPage() {
             </span>
             The Financial Architect
           </span>
-          <span>Seu patrimônio, arquitetado. · Built with TanStack Start</span>
+          <span>Seu patrimônio, arquitetado. · Feito com TanStack Start</span>
         </div>
       </footer>
     </div>
