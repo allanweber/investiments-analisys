@@ -45,7 +45,7 @@ A Brazilian personal investment portfolio tool. Two main capabilities:
 | **Aporte** | A contribution / new purchase |
 | **Renda Fixa** | Fixed income (CDB, LCI, Tesouro, etc.) — no market quote; valued at book |
 | **CDI / Selic / IPCA** | Brazilian benchmark rates fetched from BCB |
-| **MarketQuote** | Cached ticker price (provider: brapi or yfinance) |
+| **MarketQuote** | Cached ticker price (provider: yfinance) |
 | **FxRate** | Cached currency pair rate (provider: yfinance / Yahoo Finance) |
 | **MarketRate** | Cached BCB indexer rate (CDI, Selic, IPCA, IGP-M) |
 | **RendaFixaDetail** | Fixed-income contract terms stored at purchase: productType, indexer, capital, contractedRate, purchaseDate, maturityDate, multiplier. Child of PortfolioHolding — shares the same (userId, investmentId) composite key. |
@@ -89,7 +89,7 @@ src/
 │   │   ├── quote-refresh.ts        refreshMarketQuotesForInputs() → writes MarketQuote cache
 │   │   ├── fx-refresh.ts           ensureFxRatesForDisplay() → writes FxRate cache
 │   │   ├── bcb-refresh.ts          BCB indexer → writes MarketRate cache
-│   │   └── providers/              brapi.ts · yfinance.ts · bcb.ts
+│   │   └── providers/              yfinance.ts · bcb.ts
 │   └── renda-fixa/                 Fixed-income math library (prefixado, CDI, IPCA)
 │       ├── core.ts                 Primitives
 │       ├── fixed-rate.ts           Prefixado formulas

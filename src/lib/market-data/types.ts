@@ -1,14 +1,9 @@
-export type QuoteProviderId = 'brapi' | 'yfinance'
+export type QuoteProviderId = 'yfinance'
 
 export type MarketQuoteInput = {
   /** Raw symbol/ticker as stored on the holding. */
   symbol: string
-  /**
-   * Holding denomination currency (e.g. from `portfolioHolding.currency`).
-   * Used for routing: `BRL` → brapi first, then Yahoo fallback on failure.
-   * If the same `symbol` appears with mixed currencies, **any** `BRL` row makes
-   * that symbol brapi-primary for this refresh.
-   */
+  /** Holding denomination currency (e.g. from `portfolioHolding.currency`). */
   holdingCurrency?: string | null
   /**
    * Optional market/exchange hint (e.g. "B3", "NYSE"). Providers may ignore.
