@@ -4,6 +4,7 @@ import { wrapUrlWithProxy } from '../scrape-proxy'
 const SEARCH_URL = 'https://statusinvest.com.br/home/mainsearchquery'
 const DRE_URL = 'https://statusinvest.com.br/acao/getdre'
 const BALANCE_SHEET_URL = 'https://statusinvest.com.br/acao/getativos'
+const FII_PAGE_URL = 'https://statusinvest.com.br/fundos-imobiliarios'
 
 function isStatusInvestLogEnabled(): boolean {
   const v = (process.env.MARKET_DATA_LOG ?? '').trim().toLowerCase()
@@ -184,4 +185,54 @@ export async function fetchStatusInvestFundamentals(ticker: string): Promise<Fun
 
     return { fiscalYear, metrics }
   })
+}
+
+/** Label used for the current-value FII indicators below — matches the question bank's metricLabel. */
+export const FII_PVP_LABEL = 'P/VP'
+
+/**
+ * FIIs don't file the DRE/balance-sheet statements `fetchStatusInvestFundamentals` reads — that
+ * function always returns `[]` for a FII ticker. StatusInvest also has no equivalent multi-year
+ * JSON grid for FII indicators (P/VP, Patrimônio Líquido, vacância, ...); the FII's own page
+ * renders them server-side as plain HTML instead — a current snapshot, not a time series.
+ *
+ * This scrapes just `P/VP` off that page (the one FII indicator whose default question is a
+ * *level* check with no year window — "is it below 1 right now", not "did it grow over 5 years" —
+ * so a single current value is enough to answer it). Returns one entry keyed to the current
+ * calendar year, or `[]` if the ticker isn't a FII page, the page didn't load, or the field isn't
+ * present (StatusInvest does leave some FII indicators blank, e.g. vacância).
+ */
+export async function fetchStatusInvestFiiCurrentIndicators(ticker: string): Promise<FundamentalYear[]> {
+  const url = `${FII_PAGE_URL}/${encodeURIComponent(ticker.toLowerCase())}`
+  let html: string
+  try {
+    const res = await fetch(wrapUrlWithProxy(url), { headers: BROWSER_HEADERS })
+    if (!res.ok) {
+      if (isStatusInvestLogEnabled()) {
+        logStatusInvestEvent({ level: 'warn', msg: 'statusinvest -> fii_page_not_ok', ticker, status: res.status })
+      }
+      return []
+    }
+    html = await res.text()
+  } catch (e: any) {
+    logStatusInvestEvent({
+      level: 'error',
+      msg: 'statusinvest -> fii_page_error',
+      ticker,
+      error: typeof e?.message === 'string' ? e.message : 'Fetch error',
+    })
+    return []
+  }
+
+  // Indicator cards render as `<h3 class="title ...">P/VP</h3><strong class="value ...">0,88</strong>`.
+  const match = html.match(/<h3 class="title[^"]*">\s*P\/VP\s*<\/h3>\s*<strong class="value[^"]*">([^<]*)<\/strong>/)
+  const value = match ? parsePtBrNumber(match[1]) : null
+  if (value == null) {
+    if (isStatusInvestLogEnabled()) {
+      logStatusInvestEvent({ level: 'warn', msg: 'statusinvest -> fii_pvp_not_found', ticker })
+    }
+    return []
+  }
+
+  return [{ fiscalYear: new Date().getFullYear(), metrics: { [FII_PVP_LABEL]: value } }]
 }

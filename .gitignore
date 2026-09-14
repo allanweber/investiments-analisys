@@ -14,3 +14,4 @@ todos.json
 .scratch/
 docs/adr/
 plans/
+.llm-debug/

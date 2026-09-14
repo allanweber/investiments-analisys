@@ -49,6 +49,8 @@ Put secrets in `.env.local` (optional `env_file` for the `app` service): `BETTER
   - `QUOTE_WORKER_IDLE_MS` (default: 60000)
   - `QUOTE_WORKER_HEALTH_PORT` (default: unset; compose sets `8081` for health checks)
   - `MARKET_DATA_LOG` (optional; verbose provider logging)
+  - `LLM_DEBUG_PROMPTS` (optional; dumps raw Claude request/response JSON to `.llm-debug/` per call — local troubleshooting only, never enable in production)
+  - `LLM_DEBUG_PROMPTS_DIR` (default: `.llm-debug/`)
 
 ### Dokploy / Coolify: optional second worker service
 
@@ -122,6 +124,15 @@ User-supplied LLM API keys (Account → Settings → AI Settings) are encrypted 
    openssl rand -hex 32
    ```
 2. Set the result as `SETTINGS_ENCRYPTION_KEY` in `.env.local` (and in production). Losing or rotating this key makes previously stored keys undecryptable, so users would need to re-enter them.
+
+### Debugging raw Claude calls
+
+Set `LLM_DEBUG_PROMPTS=true` to dump the request/response of every Claude API call (AI scoring and question classification) to `.llm-debug/` — one `<timestamp>-<seq>-<tag>.request.json` / `...response.json` pair per call, unformatted. Off by default; see `.env.example`.
+
+```bash
+jq -r '.messages[0].content' .llm-debug/<stamp>-000-score.request.json
+jq -r '.content[] | select(.type=="text") | .text' .llm-debug/<stamp>-000-score.response.json
+```
 
 ### Adding a Database (Optional)
 
