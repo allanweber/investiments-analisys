@@ -262,12 +262,28 @@ export const runAiScoringForInvestmentsFn = createServerFn({ method: 'POST' })
       usage: batchResult.usage,
     })
 
+    // Each failure is scoped to the specific investmentIds its provider sub-request
+    // covered — a truncated/rate-limited chunk marks only those as failed, leaving
+    // every other chunk's successful suggestions intact (see AiScoringBatchFailure).
+    for (const failure of batchResult.failures) {
+      logAiScoringError({
+        provider: PROVIDER,
+        model: batchResult.model,
+        investmentIds: failure.investmentIds,
+        code: failure.code,
+        message: failure.message,
+      })
+      for (const investmentId of failure.investmentIds)
+        results.set(investmentId, { ok: false, code: failure.code })
+    }
+
     const checkedAt = new Date()
     const answersByInvestmentId = new Map(
       batchResult.perInvestment.map((p) => [p.investmentId, p.answers]),
     )
 
     for (const e of aiEligible) {
+      if (results.has(e.investmentId)) continue // already marked failed above
       const answers = answersByInvestmentId.get(e.investmentId) ?? []
       const suggestions: AiSuggestion[] = answers.map((answer) => {
         const suggestedYes =

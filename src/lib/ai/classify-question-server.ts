@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 
 import type { MetricComparator, MetricMode, QuestionMetricSpec } from '@/db/schema'
+import { debugRequest, debugWrite, errorDumpBody } from '@/lib/ai/llm-debug'
 import { CLAUDE_SCORING_MODEL } from '@/lib/ai/providers/claude'
 
 export type QuestionClassification =
@@ -60,18 +61,23 @@ export async function classifyQuestionKind(input: {
 }): Promise<QuestionClassification | null> {
   const client = new Anthropic({ apiKey: input.apiKey })
 
+  const params: Anthropic.MessageCreateParamsNonStreaming = {
+    model: CLAUDE_SCORING_MODEL,
+    max_tokens: 512,
+    system: SYSTEM_PROMPT,
+    output_config: { format: { type: 'json_schema', schema: outputSchema } },
+    messages: [{ role: 'user', content: input.prompt }],
+  }
+  const debugFiles = debugRequest(JSON.stringify(params), 'classify')
+
   let response: Anthropic.Message
   try {
-    response = await client.messages.create({
-      model: CLAUDE_SCORING_MODEL,
-      max_tokens: 512,
-      system: SYSTEM_PROMPT,
-      output_config: { format: { type: 'json_schema', schema: outputSchema } },
-      messages: [{ role: 'user', content: input.prompt }],
-    })
-  } catch {
+    response = await client.messages.create(params)
+  } catch (e) {
+    debugWrite(debugFiles?.response, JSON.stringify(errorDumpBody(e)))
     return null
   }
+  debugWrite(debugFiles?.response, JSON.stringify(response))
 
   if (response.stop_reason === 'refusal') return null
   const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === 'text')

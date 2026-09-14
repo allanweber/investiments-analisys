@@ -33,8 +33,21 @@ export type AiScoringBatchAnswers = {
   answers: ScoringAnswer[]
 }
 
+/**
+ * One provider sub-request (e.g. one Claude call covering a few investments) failed —
+ * scoped to just the investmentIds it covered, so a truncated/rate-limited/malformed
+ * chunk doesn't wipe out suggestions for every other investment in the same batch.
+ */
+export type AiScoringBatchFailure = {
+  investmentIds: string[]
+  code: AiScoringErrorCode
+  message: string
+}
+
 export type AiScoringBatchResult = {
   perInvestment: AiScoringBatchAnswers[]
+  /** Empty when every sub-request succeeded. */
+  failures: AiScoringBatchFailure[]
   usage: AiScoringUsage
   model: string
 }

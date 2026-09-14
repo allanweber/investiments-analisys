@@ -298,8 +298,10 @@ function PontuacaoPage() {
       // call above — that classification is persisted server-side, but our already-loaded `data`
       // doesn't reflect it, so run computed checks unconditionally rather than relying on stale
       // `data.questions` to decide whether any exist.
+      // `force: true` — an explicit "Verificar com IA" click means "look this up now", not
+      // "show me whatever the fundamentals cache (up to a week old) already had".
       const [computedItem] = await runComputedChecksForInvestmentsFn({
-        data: { investmentIds: [id] },
+        data: { investmentIds: [id], force: true },
       })
       if (computedItem.result.ok) {
         const { suggestions: computedSuggestions } = computedItem.result

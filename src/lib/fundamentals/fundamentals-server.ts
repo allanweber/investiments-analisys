@@ -14,7 +14,11 @@ import { ensureFundamentalsForTicker } from '@/lib/market-data/fundamentals-refr
 import type { FundamentalYear } from '@/lib/market-data/providers/statusinvest'
 import { uuid } from '@/lib/server-utils'
 
-const runBatchInput = z.object({ investmentIds: z.array(uuid).min(1).max(10) })
+const runBatchInput = z.object({
+  investmentIds: z.array(uuid).min(1).max(10),
+  /** Bypass the fundamentals cache TTL — an explicit "Verificar com IA" click, not a page load. */
+  force: z.boolean().optional(),
+})
 
 export type ComputedSuggestion = {
   questionId: string
@@ -113,7 +117,7 @@ export const runComputedChecksForInvestmentsFn = createServerFn({
       const [inv] = await db
         .select({
           id: investment.id,
-          name: investment.name,
+          ticker: investment.ticker,
           investmentTypeId: investment.investmentTypeId,
         })
         .from(investment)
@@ -148,7 +152,12 @@ export const runComputedChecksForInvestmentsFn = createServerFn({
         continue
       }
 
-      const ticker = inv.name.trim()
+      // `investment.ticker` (e.g. "ITSA4") is the real market symbol — `investment.name` is a
+      // free-text display label (e.g. "ITSA4 - Fianceiro Holdings Diversificadas") and is never
+      // a valid StatusInvest/Yahoo lookup key. Using it here was why every metric question
+      // reported "não encontrado" regardless of any cache/fallback fix: the ticker sent to both
+      // providers was garbage, not stale.
+      const ticker = (inv.ticker ?? '').trim()
       if (!ticker) {
         results.set(investmentId, { ok: false, code: 'no_ticker' })
         continue
@@ -156,7 +165,9 @@ export const runComputedChecksForInvestmentsFn = createServerFn({
 
       let years: FundamentalYear[]
       try {
-        years = await ensureFundamentalsForTicker(ticker)
+        years = await ensureFundamentalsForTicker(ticker, undefined, {
+          force: data.force,
+        })
       } catch (e) {
         console.error(
           JSON.stringify({
