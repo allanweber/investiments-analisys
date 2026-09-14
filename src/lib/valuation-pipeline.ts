@@ -9,7 +9,7 @@ import {
 } from '@/db/schema'
 import type * as schema from '@/db/schema'
 import { convertMoney, isFxCacheStale } from '@/lib/fx'
-import { normalizeHoldingCurrency, num, toMoney } from '@/lib/math'
+import { num, toMoney } from '@/lib/math'
 import { ensureFxRatesForDisplay } from '@/lib/market-data/fx-refresh'
 import { loadQuotesFromDb } from '@/lib/market-data/quote-cache'
 import type { MarketQuoteInput } from '@/lib/market-data'
@@ -126,10 +126,7 @@ export async function valuateHoldings(
 ): Promise<ValuationPipelineResult> {
   const inputs: MarketQuoteInput[] = holdings
     .filter((h) => !isFixedIncomeTipo(h.fixedIncome, h.investmentTypeName))
-    .map((h) => ({
-      symbol: (h.ticker ?? '').trim(),
-      holdingCurrency: normalizeHoldingCurrency(h.currency),
-    }))
+    .map((h) => ({ symbol: (h.ticker ?? '').trim() }))
     .filter((i) => i.symbol.length > 0)
 
   const { bySymbol, stale } = await loadQuotesFromDb({ inputs })

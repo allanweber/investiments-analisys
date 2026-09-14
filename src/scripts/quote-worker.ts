@@ -16,7 +16,6 @@ import {
 import { refreshBcbRatesIfStale } from '../lib/market-data/bcb-refresh'
 import { refreshFxRatesIfStale } from '../lib/market-data/fx-refresh'
 import { refreshMarketQuotesForInputs } from '../lib/market-data/quote-refresh'
-import { normalizeHoldingCurrency } from '../lib/math'
 
 function loadEnvFiles() {
   // Prefer local overrides, then default env.
@@ -108,13 +107,10 @@ async function releaseLock(): Promise<void> {
   )
 }
 
-type SymbolEnt = { symbol: string; holdingCurrency: string | null }
-
-async function loadDistinctSymbols(): Promise<SymbolEnt[]> {
+async function loadDistinctSymbols(): Promise<string[]> {
   const rows = await db
     .select({
       symbol: investment.ticker,
-      holdingCurrency: investment.currency,
       fixedIncome: investmentType.fixedIncome,
       typeName: investmentType.name,
     })
@@ -133,31 +129,14 @@ async function loadDistinctSymbols(): Promise<SymbolEnt[]> {
       ),
     )
 
-  const bySymbol = new Map<
-    string,
-    { holdingCurrency: string | null; preferBrl: boolean }
-  >()
+  const symbols = new Set<string>()
   for (const r of rows) {
     const sym = (r.symbol ?? '').trim()
     if (!sym) continue
-    const cur = normalizeHoldingCurrency(r.holdingCurrency)
-    const preferBrl = cur === 'BRL'
-    const prev = bySymbol.get(sym)
-    if (!prev) {
-      bySymbol.set(sym, { holdingCurrency: cur, preferBrl })
-      continue
-    }
-    if (preferBrl) {
-      prev.holdingCurrency = 'BRL'
-      prev.preferBrl = true
-    } else if (!prev.holdingCurrency && cur) {
-      prev.holdingCurrency = cur
-    }
+    symbols.add(sym)
   }
 
-  return [...bySymbol.entries()]
-    .map(([symbol, v]) => ({ symbol, holdingCurrency: v.holdingCurrency }))
-    .sort((a, b) => a.symbol.localeCompare(b.symbol))
+  return [...symbols].sort((a, b) => a.localeCompare(b))
 }
 
 async function loadQuoteAges(
@@ -177,12 +156,12 @@ async function loadQuoteAges(
 function computeStaleOrder(params: {
   nowMs: number
   ttlMs: number
-  symbols: readonly SymbolEnt[]
+  symbols: readonly string[]
   fetchedAtBySymbol: Map<string, Date | null>
-}): SymbolEnt[] {
-  const stale: Array<{ sym: SymbolEnt; fetchedAtMs: number }> = []
+}): string[] {
+  const stale: Array<{ sym: string; fetchedAtMs: number }> = []
   for (const s of params.symbols) {
-    const at = params.fetchedAtBySymbol.get(s.symbol) ?? null
+    const at = params.fetchedAtBySymbol.get(s) ?? null
     const atMs = at instanceof Date ? at.getTime() : 0
     const freshEnough = atMs > 0 && params.nowMs - atMs <= params.ttlMs
     if (freshEnough) continue
@@ -309,8 +288,7 @@ async function main() {
     const sweepStart = Date.now()
     try {
       const symbols = await loadDistinctSymbols()
-      const symbolList = symbols.map((s) => s.symbol)
-      const fetchedAtBySymbol = await loadQuoteAges(symbolList)
+      const fetchedAtBySymbol = await loadQuoteAges(symbols)
       const staleOrder = computeStaleOrder({
         nowMs: Date.now(),
         ttlMs,
@@ -371,20 +349,18 @@ async function main() {
         continue
       }
 
-      const next = staleOrder[0]
-      const sym = next.symbol
+      const sym = staleOrder[0]
       const refreshStart = Date.now()
       const { stale } = await refreshMarketQuotesForInputs({
         actorId: 'quote-worker',
         reason: 'worker',
-        inputs: [{ symbol: sym, holdingCurrency: next.holdingCurrency }],
+        inputs: [{ symbol: sym }],
       })
       logWorkerEvent({
         level: stale ? 'warn' : 'info',
         msg: 'symbol -> refreshed',
         phase: 'symbol',
         symbol: sym,
-        holdingCurrency: next.holdingCurrency,
         providerStale: stale,
         elapsedMs: Date.now() - refreshStart,
       })

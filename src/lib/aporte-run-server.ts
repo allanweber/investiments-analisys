@@ -13,7 +13,6 @@ import type { AporteRunSnapshot } from '@/db/schema'
 import { loadQuotesFromDb } from '@/lib/market-data/quote-cache'
 import { refreshMarketQuotesForInputs } from '@/lib/market-data/quote-refresh'
 import { isFixedIncomeTipo } from '@/lib/portfolio-valuation'
-import { normalizeHoldingCurrency } from '@/lib/math'
 import { getDb, requireUserId } from '@/lib/db-server'
 import { uuid, idInput } from '@/lib/server-utils'
 
@@ -60,12 +59,7 @@ export const getInvestmentLiveQuoteFn = createServerFn({ method: 'POST' })
     const symbol = inv.ticker?.trim() ?? ''
     if (!symbol) return { ok: false as const, code: 'NO_TICKER' as const }
 
-    const inputs = [
-      {
-        symbol,
-        holdingCurrency: normalizeHoldingCurrency(inv.currency ?? 'BRL'),
-      },
-    ]
+    const inputs = [{ symbol }]
     await refreshMarketQuotesForInputs({
       actorId: userId,
       reason: 'immediate',

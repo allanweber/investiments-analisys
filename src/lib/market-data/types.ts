@@ -3,8 +3,6 @@ export type QuoteProviderId = 'yfinance'
 export type MarketQuoteInput = {
   /** Raw symbol/ticker as stored on the holding. */
   symbol: string
-  /** Holding denomination currency (e.g. from `portfolioHolding.currency`). */
-  holdingCurrency?: string | null
   /**
    * Optional market/exchange hint (e.g. "B3", "NYSE"). Providers may ignore.
    * Stored on cache rows to help later provider swaps.
@@ -35,4 +33,3 @@ export interface QuoteProvider {
    */
   fetchQuotes: (inputs: readonly MarketQuoteInput[]) => Promise<QuoteFetchResult[]>
 }
-

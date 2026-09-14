@@ -2,7 +2,7 @@ import { inArray, sql } from 'drizzle-orm'
 
 import { marketQuote } from '../../db/schema'
 import { getMarketDataDb, makeLogger } from './db'
-import { getQuoteProvider } from './index'
+import { fetchYahooLogoUrls, yfinanceProvider } from './providers/yfinance'
 import type { MarketQuote, MarketQuoteInput, QuoteFetchResult } from './types'
 
 const log = makeLogger('quoteRefresh')
@@ -39,12 +39,8 @@ export async function refreshMarketQuotesForInputs(params: {
   >()
   if (symbols.length === 0) return { bySymbol, stale: false }
 
-  const yfinance = getQuoteProvider('yfinance')
-
   let stale = false
 
-  const yahooInputs = symbols.map((s) => ({ symbol: s }))
-  let yahooResults: QuoteFetchResult[] = []
   const yStart = Date.now()
   if (logEnabled) {
     log({
@@ -57,8 +53,11 @@ export async function refreshMarketQuotesForInputs(params: {
       request: { symbols, n: symbols.length },
     })
   }
+  let results: QuoteFetchResult[] = []
   try {
-    yahooResults = await yfinance.fetchQuotes(yahooInputs)
+    results = await yfinanceProvider.fetchQuotes(
+      symbols.map((s) => ({ symbol: s })),
+    )
   } catch (e: any) {
     stale = true
     log({
@@ -75,28 +74,22 @@ export async function refreshMarketQuotesForInputs(params: {
         stack: typeof e?.stack === 'string' ? e?.stack : undefined,
       },
     })
-    yahooResults = symbols.map(() => ({
+    results = symbols.map(() => ({
       ok: false as const,
       code: 'PROVIDER_ERROR' as const,
       message: typeof e?.message === 'string' ? e.message : 'Provider error',
     }))
   }
 
-  const yahooBySymbol = new Map<string, QuoteFetchResult>()
-  for (let i = 0; i < symbols.length; i++) {
-    yahooBySymbol.set(symbols[i], yahooResults[i])
-  }
-
   const toSave = new Map<string, MarketQuote>()
-
-  for (const s of symbols) {
-    const yr = yahooBySymbol.get(s)!
-    if (!yr.ok && yr.code === 'PROVIDER_ERROR') stale = true
-    if (yr.ok) toSave.set(s, yr.quote)
+  for (let i = 0; i < symbols.length; i++) {
+    const r = results[i]
+    if (!r.ok && r.code === 'PROVIDER_ERROR') stale = true
+    if (r.ok) toSave.set(symbols[i], r.quote)
   }
 
-  // Fetch missing logos for yfinance quotes immediately after quote,
-  // but only when market_quote doesn't already have a cached logo for the symbol.
+  // Fetch missing logos immediately after quote, but only when market_quote
+  // doesn't already have a cached logo for the symbol.
   const needLogo: string[] = []
   for (const [symbol, q] of toSave.entries()) {
     if (q.logoUrl) continue
@@ -113,7 +106,6 @@ export async function refreshMarketQuotesForInputs(params: {
 
     const missing = needLogo.filter((s) => !cachedLogoBySymbol.get(s))
     if (missing.length > 0) {
-      const { fetchYahooLogoUrls } = await import('./providers/yfinance')
       const logos = await fetchYahooLogoUrls(missing)
       for (const sym of missing) {
         const logoUrl = logos.get(sym) ?? null

@@ -15,7 +15,8 @@ function useResolvedTheme(): 'light' | 'dark' {
 
   useEffect(() => {
     const root = document.documentElement
-    const read = () => setTheme(root.classList.contains('dark') ? 'dark' : 'light')
+    const read = () =>
+      setTheme(root.classList.contains('dark') ? 'dark' : 'light')
     read()
     const observer = new MutationObserver(read)
     observer.observe(root, { attributes: true, attributeFilter: ['class'] })
@@ -72,7 +73,11 @@ const PUBLIC_AUTH_PATHS = [
 
 function isPublicAuthPath(pathname: string) {
   return (
-    PUBLIC_AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`)) ||
+    // The marketing landing page at "/" is public: no app chrome, no auth gate.
+    pathname === '/' ||
+    PUBLIC_AUTH_PATHS.some(
+      (p) => pathname === p || pathname.startsWith(`${p}/`),
+    ) ||
     pathname === '/admin' ||
     pathname.startsWith('/admin/')
   )

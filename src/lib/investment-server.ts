@@ -30,8 +30,8 @@ async function fetchTickerQuoteCurrency(
 }
 
 /**
- * Resolves a ticker to its quote currency via yfinance (B3 tickers get an automatic `.SA`
- * suffix — see `yahooSymbolFor`). Retries on transient provider failures (`stale`) before
+ * Resolves a ticker to its quote currency via yfinance (B3 tickers get a `.SA` suffix there).
+ * Retries on transient provider failures (`stale` — e.g. a cold-request timeout/abort) before
  * giving up. A `price` of null/0 counts as unresolved (VWRL 0-price case).
  */
 async function resolveTickerCurrency(
@@ -39,6 +39,7 @@ async function resolveTickerCurrency(
   ticker: string,
 ): Promise<{ resolved: boolean; currency: string | null }> {
   try {
+    // Retry on transient (stale) failures — not on a genuine miss.
     for (let attempt = 0; attempt < 3; attempt++) {
       const r = await fetchTickerQuoteCurrency(userId, ticker)
       if (r.resolved) return r

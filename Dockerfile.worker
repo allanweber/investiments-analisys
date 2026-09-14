@@ -32,7 +32,6 @@ USER node
 # Required env at runtime:
 # - DATABASE_URL
 # Optional:
-# - BRAPI_TOKEN
 # - QUOTE_WORKER_STAGGER_MS
 # - QUOTE_WORKER_IDLE_MS
 # - QUOTE_WORKER_HEALTH_PORT

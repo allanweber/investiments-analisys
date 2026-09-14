@@ -43,7 +43,8 @@ export async function fetchYahooLogoUrls(
   for (const raw of symbols) {
     const symbol = raw.trim()
     if (!symbol) continue
-    const req = { symbol, module: 'assetProfile' }
+    const yahooSymbol = yahooSymbolFor(symbol)
+    const req = { symbol: yahooSymbol, module: 'assetProfile' }
     try {
       if (isMarketDataLogEnabled()) {
         logMarketDataProviderEvent({
@@ -52,7 +53,7 @@ export async function fetchYahooLogoUrls(
           request: req,
         })
       }
-      const payload: any = await yahooFinance.quoteSummary(symbol, {
+      const payload: any = await yahooFinance.quoteSummary(yahooSymbol, {
         modules: ['assetProfile'],
       })
       let logoUrl: string | null =
@@ -167,29 +168,24 @@ export const yfinanceProvider: QuoteProvider = {
 
     for (let start = 0; start < inputs.length; start += QUOTE_BATCH) {
       const slice = inputs.slice(start, start + QUOTE_BATCH)
-      const uniqueOriginal = [
-        ...new Set(slice.map((i) => i.symbol.trim()).filter(Boolean)),
+      const unique = [
+        ...new Set(
+          slice
+            .map((i) => i.symbol.trim())
+            .filter(Boolean)
+            .map(yahooSymbolFor),
+        ),
       ]
 
-      if (uniqueOriginal.length === 0) {
+      if (unique.length === 0) {
         for (const _ of slice) {
           out.push({ ok: false, code: 'NOT_FOUND', message: 'Missing symbol' })
         }
         continue
       }
 
-      // B3 tickers need the `.SA` suffix for Yahoo; auto-append it instead of
-      // requiring the user to type it. Query symbol != stored symbol.
-      const queryBySymbol = new Map(
-        uniqueOriginal.map((s) => [s, yahooSymbolFor(s)]),
-      )
-      const uniqueQuery = [...new Set(queryBySymbol.values())]
-
       try {
-        const req = {
-          symbols: uniqueQuery,
-          options: { return: 'object' as const },
-        }
+        const req = { symbols: unique, options: { return: 'object' as const } }
         if (isMarketDataLogEnabled()) {
           logMarketDataProviderEvent({
             level: 'info',
@@ -197,7 +193,7 @@ export const yfinanceProvider: QuoteProvider = {
             request: req,
           })
         }
-        const obj = (await yahooFinance.quote(uniqueQuery, {
+        const obj = (await yahooFinance.quote(unique, {
           return: 'object',
         })) as Record<string, any>
         if (isMarketDataLogEnabled()) {
@@ -219,8 +215,7 @@ export const yfinanceProvider: QuoteProvider = {
             })
             continue
           }
-          const querySym = queryBySymbol.get(sym) ?? sym
-          const row = pickQuoteRow(obj, querySym)
+          const row = pickQuoteRow(obj, yahooSymbolFor(sym))
           const quote = parseYahooQuote(sym, row)
           if (!quote || quote.price == null) {
             out.push({
@@ -237,7 +232,7 @@ export const yfinanceProvider: QuoteProvider = {
         logMarketDataProviderEvent({
           level: 'error',
           msg: 'yfinance -> error',
-          request: { symbols: uniqueQuery, options: { return: 'object' } },
+          request: { symbols: unique, options: { return: 'object' } },
           error: {
             message:
               typeof e?.message === 'string' ? e.message : 'Provider error',
